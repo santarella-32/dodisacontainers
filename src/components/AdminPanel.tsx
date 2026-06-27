@@ -359,12 +359,6 @@ export default function AdminPanel() {
     }
   };
 
-  // Quick credentials filler
-  const autofillMaster = () => {
-    setEmailInput("admin@dodisa.com.br");
-    setPasswordInput("dodisaadmin2026");
-  };
-
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthMsg("");
@@ -585,24 +579,10 @@ export default function AdminPanel() {
           </div>
 
           <form className="mt-8 bg-[#171A21] border border-white/5 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.6)] space-y-6" onSubmit={handleLoginSubmit}>
-            {/* Quick credentials badge */}
-            <div className="bg-[#FFD400]/5 border border-[#FFD400]/15 p-4 rounded-xl text-xs text-stone-300">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="font-bold text-[#FFD400] uppercase font-mono flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5" /> ACESSO DIRETORIA
-                </span>
-                <button 
-                  type="button" 
-                  onClick={autofillMaster}
-                  className="text-[10px] text-white bg-[#FFD400] hover:bg-[#FF8A00] px-2.5 py-1 rounded-lg font-black uppercase tracking-wider transition-all cursor-pointer"
-                >
-                  PREENCHER
-                </button>
-              </div>
-              <p className="text-stone-400 text-[11px] leading-relaxed mt-1">
-                E-mail: <strong className="text-white">admin@dodisa.com.br</strong><br />
-                Senha padrão: <strong className="text-white">dodisaadmin2026</strong>
-              </p>
+            {/* Access header */}
+            <div className="flex items-center gap-2 text-[#FFD400]">
+              <Shield className="w-4 h-4" />
+              <span className="font-black text-xs uppercase tracking-widest font-mono">Acesso Restrito</span>
             </div>
 
             {loginError && (
