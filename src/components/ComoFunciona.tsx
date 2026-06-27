@@ -1,0 +1,105 @@
+import React from "react";
+import { motion } from "motion/react";
+import { MessageSquare, FileSpreadsheet, Puzzle, Truck } from "lucide-react";
+import { STEPS_DATA } from "../data";
+
+const stepIcons = [
+  MessageSquare,
+  FileSpreadsheet,
+  Puzzle,
+  Truck
+];
+
+export default function ComoFunciona() {
+  return (
+    <section id="como-funciona" className="relative py-28 bg-[#0B0F14] border-t border-white/5 overflow-hidden">
+      
+      {/* Decorative vertical blueprint coordinate indicators */}
+      <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px] bg-dashed border-l border-white/5 pointer-events-none hidden lg:block" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="text-center max-w-3xl mx-auto mb-20"
+        >
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-yellow/10 border border-brand-yellow/20 text-[10px] font-mono font-black text-brand-yellow uppercase tracking-widest mb-4">
+            FLUXO OPERACIONAL DE ENGENHARIA
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-black font-display text-white uppercase tracking-tight">
+            COMO FUNCIONA A <span className="text-brand-yellow">ENTREGABILIDADE?</span>
+          </h2>
+          <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
+          <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
+            Do primeiro clique de contato e alinhamento comercial ao içamento final por caminhões munck pesados na sua garagem ou pátio de obras. Sem burocracia técnica.
+          </p>
+        </motion.div>
+
+        {/* Timeline Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative animate-fade-in">
+          
+          {STEPS_DATA.map((step, idx) => {
+            const IconComponent = stepIcons[idx] || MessageSquare;
+            return (
+              <motion.div
+                key={step.number}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.6, delay: idx * 0.15 }}
+                className="group relative bg-[#111827]/40 p-6 sm:p-7 rounded-2xl border border-white/5 hover:border-brand-yellow/30 shadow-2xl transition-all duration-300 flex flex-col justify-between backdrop-blur-sm"
+              >
+                {/* Large architectural step watermarking */}
+                <span className="absolute top-4 right-6 text-5xl font-black text-stone-900/40 font-mono select-none group-hover:text-brand-yellow/10 transition-colors">
+                  0{step.number}
+                </span>
+
+                <div>
+                  {/* Decorative weld dots resembling metal fabrication */}
+                  <div className="flex gap-1.5 mb-6 text-stone-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-stone-800" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-stone-800" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-stone-800" />
+                  </div>
+
+                  {/* Icon wrap with yellow accents */}
+                  <div className="w-12 h-12 rounded-xl bg-[#0B0F14]/50 border border-white/5 text-brand-yellow flex items-center justify-center mb-5 group-hover:bg-brand-yellow group-hover:text-brand-black transition-all duration-300">
+                    <IconComponent className="w-5 h-5 stroke-[2.2]" />
+                  </div>
+
+                  <h3 className="text-base sm:text-lg font-black text-stone-100 uppercase tracking-tight group-hover:text-brand-yellow transition-colors font-display leading-tight">
+                    {step.title}
+                  </h3>
+
+                  <p className="mt-3 text-[#9CA3AF] font-sans text-xs leading-relaxed">
+                    {step.description}
+                  </p>
+                </div>
+
+                {/* Bottom line progress simulator */}
+                <div className="mt-8 pt-4 border-t border-white/5 flex items-center justify-between text-[9px] font-mono font-bold text-stone-500 uppercase tracking-widest leading-none">
+                  <span>Passo {step.number} de 4</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-stone-800 group-hover:bg-brand-orange transition-all" />
+                </div>
+
+              </motion.div>
+            );
+          })}
+
+        </div>
+
+        {/* Highlight footer step CTA info */}
+        <div className="mt-16 text-center max-w-xl mx-auto">
+          <p className="text-[10px] font-mono font-bold text-stone-500 uppercase tracking-widest">
+            ★ MÉDIA DE INÍCIO DE PRODUÇÃO: <span className="text-brand-yellow font-black">24 HORAS</span> APÓS ASSINATURA DE CONTRATO COMERCIAL.
+          </p>
+        </div>
+
+      </div>
+    </section>
+  );
+}
