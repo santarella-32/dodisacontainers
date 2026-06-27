@@ -766,6 +766,104 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return pubSectionsOrder;
   });
 
+  // Load published content from Supabase on mount so all visitors see the latest data
+  useEffect(() => {
+    const loadPublished = async () => {
+      if (!supabase) return;
+      try {
+        const { data, error } = await supabase
+          .from("published_content")
+          .select("section_key, content_data");
+        if (error || !data || data.length === 0) return;
+
+        data.forEach(({ section_key, content_data }: { section_key: string; content_data: any }) => {
+          if (!content_data) return;
+          switch (section_key) {
+            case "logo_settings":
+              setPubLogoSettings(content_data);
+              setLogoSettings(content_data);
+              localStorage.setItem("dodisa_cms_pub_logo_settings", JSON.stringify(content_data));
+              break;
+            case "seo":
+              setPubSeo(content_data);
+              setSeo(content_data);
+              localStorage.setItem("dodisa_cms_pub_seo", JSON.stringify(content_data));
+              break;
+            case "hero":
+              setPubHero(content_data);
+              setHero(content_data);
+              localStorage.setItem("dodisa_cms_pub_hero", JSON.stringify(content_data));
+              break;
+            case "differentials":
+              setPubDifferentials(content_data);
+              setDifferentials(content_data);
+              localStorage.setItem("dodisa_cms_pub_differentials", JSON.stringify(content_data));
+              break;
+            case "containers":
+              setPubContainers(content_data);
+              setContainers(content_data);
+              localStorage.setItem("dodisa_cms_pub_containers", JSON.stringify(content_data));
+              break;
+            case "pronta_entrega":
+              setPubProntaEntrega(content_data);
+              setProntaEntrega(content_data);
+              localStorage.setItem("dodisa_cms_pub_pronta_entrega", JSON.stringify(content_data));
+              break;
+            case "projects":
+              setPubProjects(content_data);
+              setProjects(content_data);
+              localStorage.setItem("dodisa_cms_pub_projects", JSON.stringify(content_data));
+              break;
+            case "videos":
+              setPubVideos(content_data);
+              setVideos(content_data);
+              localStorage.setItem("dodisa_cms_pub_videos", JSON.stringify(content_data));
+              break;
+            case "faq":
+              setPubFaq(content_data);
+              setFaq(content_data);
+              localStorage.setItem("dodisa_cms_pub_faq", JSON.stringify(content_data));
+              break;
+            case "testimonials":
+              setPubTestimonials(content_data);
+              setTestimonials(content_data);
+              localStorage.setItem("dodisa_cms_pub_testimonials", JSON.stringify(content_data));
+              break;
+            case "regions":
+              setPubRegions(content_data);
+              setRegions(content_data);
+              localStorage.setItem("dodisa_cms_pub_regions", JSON.stringify(content_data));
+              break;
+            case "simulator":
+              setPubSimulator(content_data);
+              setSimulator(content_data);
+              localStorage.setItem("dodisa_cms_pub_simulator", JSON.stringify(content_data));
+              break;
+            case "whatsapp":
+              setPubWhatsApp(content_data);
+              setWhatsApp(content_data);
+              localStorage.setItem("dodisa_cms_pub_whatsapp", JSON.stringify(content_data));
+              break;
+            case "visibility":
+              setPubSectionsVisibility(content_data);
+              setSectionsVisibilityState(content_data);
+              localStorage.setItem("dodisa_cms_pub_visibility", JSON.stringify(content_data));
+              break;
+            case "sections_order":
+              setPubSectionsOrder(content_data);
+              setSectionsOrderState(content_data);
+              localStorage.setItem("dodisa_cms_pub_sections_order", JSON.stringify(content_data));
+              break;
+          }
+        });
+      } catch {
+        // Silently fall back to localStorage data already loaded
+      }
+    };
+
+    loadPublished();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Track updates
   const markUpdate = () => {
     const now = new Date();
