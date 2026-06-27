@@ -293,7 +293,7 @@ const DEFAULTS = {
   seo: {
     title: "DODISA CONTAINERS | Especialista em Venda, Aluguel e Projetos Modulares",
     description: "Referência no Sul do Brasil em containers residenciais, escritórios, almoxarifados e sob medida. Atendimento ágil e estrutura de alta segurança.",
-    ogImage: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80",
+    ogImage: "/link.png",
     keywords: "containers, container santa rosa, aluguel container, comprar container, container escritorio, container oficina, v-40, e-30, d-20, rio grande do sul"
   },
   hero: {
