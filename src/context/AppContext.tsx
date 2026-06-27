@@ -284,7 +284,7 @@ const DEFAULTS = {
   logoSettings: {
     logoUrl: "default",       // 'default' indicates we fallback to the SVG component
     logoDarkUrl: "default",   // 'default' or empty
-    faviconUrl: "/favicon.ico", // Browser favicon URL standard fallback
+    faviconUrl: "/favicon.svg", // Dodisa DD logo SVG favicon
     logoAlt: "Dodisa Containers Símbolo",
     logoLink: "/",
     logoWidthDesktop: 120,    // Default size configuration max width px

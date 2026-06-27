@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Dark background -->
+  <rect width="120" height="120" rx="24" fill="#111827"/>
+  <!-- Left D - Yellow -->
+  <path d="M 25 20 H 50 L 65 60 L 50 100 H 25 Z" fill="#FFD400"/>
+  <!-- Right D - Orange -->
+  <path d="M 55 20 H 80 L 95 60 L 80 100 H 55 L 70 60 Z" fill="#FF9A00"/>
+</svg>
