@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { ArrowRight, CheckCircle2, ShieldAlert, Award, Sparkles, Play, X, Zap, Cpu, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAppContext } from "../context/AppContext";
-import ThreeContainerVisualizer from "./ThreeContainerVisualizer";
+
+const ThreeContainerVisualizer = lazy(() => import("./ThreeContainerVisualizer"));
 
 // Smooth real-time count-up component for premium metrics
 function CountUp({ target, duration = 2000, suffix = "" }) {
@@ -321,8 +322,9 @@ export default function Hero() {
             {/* Realist Cinematic Container Viewport - Floating Transparent 3D Container with no square border */}
             <div className="relative w-full h-[320px] sm:h-[450px] flex items-center justify-center overflow-hidden">
               <div className="w-full h-full relative">
-                {/* 3D WebGL Live Render Layer */}
-                <ThreeContainerVisualizer />
+                <Suspense fallback={<div className="w-full h-full bg-stone-900 animate-pulse rounded-lg" />}>
+                  <ThreeContainerVisualizer />
+                </Suspense>
               </div>
             </div>
 

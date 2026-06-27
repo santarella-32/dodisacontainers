@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { AppProvider, useAppContext } from "./context/AppContext";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
@@ -7,19 +7,20 @@ import Diferenciais from "./components/Diferenciais";
 import ContainersGrid from "./components/ContainersGrid";
 import ProntaEntrega from "./components/ProntaEntrega";
 import Projetos from "./components/Projetos";
-import GaleriaProjetos from "./components/GaleriaProjetos";
-import CalculadoraEconomia from "./components/CalculadoraEconomia";
-import VideosReais from "./components/VideosReais";
 import ComoFunciona from "./components/ComoFunciona";
-import MapaAtendimento from "./components/MapaAtendimento";
 import Sobre from "./components/Sobre";
-import FAQInteligente from "./components/FAQInteligente";
 import Depoimentos from "./components/Depoimentos";
 import CTA from "./components/CTA";
 import CanaisAtendimento from "./components/CanaisAtendimento";
 import WhatsAppButton from "./components/WhatsAppButton";
 import Footer from "./components/Footer";
-import AdminPanel from "./components/AdminPanel";
+
+const AdminPanel = lazy(() => import("./components/AdminPanel"));
+const GaleriaProjetos = lazy(() => import("./components/GaleriaProjetos"));
+const CalculadoraEconomia = lazy(() => import("./components/CalculadoraEconomia"));
+const VideosReais = lazy(() => import("./components/VideosReais"));
+const MapaAtendimento = lazy(() => import("./components/MapaAtendimento"));
+const FAQInteligente = lazy(() => import("./components/FAQInteligente"));
 
 function AppContent() {
   const { 
@@ -61,6 +62,10 @@ function AppContent() {
     }
   }, [isFullPreview, isAdminViewActive, setPagePreviewMode]);
 
+  const LazySection = ({ children }: { children: React.ReactNode }) => (
+    <Suspense fallback={<div className="py-16" />}>{children}</Suspense>
+  );
+
   // Dictionary mapping section keys to their corresponding React Components
   const SECTION_COMPONENTS: Record<string, React.ReactNode> = {
     hero: <Hero key="hero" />,
@@ -69,13 +74,13 @@ function AppContent() {
     containers: <ContainersGrid key="containers" />,
     prontaEntrega: <ProntaEntrega key="prontaEntrega" />,
     projects: <Projetos key="projects" />,
-    gallery: <GaleriaProjetos key="gallery" />,
-    economyCalculator: <CalculadoraEconomia key="economyCalculator" />,
-    videos: <VideosReais key="videos" />,
+    gallery: <LazySection key="gallery"><GaleriaProjetos /></LazySection>,
+    economyCalculator: <LazySection key="economyCalculator"><CalculadoraEconomia /></LazySection>,
+    videos: <LazySection key="videos"><VideosReais /></LazySection>,
     timeline: <ComoFunciona key="timeline" />,
-    map: <MapaAtendimento key="map" />,
+    map: <LazySection key="map"><MapaAtendimento /></LazySection>,
     about: <Sobre key="about" />,
-    faq: <FAQInteligente key="faq" />,
+    faq: <LazySection key="faq"><FAQInteligente /></LazySection>,
     testimonials: <Depoimentos key="testimonials" />,
     cta: <CTA key="cta" />,
     channels: <CanaisAtendimento key="channels" />
@@ -125,7 +130,11 @@ function AppContent() {
 
   // If the admin user clicked the discrete footer link and logged in, show the Admin Dashboard
   if (isAdminViewActive) {
-    return <AdminPanel />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-stone-950 flex items-center justify-center text-stone-400">Carregando painel...</div>}>
+        <AdminPanel />
+      </Suspense>
+    );
   }
 
   return (
