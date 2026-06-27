@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useAppContext, AppContext, EditableContainer, ProntaEntregaItem, EditableProject, EditableVideo, EditableFAQ, EditableTestimonial } from "../context/AppContext";
 import { getSupabase } from "../lib/supabase";
+import ImageUploadField from "./ImageUploadField";
 import Logo from "./Logo";
 import Hero from "./Hero";
 import SimuladorOrcamento from "./SimuladorOrcamento";
@@ -29,6 +30,125 @@ import CanaisAtendimento from "./CanaisAtendimento";
 import Header from "./Header";
 import Footer from "./Footer";
 
+function ProfileTab({ adminUser, changeCredentials, triggerNotification }: {
+  adminUser: any;
+  changeCredentials: (email: string, currentPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
+  triggerNotification: (msg: string) => void;
+}) {
+  const [newEmail, setNewEmail] = React.useState(adminUser?.email || "");
+  const [currentPass, setCurrentPass] = React.useState("");
+  const [newPass, setNewPass] = React.useState("");
+  const [confirmPass, setConfirmPass] = React.useState("");
+  const [credMsg, setCredMsg] = React.useState<{ text: string; ok: boolean } | null>(null);
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCredMsg(null);
+    if (newPass && newPass !== confirmPass) {
+      setCredMsg({ text: "Nova senha e confirmação não coincidem.", ok: false });
+      return;
+    }
+    if (!currentPass) {
+      setCredMsg({ text: "Informe sua senha atual para confirmar a alteração.", ok: false });
+      return;
+    }
+    setSaving(true);
+    const result = await changeCredentials(newEmail, currentPass, newPass);
+    setSaving(false);
+    setCredMsg({ text: result.message, ok: result.success });
+    if (result.success) {
+      setCurrentPass("");
+      setNewPass("");
+      setConfirmPass("");
+      triggerNotification(result.message);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="bg-[#171A21] border border-white/5 p-6 rounded-2xl space-y-6">
+        <div className="border-b border-white/5 pb-4">
+          <h3 className="text-white text-base font-black uppercase">Perfil do Administrador</h3>
+          <p className="text-stone-400 text-xs mt-1">Altere seu e-mail e senha de acesso ao painel.</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-5 bg-[#0F1115] p-5 rounded-xl border border-white/5">
+          <div className="w-16 h-16 rounded-full bg-[#FFD400]/10 border border-[#FFD400]/25 flex items-center justify-center text-xl font-bold text-[#FFD400] font-mono">
+            {(adminUser?.email?.[0] || "D").toUpperCase()}
+          </div>
+          <div className="text-center sm:text-left space-y-1">
+            <span className="text-[9px] font-mono font-bold text-[#FFD400] bg-[#FFD400]/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Master Admin</span>
+            <h4 className="text-white text-sm font-black uppercase mt-1">{adminUser?.email?.split("@")?.[0] || "Admin"}</h4>
+            <p className="text-stone-400 text-xs font-medium">{adminUser?.email}</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSave} className="space-y-4 text-xs font-sans">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-stone-400 mb-1.5 uppercase font-medium">Novo E-mail de Login</label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white outline-none focus:border-[#FFD400] font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-stone-400 mb-1.5 uppercase font-medium">Senha Atual <span className="text-red-400">*</span></label>
+              <input
+                type="password"
+                value={currentPass}
+                onChange={(e) => setCurrentPass(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white outline-none focus:border-[#FFD400]"
+              />
+            </div>
+            <div />
+            <div>
+              <label className="block text-stone-400 mb-1.5 uppercase font-medium">Nova Senha</label>
+              <input
+                type="password"
+                value={newPass}
+                onChange={(e) => setNewPass(e.target.value)}
+                placeholder="Deixe vazio para não alterar"
+                className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white outline-none focus:border-[#FFD400]"
+              />
+            </div>
+            <div>
+              <label className="block text-stone-400 mb-1.5 uppercase font-medium">Confirmar Nova Senha</label>
+              <input
+                type="password"
+                value={confirmPass}
+                onChange={(e) => setConfirmPass(e.target.value)}
+                placeholder="Repita a nova senha"
+                className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white outline-none focus:border-[#FFD400]"
+              />
+            </div>
+          </div>
+
+          {credMsg && (
+            <p className={`text-xs px-3 py-2 rounded-lg border ${credMsg.ok ? "text-green-400 bg-green-400/10 border-green-400/20" : "text-red-400 bg-red-400/10 border-red-400/20"}`}>
+              {credMsg.text}
+            </p>
+          )}
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2.5 bg-[#FFD400] hover:bg-[#FFE14D] disabled:opacity-50 text-stone-950 text-xs font-black uppercase rounded-lg transition-all cursor-pointer"
+            >
+              {saving ? "Salvando..." : "Salvar Credenciais"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanel() {
   const {
     isAdminLoggedIn,
@@ -37,7 +157,8 @@ export default function AdminPanel() {
     logout,
     loginError,
     recoverPassword,
-    
+    changeCredentials,
+
     logoSettings, saveLogoSettings,
     seo, saveSEO,
     hero, saveHero,
@@ -618,12 +739,11 @@ export default function AdminPanel() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-stone-400 uppercase mb-1.5">Imagem URL</label>
-              <input
-                type="text"
+              <ImageUploadField
+                label="Imagem do Container"
                 value={item.image}
-                onChange={(e) => editContainer(item.id, { image: e.target.value })}
-                className="w-full bg-[#0F1115] border border-white/10 rounded-xl p-3 text-xs text-stone-300 focus:border-[#FFD400] outline-none font-mono"
+                onChange={(url) => editContainer(item.id, { image: url })}
+                folder="containers"
               />
             </div>
             <div>
@@ -1606,83 +1726,11 @@ export default function AdminPanel() {
         {/* TAB: ADMINISTRATOR PROFILE SETTINGS */}
         {/* ---------------------------------------------------- */}
         {activeTab === "profile" && (
-          <div className="max-w-2xl mx-auto space-y-6">
-            <div className="bg-[#171A21] border border-white/5 p-6 rounded-2xl space-y-6">
-              <div className="border-b border-white/5 pb-4">
-                <h3 className="text-white text-base font-black uppercase">Perfil do Administrador</h3>
-                <p className="text-stone-400 text-xs mt-1">Gerencie suas credenciais de acesso, e-mail e configurações de segurança.</p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center gap-5 bg-[#0F1115] p-5 rounded-xl border border-white/5">
-                <div className="w-16 h-16 rounded-full bg-[#FFD400]/10 border border-[#FFD400]/25 flex items-center justify-center text-xl font-bold text-[#FFD400] font-mono">
-                  DM
-                </div>
-                <div className="text-center sm:text-left space-y-1">
-                  <span className="text-[9px] font-mono font-bold text-[#FFD400] bg-[#FFD400]/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Master Admin</span>
-                  <h4 className="text-white text-sm font-black uppercase mt-1">{adminUser?.email?.split("@")?.[0] || "Diretor Dodisa"}</h4>
-                  <p className="text-stone-400 text-xs font-medium">{adminUser?.email}</p>
-                </div>
-              </div>
-
-              <form onSubmit={(e) => { e.preventDefault(); triggerNotification("Informações do perfil atualizadas com sucesso!"); }} className="space-y-4 text-xs font-sans">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-stone-400 mb-1.5 uppercase font-medium">Nome Completo</label>
-                    <input
-                      type="text"
-                      defaultValue="Diretor Dodisa Containers"
-                      className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white outline-none focus:border-[#FFD400]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-stone-400 mb-1.5 uppercase font-medium">E-mail de Login</label>
-                    <input
-                      type="email"
-                      disabled
-                      value={adminUser?.email || ""}
-                      className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-stone-500 font-mono cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-[#FFD400] hover:bg-[#FFE14D] text-stone-950 text-xs font-black uppercase rounded-lg transition-all cursor-pointer"
-                  >
-                    Salvar Perfil
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Change Password Panel */}
-            <div className="bg-[#171A21] border border-white/5 p-6 rounded-2xl space-y-4">
-              <div className="border-b border-white/5 pb-2">
-                <h3 className="text-white text-sm font-black uppercase">Alterar Senha de Segurança</h3>
-              </div>
-              <form onSubmit={(e) => { e.preventDefault(); triggerNotification("Senha de acesso atualizada e criptografada com sucesso!"); }} className="space-y-4 text-xs font-sans">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-stone-400 mb-1.5 uppercase font-medium">Senha Atual</label>
-                    <input type="password" placeholder="••••••••" className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white outline-none focus:border-[#FFD400]" />
-                  </div>
-                  <div>
-                    <label className="block text-stone-400 mb-1.5 uppercase font-medium">Nova Senha</label>
-                    <input type="password" placeholder="••••••••" className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white outline-none focus:border-[#FFD400]" />
-                  </div>
-                  <div>
-                    <label className="block text-stone-400 mb-1.5 uppercase font-medium">Confirmar Senha</label>
-                    <input type="password" placeholder="••••••••" className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white outline-none focus:border-[#FFD400]" />
-                  </div>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <button type="submit" className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all border border-white/5 font-black uppercase cursor-pointer">
-                    Atualizar Senha
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <ProfileTab
+            adminUser={adminUser}
+            changeCredentials={changeCredentials}
+            triggerNotification={triggerNotification}
+          />
         )}
 
         {/* ---------------------------------------------------- */}
@@ -1838,13 +1886,11 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div>
-                      <label className="block text-stone-400 mb-1.5 uppercase font-medium">Link de Imagem</label>
-                      <input
-                        type="text"
-                        placeholder="https://images.unsplash.com/..."
+                      <ImageUploadField
+                        label="Imagem do Container"
                         value={newContainer.image}
-                        onChange={(e) => setNewContainer({ ...newContainer, image: e.target.value })}
-                        className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white"
+                        onChange={(url) => setNewContainer({ ...newContainer, image: url })}
+                        folder="containers"
                       />
                     </div>
                     <div className="md:col-span-3">
@@ -2054,13 +2100,11 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-stone-400 mb-1.5 uppercase font-medium">Imagem Única estoque</label>
-                      <input
-                        type="text"
-                        placeholder="Link da imagem em https://"
+                      <ImageUploadField
+                        label="Imagem do Estoque (Pronta Entrega)"
                         value={newProntaImage}
-                        onChange={(e) => setNewProntaImage(e.target.value)}
-                        className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white"
+                        onChange={setNewProntaImage}
+                        folder="pronta-entrega"
                       />
                     </div>
                   </div>
@@ -2236,22 +2280,18 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div>
-                      <label className="block text-stone-400 mb-1.5 uppercase font-medium">Foto Antes (URL)</label>
-                      <input
-                        type="text"
-                        placeholder="https://"
-                        value={newProj.imageBefore}
-                        onChange={(e) => setNewProj({ ...newProj, imageBefore: e.target.value })}
-                        className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white"
+                      <ImageUploadField
+                        label="Foto Antes"
+                        value={newProj.imageBefore || ""}
+                        onChange={(url) => setNewProj({ ...newProj, imageBefore: url })}
+                        folder="projetos"
                       />
                     </div>
                     <div>
-                      <label className="block text-stone-400 mb-1.5 uppercase font-medium">Foto Depois (URL)</label>
-                      <input
-                        type="text"
-                        placeholder="https://"
+                      <ImageUploadField
+                        label="Foto Depois"
                         value={newProj.imageAfter}
-                        onChange={(e) => setNewProj({ ...newProj, imageAfter: e.target.value })}
+                        onChange={(url) => setNewProj({ ...newProj, imageAfter: url })}
                         className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white"
                       />
                     </div>
@@ -2771,12 +2811,11 @@ export default function AdminPanel() {
                   />
                 </div>
                 <div>
-                  <label className="block text-stone-400 mb-1.5 uppercase font-medium">Foto Autor (URL)</label>
-                  <input
-                    type="text"
-                    value={newReview.image}
-                    onChange={(e) => setNewReview({ ...newReview, image: e.target.value })}
-                    className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white"
+                  <ImageUploadField
+                    label="Foto do Autor"
+                    value={newReview.image || ""}
+                    onChange={(url) => setNewReview({ ...newReview, image: url })}
+                    folder="depoimentos"
                   />
                 </div>
                 <div className="md:col-span-3">
@@ -3695,12 +3734,11 @@ export default function AdminPanel() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-stone-400 mb-1.5 uppercase font-medium">Imagem Fundo (URL)</label>
-                        <input
-                          type="text"
+                        <ImageUploadField
+                          label="Imagem de Fundo do Hero"
                           value={hero.image}
-                          onChange={(e) => saveHero({ ...hero, image: e.target.value })}
-                          className="w-full bg-[#0F1115] border border-white/5 rounded-xl p-2.5 text-stone-300 font-mono transition-colors"
+                          onChange={(url) => saveHero({ ...hero, image: url })}
+                          folder="hero"
                         />
                       </div>
                       <div>
@@ -4291,12 +4329,11 @@ export default function AdminPanel() {
 
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-stone-400 mb-1 uppercase font-bold text-[10px] tracking-wider">Imagem de Fundo (URL)</label>
-                        <input
-                          type="text"
+                        <ImageUploadField
+                          label="Imagem de Fundo (Hero)"
                           value={hero.image}
-                          onChange={(e) => saveHero({ ...hero, image: e.target.value })}
-                          className="w-full bg-[#0F1115] border border-white/5 rounded-xl p-2.5 text-stone-300 text-xs font-mono focus:border-[#FFD400] outline-none"
+                          onChange={(url) => saveHero({ ...hero, image: url })}
+                          folder="hero"
                         />
                       </div>
                       <div>

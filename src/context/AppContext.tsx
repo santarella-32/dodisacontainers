@@ -180,6 +180,7 @@ interface AppContextType {
   logout: () => void;
   recoverPassword: (email: string) => Promise<string>;
   changePassword: (newPass: string) => void;
+  changeCredentials: (newEmail: string, currentPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
 
   // Site Configurations
   logoSettings: LogoSettings;
@@ -896,8 +897,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Default High-Fidelity Local Authentication for ADMIN MASTER
-    const defaultEmail = "admin@dodisa.com.br";
-    const defaultPass = "dodisaadmin2026";
+    const storedCreds = (() => {
+      try { return JSON.parse(localStorage.getItem("dodisa_admin_custom_creds") || "null"); } catch { return null; }
+    })();
+    const defaultEmail = storedCreds?.email || "admin@dodisa.com.br";
+    const defaultPass = storedCreds?.password || "dodisaadmin2026";
 
     if (email.trim() === defaultEmail && pass === defaultPass) {
       const userObj: AdminUser = { email: defaultEmail, role: "ADMIN_MASTER" };
@@ -941,8 +945,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const changePassword = (newPass: string) => {
-    // Save to user settings
     markUpdate();
+  };
+
+  const changeCredentials = async (newEmail: string, currentPass: string, newPass: string): Promise<{ success: boolean; message: string }> => {
+    // If Supabase, delegate to it
+    if (supabase) {
+      try {
+        const updates: any = {};
+        if (newEmail) updates.email = newEmail;
+        if (newPass) updates.password = newPass;
+        const { error } = await supabase.auth.updateUser(updates);
+        if (error) return { success: false, message: error.message };
+        if (newEmail) {
+          const updatedUser: AdminUser = { email: newEmail, role: "ADMIN_MASTER" };
+          setAdminUser(updatedUser);
+          localStorage.setItem("dodisa_admin_user", JSON.stringify(updatedUser));
+        }
+        return { success: true, message: "Credenciais atualizadas via Supabase!" };
+      } catch (e: any) {
+        return { success: false, message: e.message };
+      }
+    }
+
+    // Local auth: verify current password first
+    const storedCreds = (() => {
+      try { return JSON.parse(localStorage.getItem("dodisa_admin_custom_creds") || "null"); } catch { return null; }
+    })();
+    const activeEmail = storedCreds?.email || "admin@dodisa.com.br";
+    const activePass = storedCreds?.password || "dodisaadmin2026";
+
+    if (currentPass !== activePass) {
+      return { success: false, message: "Senha atual incorreta." };
+    }
+
+    const updatedCreds = {
+      email: newEmail || activeEmail,
+      password: newPass || activePass,
+    };
+    localStorage.setItem("dodisa_admin_custom_creds", JSON.stringify(updatedCreds));
+
+    const updatedUser: AdminUser = { email: updatedCreds.email, role: "ADMIN_MASTER" };
+    setAdminUser(updatedUser);
+    localStorage.setItem("dodisa_admin_user", JSON.stringify(updatedUser));
+
+    markUpdate();
+    return { success: true, message: "Credenciais atualizadas com sucesso!" };
   };
 
   // ----------------------------------------------------
@@ -1393,6 +1441,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         logout,
         recoverPassword,
         changePassword,
+        changeCredentials,
 
         logoSettings: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubLogoSettings : logoSettings) : pubLogoSettings,
         seo: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubSeo : seo) : pubSeo,
