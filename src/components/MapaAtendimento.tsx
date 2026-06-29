@@ -1,5 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 const LeafletMap = lazy(() => import("./LeafletMap"));
+import { geocodeAddress } from "./LeafletMap";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   MapPin, 
@@ -275,7 +276,7 @@ const STATE_BOUNDARIES: StateBoundary[] = [
 ];
 
 export default function MapaAtendimento() {
-  const { regions, whatsapp: systemWhatsapp } = useAppContext();
+  const { regions, whatsapp: systemWhatsapp, baseLocation } = useAppContext();
   
   // Navigation & Interactive states
   const [selectedRouteId, setSelectedRouteId] = useState<string>("sul-fronteira");
@@ -284,6 +285,34 @@ export default function MapaAtendimento() {
   const [regionStatus, setRegionStatus] = useState<"idle" | "loading" | "detected" | "error" | "manual">("idle");
   const [manualInput, setManualInput] = useState("");
   
+  // Custom route mode
+  const [addressInput, setAddressInput] = useState("");
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState("");
+  const [customDestination, setCustomDestination] = useState<{ lat: number; lng: number; label: string } | null>(null);
+
+  const handleAddressSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addressInput.trim()) return;
+    setIsGeocoding(true);
+    setGeocodeError("");
+    setCustomDestination(null);
+    const result = await geocodeAddress(addressInput.trim());
+    setIsGeocoding(false);
+    if (!result) {
+      setGeocodeError("Endereço não encontrado. Tente ser mais específico.");
+      return;
+    }
+    const label = result.display.split(",").slice(0, 2).join(",").trim();
+    setCustomDestination({ lat: result.lat, lng: result.lng, label });
+  };
+
+  const handleClearRoute = () => {
+    setCustomDestination(null);
+    setAddressInput("");
+    setGeocodeError("");
+  };
+
   // High-fidelity View tabs
   const [activeTab, setActiveTab] = useState<"mapa" | "frota" | "simulador">("mapa");
 
@@ -648,8 +677,55 @@ export default function MapaAtendimento() {
 
                 </div>
 
+                {/* ── Ver minha rota até a Dodisa ── */}
+                <div className="bg-[#111827]/40 border border-[#FFD400]/10 p-5 rounded-2xl backdrop-blur-md relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#FFD400] to-[#FF9A00]" />
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#FFD400] flex items-center gap-1.5 mb-3">
+                    <Navigation className="w-3.5 h-3.5" /> Calcular Rota até Nós
+                  </span>
+                  <p className="text-[11px] text-stone-400 mb-3 leading-relaxed">
+                    Digite seu endereço e veja no mapa a rota real de entrega do container até você.
+                  </p>
+
+                  <form onSubmit={handleAddressSearch} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={addressInput}
+                      onChange={(e) => setAddressInput(e.target.value)}
+                      placeholder="Ex: Av. Paulista 1000, São Paulo..."
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-[#0F1115] border border-white/10 text-white text-xs placeholder-stone-600 focus:outline-none focus:border-[#FFD400]/40 transition-colors"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isGeocoding}
+                      className="py-2.5 px-3.5 bg-[#FFD400] hover:bg-[#FFE14D] disabled:opacity-50 text-stone-950 font-black text-[10px] uppercase rounded-xl transition-all cursor-pointer shrink-0"
+                    >
+                      {isGeocoding ? "..." : "Ver"}
+                    </button>
+                  </form>
+
+                  {geocodeError && (
+                    <p className="text-red-400 text-[10px] font-mono mt-2">{geocodeError}</p>
+                  )}
+
+                  {customDestination && (
+                    <div className="mt-3 p-3 bg-emerald-500/5 border border-emerald-500/15 rounded-xl flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-emerald-400 text-[9px] font-mono uppercase font-bold mb-0.5">Rota calculada</p>
+                        <p className="text-white text-[11px] font-bold leading-tight">{customDestination.label}</p>
+                      </div>
+                      <button
+                        onClick={handleClearRoute}
+                        className="text-stone-500 hover:text-white text-[10px] font-mono mt-0.5 shrink-0 cursor-pointer"
+                      >
+                        ✕ Limpar
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Interactive Route Selection List with Status Details */}
-                <div className="bg-[#111827]/30 border border-white/5 p-6 rounded-2xl backdrop-blur-md flex-1 flex flex-col justify-between">
+                <div className={`bg-[#111827]/30 border border-white/5 p-6 rounded-2xl backdrop-blur-md flex-1 flex flex-col justify-between ${customDestination ? "opacity-40 pointer-events-none" : ""}`}>
                   <div>
                     <span className="block text-[10px] font-mono font-bold uppercase text-stone-400 tracking-wider mb-3.5 flex items-center gap-1.5">
                       <Truck className="w-4 h-4 text-[#FFD400]" />
@@ -749,7 +825,9 @@ export default function MapaAtendimento() {
                     <div style={{ height: "440px" }}>
                       <LeafletMap
                         selectedRouteId={selectedRouteId}
-                        onCityClick={(routeId) => setSelectedRouteId(routeId)}
+                        onCityClick={(routeId) => { setSelectedRouteId(routeId); handleClearRoute(); }}
+                        baseLocation={baseLocation}
+                        customDestination={customDestination}
                       />
                     </div>
                   </Suspense>

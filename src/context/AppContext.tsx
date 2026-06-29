@@ -28,6 +28,12 @@ export interface SEOConfig {
   keywords: string;
 }
 
+export interface BaseLocation {
+  address: string;
+  lat: number;
+  lng: number;
+}
+
 export interface HeroConfig {
   title: string;
   subtitle: string;
@@ -183,6 +189,8 @@ interface AppContextType {
   changeCredentials: (newEmail: string, currentPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
 
   // Site Configurations
+  baseLocation: BaseLocation;
+  saveBaseLocation: (loc: BaseLocation) => void;
   logoSettings: LogoSettings;
   seo: SEOConfig;
   hero: HeroConfig;
@@ -281,6 +289,11 @@ interface AppContextType {
 }
 
 const DEFAULTS = {
+  baseLocation: {
+    address: "Rua Julio Gaviragui, Santa Rosa, RS, Brasil",
+    lat: -27.872,
+    lng: -54.481,
+  } as BaseLocation,
   logoSettings: {
     logoUrl: "default",       // 'default' indicates we fallback to the SVG component
     logoDarkUrl: "default",   // 'default' or empty
@@ -765,6 +778,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (cachedDraft) return JSON.parse(cachedDraft);
     return pubSectionsOrder;
   });
+
+  const [baseLocation, setBaseLocationState] = useState<BaseLocation>(() => {
+    try { return JSON.parse(localStorage.getItem("dodisa_base_location") || "null") || DEFAULTS.baseLocation; } catch { return DEFAULTS.baseLocation; }
+  });
+
+  const saveBaseLocation = (loc: BaseLocation) => {
+    setBaseLocationState(loc);
+    localStorage.setItem("dodisa_base_location", JSON.stringify(loc));
+    markUpdate();
+  };
 
   // Load published content from Supabase on mount so all visitors see the latest data
   useEffect(() => {
@@ -1540,6 +1563,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         recoverPassword,
         changePassword,
         changeCredentials,
+
+        baseLocation,
+        saveBaseLocation,
 
         logoSettings: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubLogoSettings : logoSettings) : pubLogoSettings,
         seo: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubSeo : seo) : pubSeo,

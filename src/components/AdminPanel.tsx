@@ -159,6 +159,7 @@ export default function AdminPanel() {
     recoverPassword,
     changeCredentials,
 
+    baseLocation, saveBaseLocation,
     logoSettings, saveLogoSettings,
     seo, saveSEO,
     hero, saveHero,
@@ -196,7 +197,7 @@ export default function AdminPanel() {
   // Secondary sub-tabs to group collapsed panels cleanly
   const [containersSubTab, setContainersSubTab] = useState<"catalogo" | "pronta">("catalogo");
   const [projectsSubTab, setProjectsSubTab] = useState<"cases" | "videos" | "differentials">("cases");
-  const [settingsSubTab, setSettingsSubTab] = useState<"hero" | "conversions" | "faq" | "logo" | "domain">("hero");
+  const [settingsSubTab, setSettingsSubTab] = useState<"hero" | "conversions" | "faq" | "logo" | "domain" | "base">("hero");
 
   // Live Preview layout controller states
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -2881,6 +2882,7 @@ export default function AdminPanel() {
                 { id: "conversions", label: "WhatsApp" },
                 { id: "faq", label: "FAQ", count: faq.length },
                 { id: "domain", label: "Domínio" },
+                { id: "base", label: "Base / Mapa" },
               ].map((st) => (
                 <button
                   key={st.id}
@@ -3191,6 +3193,61 @@ export default function AdminPanel() {
 
                 </div>
 
+              </div>
+            )}
+
+            {/* Base / Mapa */}
+            {settingsSubTab === "base" && (
+              <div className="space-y-6 max-w-2xl">
+                <div className="bg-[#171A21] border border-white/5 p-6 rounded-2xl space-y-5">
+                  <div className="border-b border-white/5 pb-4">
+                    <h3 className="text-white text-sm font-black uppercase">Localização da Base Dodisa</h3>
+                    <p className="text-stone-400 text-xs mt-1">Endereço que aparece no mapa e é usado como ponto de partida para cálculo de rotas dos clientes.</p>
+                  </div>
+
+                  <div className="space-y-4 text-xs font-sans">
+                    <div>
+                      <label className="block text-stone-400 mb-1.5 uppercase font-medium">Endereço completo</label>
+                      <input
+                        type="text"
+                        value={baseLocation.address}
+                        onChange={(e) => saveBaseLocation({ ...baseLocation, address: e.target.value })}
+                        placeholder="Rua Julio Gaviragui, Santa Rosa, RS, Brasil"
+                        className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white outline-none focus:border-[#FFD400]/50"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-stone-400 mb-1.5 uppercase font-medium">Latitude</label>
+                        <input
+                          type="number"
+                          step="0.0001"
+                          value={baseLocation.lat}
+                          onChange={(e) => saveBaseLocation({ ...baseLocation, lat: parseFloat(e.target.value) || baseLocation.lat })}
+                          className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white font-mono outline-none focus:border-[#FFD400]/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-stone-400 mb-1.5 uppercase font-medium">Longitude</label>
+                        <input
+                          type="number"
+                          step="0.0001"
+                          value={baseLocation.lng}
+                          onChange={(e) => saveBaseLocation({ ...baseLocation, lng: parseFloat(e.target.value) || baseLocation.lng })}
+                          className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white font-mono outline-none focus:border-[#FFD400]/50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-[#FFD400]/5 border border-[#FFD400]/15 rounded-xl text-[10px] font-mono text-stone-400 space-y-1">
+                      <p className="text-[#FFD400] font-bold uppercase tracking-wider">Como obter as coordenadas:</p>
+                      <p>1. Abra o Google Maps e pesquise o endereço</p>
+                      <p>2. Clique com botão direito no ponto exato</p>
+                      <p>3. O primeiro número é a Latitude, o segundo é a Longitude</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
