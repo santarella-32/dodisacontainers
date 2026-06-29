@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
+const LeafletMap = lazy(() => import("./LeafletMap"));
 import { motion, AnimatePresence } from "motion/react";
 import { 
   MapPin, 
@@ -712,216 +713,53 @@ export default function MapaAtendimento() {
               {/* Right Column: High Fidelity SVG Map with Border Lines and Custom Pins */}
               <div className="lg:col-span-7 flex flex-col gap-6">
                 
-                {/* Advanced SVG Map Viewport Container */}
-                <div className="bg-[#111827]/20 border border-white/5 rounded-2xl p-6 relative flex flex-col justify-between overflow-hidden shadow-xl min-h-[440px]">
-                  
-                  {/* Dashboard overlay */}
-                  <div className="absolute top-4 left-4 z-10 text-[9px] font-mono text-stone-500 space-y-0.5 select-none pointer-events-none">
-                    <div className="flex items-center gap-1.5">
+                {/* Real Leaflet Map Container */}
+                <div className="bg-[#111827]/20 border border-white/5 rounded-2xl overflow-hidden shadow-xl relative" style={{ minHeight: "440px" }}>
+
+                  {/* Status overlay */}
+                  <div className="absolute top-3 left-3 z-[1000] text-[9px] font-mono text-stone-400 space-y-0.5 pointer-events-none">
+                    <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-lg border border-white/5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>SISTEMA GEOGRÁFICO DE ATENDIMENTO</span>
+                      <span>MAPA INTERATIVO — BASE: SANTA ROSA (RS)</span>
                     </div>
-                    <span>BASE CENTRAL: SANTA ROSA (RS) — DETALHADO</span>
                   </div>
 
-                  {/* Interactive Legend overlay */}
-                  <div className="absolute bottom-4 left-4 z-10 bg-black/80 backdrop-blur-md px-3 py-2 rounded-xl border border-white/5 text-[9px] font-mono text-stone-400 space-y-1 select-none pointer-events-none">
+                  {/* Legend overlay */}
+                  <div className="absolute bottom-3 left-3 z-[1000] bg-black/80 backdrop-blur-md px-3 py-2 rounded-xl border border-white/5 text-[9px] font-mono text-stone-400 space-y-1 pointer-events-none">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-[#FFD400]" />
-                      <span>Origem / Hub Central Dodisa</span>
+                      <span>Hub Central Dodisa</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                      <span>Cidade / Polo da Rota</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-white border border-[#FFD400]/50" />
+                      <span>Cidade da Rota</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-4 h-0.5 border-t border-dashed border-[#FFD400]/40 inline-block" />
-                      <span>Eixo Logístico Selecionado</span>
+                      <span className="w-4 border-t border-dashed border-[#FFD400]/60 inline-block" />
+                      <span>Eixo Logístico</span>
                     </div>
                   </div>
 
-                  {/* High Quality Brazil Vector Area Mapping */}
-                  <div className="w-full flex items-center justify-center py-6 relative select-none">
-                    
-                    <svg className="w-full max-w-[440px] h-[340px] opacity-90" viewBox="0 0 500 500" fill="none">
-                      <defs>
-                        <radialGradient id="hub-glow-effect" cx="50%" cy="50%" r="50%">
-                          <stop offset="0%" stopColor="#FFD400" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#FFD400" stopOpacity="0" />
-                        </radialGradient>
-                        <linearGradient id="route-gradient-style" x1="0%" y1="100%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#FFD400" />
-                          <stop offset="100%" stopColor="#FFECA8" />
-                        </linearGradient>
-                      </defs>
-
-                      {/* Map backdrop outline of Brazil representing general boundaries */}
-                      <path
-                        d="M 210,30 C 240,20 280,30 290,50 C 310,70 330,80 340,90 C 360,100 390,100 410,110 C 430,120 460,130 470,150 C 480,170 470,190 440,200 C 410,210 390,240 380,260 C 370,280 380,310 370,330 C 360,350 340,360 330,370 C 310,380 290,390 270,390 C 250,390 240,410 230,430 C 220,450 200,470 190,480 C 180,490 170,490 165,480 C 160,470 160,430 170,400 C 180,370 180,340 175,320 C 170,300 150,290 140,280 C 130,270 110,280 95,275 C 80,270 70,250 65,240 C 60,230 40,225 30,220 C 20,215 10,200 15,185 C 20,170 40,165 60,160 C 80,155 100,160 120,150 C 140,140 150,110 160,95 C 170,80 180,60 195,45 Z"
-                        fill="#0E121A"
-                        stroke="rgba(255, 255, 255, 0.03)"
-                        strokeWidth="3"
+                  {/* Leaflet Map */}
+                  <Suspense fallback={
+                    <div className="w-full h-full flex items-center justify-center bg-[#07090D]" style={{ minHeight: "440px" }}>
+                      <div className="text-[#FFD400] text-xs font-mono animate-pulse">Carregando mapa...</div>
+                    </div>
+                  }>
+                    <div style={{ height: "440px" }}>
+                      <LeafletMap
+                        selectedRouteId={selectedRouteId}
+                        onCityClick={(routeId) => setSelectedRouteId(routeId)}
                       />
-
-                      {/* Render individual detailed State Boundaries inside Southern and Sudeste regions */}
-                      {STATE_BOUNDARIES.map((stateBound) => {
-                        // Check if active route passes through this state
-                        const isActiveState = activeRoute && (
-                          activeRoute.id === "sul-fronteira" && stateBound.id === "RS" ||
-                          activeRoute.id === "sc-corredor" && ["RS", "SC"].includes(stateBound.id) ||
-                          activeRoute.id === "pr-eixo" && ["RS", "SC", "PR"].includes(stateBound.id) ||
-                          activeRoute.id === "sudeste-sp" && ["RS", "SC", "PR", "SP"].includes(stateBound.id) ||
-                          activeRoute.id === "sudeste-rio" && ["RS", "SC", "PR", "SP", "RJ"].includes(stateBound.id) ||
-                          activeRoute.id === "sudeste-mg" && ["RS", "SC", "PR", "SP", "MG"].includes(stateBound.id) ||
-                          activeRoute.id === "centro-oeste" && ["RS", "MS", "GO"].includes(stateBound.id)
-                        );
-
-                        return (
-                          <path
-                            key={stateBound.id}
-                            d={stateBound.path}
-                            fill={isActiveState ? "rgba(255, 212, 0, 0.05)" : "transparent"}
-                            stroke={isActiveState ? "rgba(255, 212, 0, 0.2)" : "rgba(255, 255, 255, 0.06)"}
-                            strokeWidth="1"
-                            className="transition-all duration-500"
-                          />
-                        );
-                      })}
-
-                      {/* Radial light behind destination target point */}
-                      {activeRoute && activeRoute.pathPoints.length > 0 && (
-                        <circle
-                          cx={activeRoute.pathPoints[activeRoute.pathPoints.length - 1].x}
-                          cy={activeRoute.pathPoints[activeRoute.pathPoints.length - 1].y}
-                          r="45"
-                          fill="url(#hub-glow-effect)"
-                        />
-                      )}
-
-                      {/* Non-selected passive routes (thin dashed gray trails) */}
-                      {ROUTE_DATA.map((route) => {
-                        if (route.id === selectedRouteId) return null;
-                        return (
-                          <path
-                            key={`passive-trail-${route.id}`}
-                            d={makePathString(route.pathPoints)}
-                            fill="none"
-                            stroke="rgba(255,255,255,0.06)"
-                            strokeWidth="1"
-                            strokeDasharray="3,3"
-                          />
-                        );
-                      })}
-
-                      {/* ACTIVE SELECTION: Neon glow route background and solid visual line */}
-                      {activeRoute && (
-                        <>
-                          {/* Laser glow overlay */}
-                          <path
-                            d={makePathString(activeRoute.pathPoints)}
-                            fill="none"
-                            stroke="#FFD400"
-                            strokeWidth="3.5"
-                            strokeLinecap="round"
-                            className="opacity-25 blur-[1.5px]"
-                          />
-                          
-                          {/* Perfect Solid Path */}
-                          <path
-                            d={makePathString(activeRoute.pathPoints)}
-                            fill="none"
-                            stroke="url(#route-gradient-style)"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                          />
-
-                          {/* Cargo truck vector animation representation along active path */}
-                          <path
-                            d={makePathString(activeRoute.pathPoints)}
-                            fill="none"
-                            stroke="#FFF"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeDasharray="8, 120"
-                            style={{
-                              animation: "moveCargoFlow 4.5s linear infinite"
-                            }}
-                          />
-                        </>
-                      )}
-
-                      {/* Draw Cities / Coordinate Nodes with names and icons */}
-                      {BRAZIL_NODES.map((node) => {
-                        const isBaseOrigin = node.name.includes("Santa Rosa");
-                        const isActiveTarget = activeRoute && activeRoute.destination.includes(node.name);
-                        const isPartOfActiveCities = activeRoute && activeRoute.citiesCovered.includes(node.name);
-
-                        return (
-                          <g
-                            key={node.name}
-                            className="cursor-pointer group"
-                            onClick={() => {
-                              // Find best matching route associated with this city node
-                              const routeMatch = ROUTE_DATA.find(r => r.destination.includes(node.name) || r.citiesCovered.includes(node.name));
-                              if (routeMatch) {
-                                setSelectedRouteId(routeMatch.id);
-                              }
-                            }}
-                          >
-                            <circle cx={node.x} cy={node.y} r="12" fill="transparent" />
-
-                            {/* Ping animation effect */}
-                            {(isBaseOrigin || isActiveTarget) && (
-                              <circle
-                                cx={node.x}
-                                cy={node.y}
-                                r={isBaseOrigin ? "9" : "7"}
-                                stroke={isBaseOrigin ? "#FFD400" : "#FFF"}
-                                strokeWidth="0.75"
-                                fill="none"
-                                className="animate-ping"
-                                style={{ animationDuration: isBaseOrigin ? "2.5s" : "3s" }}
-                              />
-                            )}
-
-                            {/* Solid visual marker */}
-                            <circle
-                              cx={node.x}
-                              cy={node.y}
-                              r={isBaseOrigin ? "5" : isActiveTarget ? "4" : isPartOfActiveCities ? "3" : "2"}
-                              fill={isBaseOrigin ? "#FFD400" : isActiveTarget ? "#FFFFFF" : isPartOfActiveCities ? "#FFE169" : "rgba(255,255,255,0.25)"}
-                              stroke={isBaseOrigin ? "#07090D" : "none"}
-                              strokeWidth="1.5"
-                              className="transition-all duration-300 group-hover:fill-[#FFD400]"
-                            />
-
-                            {/* Human state/city name label */}
-                            <text
-                              x={node.x}
-                              y={node.y - 8}
-                              textAnchor="middle"
-                              fill={isBaseOrigin ? "#FFD400" : isActiveTarget ? "#FFFFFF" : isPartOfActiveCities ? "rgba(255,255,255,0.8)" : "rgba(156,163,175,0.4)"}
-                              fontSize={isBaseOrigin ? "8.5" : isActiveTarget ? "8" : "7"}
-                              fontWeight={isBaseOrigin || isActiveTarget ? "bold" : "normal"}
-                              fontFamily="monospace"
-                              className="pointer-events-none select-none tracking-tight opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity uppercase"
-                            >
-                              {node.acronym}
-                            </text>
-                          </g>
-                        );
-                      })}
-                    </svg>
-
-                    <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded border border-white/5 text-[9px] font-mono text-stone-500">
-                      ⚡ Toque nos pontos geográficos para alternar o trajeto
                     </div>
-                  </div>
+                  </Suspense>
 
-                  {/* Insurance and safety guarantee strip */}
-                  <div className="border-t border-white/5 pt-4 flex items-center gap-2.5 text-[10px] text-stone-400 font-mono">
-                    <ShieldCheck className="w-4 h-4 text-[#FFD400] shrink-0" />
-                    <span>SEGURANÇA DA REDE: Todas as remessas possuem cobertura contra roubo, avarias e acidentes em 100% da viagem.</span>
+                  {/* Insurance strip */}
+                  <div className="absolute bottom-3 right-3 z-[1000]">
+                    <div className="bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/5 flex items-center gap-2 text-[9px] text-stone-400 font-mono">
+                      <ShieldCheck className="w-3 h-3 text-[#FFD400] shrink-0" />
+                      <span>Cobertura contra sinistros 100%</span>
+                    </div>
                   </div>
 
                 </div>
