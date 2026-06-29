@@ -1360,6 +1360,46 @@ export default function AdminPanel() {
               </div>
             </div>
 
+            {/* REAL METRICS CARDS ROW */}
+            {(() => {
+              const supabaseActive = !!(() => { try { return getSupabase(); } catch { return null; } })();
+              const visibleSections = sectionsOrder?.filter(k => sectionsVisibility?.[k as keyof typeof sectionsVisibility] !== false).length ?? 0;
+              const totalSections = sectionsOrder?.length ?? 0;
+              const stats = [
+                { label: "Containers", value: containers?.length ?? 0, sub: `${containers?.filter(c => c.visible).length ?? 0} visíveis`, color: "#FFD400", icon: "📦" },
+                { label: "Pronta Entrega", value: prontaEntrega?.filter(p => p.active).length ?? 0, sub: `${prontaEntrega?.length ?? 0} cadastrados`, color: "#FF9A00", icon: "🏭" },
+                { label: "Projetos", value: projects?.filter(p => p.visible).length ?? 0, sub: `${projects?.length ?? 0} total`, color: "#34d399", icon: "🏗️" },
+                { label: "Depoimentos", value: testimonials?.filter(t => t.visible).length ?? 0, sub: `${testimonials?.length ?? 0} cadastrados`, color: "#60a5fa", icon: "⭐" },
+                { label: "FAQs", value: faq?.filter(f => f.visible).length ?? 0, sub: `${faq?.length ?? 0} total`, color: "#a78bfa", icon: "❓" },
+                { label: "Seções Ativas", value: visibleSections, sub: `de ${totalSections} seções`, color: "#f472b6", icon: "📄" },
+              ];
+              return (
+                <div className="space-y-3">
+                  {/* Supabase status */}
+                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-xs font-mono ${supabaseActive ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400" : "bg-amber-500/5 border-amber-500/20 text-amber-400"}`}>
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${supabaseActive ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+                    <span className="font-bold uppercase tracking-wider">
+                      Supabase: {supabaseActive ? "Conectado — dados sincronizando em tempo real" : "Offline — usando armazenamento local (configure as variáveis de ambiente)"}
+                    </span>
+                  </div>
+
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+                    {stats.map((s) => (
+                      <div key={s.label} className="bg-[#171A21] border border-white/5 rounded-xl p-4 flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg">{s.icon}</span>
+                          <span className="text-[9px] font-mono text-stone-500 uppercase tracking-wider">{s.label}</span>
+                        </div>
+                        <p className="text-2xl font-black font-mono" style={{ color: s.color }}>{s.value}</p>
+                        <p className="text-[10px] text-stone-500 font-mono">{s.sub}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* THREE COLUMNS OR TWO COLUMNS MAIN CONTENT AREA */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
               
