@@ -51,6 +51,8 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
   const [showUpload, setShowUpload] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
+  useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
 
   // ── Load ─────────────────────────────────────────────────────
   const loadImages = useCallback(async () => {
@@ -105,15 +107,37 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     const imageFiles = selectedFiles.filter((f) => f.type.startsWith("image/"));
     if (!imageFiles.length) return;
 
-    const jobs: UploadJob[] = imageFiles.map((f) => ({
+    // Sem Supabase: limite 10 arquivos e 2MB cada para não explodir localStorage
+    if (!supabase) {
+      const tooBig = imageFiles.filter((f) => f.size > 2 * 1024 * 1024);
+      if (tooBig.length > 0) {
+        triggerNotification(`${tooBig.length} arquivo(s) ignorado(s) — sem Supabase o limite é 2MB por imagem.`);
+      }
+      const safe = imageFiles.filter((f) => f.size <= 2 * 1024 * 1024).slice(0, 10);
+      if (!safe.length) return;
+      if (imageFiles.length > 10) triggerNotification("Modo local: máximo 10 imagens por vez. Conecte o Supabase para envios em lote.");
+      imageFiles.splice(0, imageFiles.length, ...safe);
+    }
+
+    // Avisa sobre batches muito grandes com Supabase
+    const BATCH_LIMIT = 100;
+    const batch = imageFiles.slice(0, BATCH_LIMIT);
+    if (imageFiles.length > BATCH_LIMIT) {
+      triggerNotification(`Enviando primeiras ${BATCH_LIMIT} de ${imageFiles.length} imagens. Repita para o restante.`);
+    }
+
+    const jobs: UploadJob[] = batch.map((f) => ({
       id: `job-${Date.now()}-${Math.random()}`,
       file: f, status: "pending", progress: 0,
     }));
+
+    if (!isMountedRef.current) return;
     setUploadJobs(jobs);
     setShowUpload(true);
     const results: GalleryFile[] = [];
 
     for (const job of jobs) {
+      if (!isMountedRef.current) break;
       setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "uploading", progress: 20 } : j));
       try {
         const safeName = job.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -122,28 +146,40 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
 
         if (supabase) {
           const { error } = await supabase.storage.from("site-assets").upload(path, job.file, { cacheControl: "3600", upsert: false });
-          setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, progress: 80 } : j));
+          if (!isMountedRef.current) break;
           if (error) throw error;
+          setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, progress: 80 } : j));
           const { data: pub } = supabase.storage.from("site-assets").getPublicUrl(path);
           const url = pub?.publicUrl || "";
           results.push({ id: `sb-${uploadCategory}-${uniqueName}`, name: uniqueName, url, category: uploadCategory, size: job.file.size, path });
-          setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "done", progress: 100, url } : j));
+          if (isMountedRef.current)
+            setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "done", progress: 100, url } : j));
         } else {
-          const dataUrl = await new Promise<string>((res) => {
-            const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(job.file);
+          const dataUrl = await new Promise<string>((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.onerror = () => rej(new Error("Falha ao ler arquivo"));
+            r.readAsDataURL(job.file);
           });
-          addMediaItem({ url: dataUrl, name: job.file.name, type: "image", category: uploadCategory });
+          try {
+            addMediaItem({ url: dataUrl, name: job.file.name, type: "image", category: uploadCategory });
+          } catch {
+            throw new Error("Armazenamento local cheio — conecte o Supabase para continuar.");
+          }
           results.push({ id: `local-${Date.now()}`, name: job.file.name, url: dataUrl, category: uploadCategory, size: job.file.size });
-          setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "done", progress: 100, url: dataUrl } : j));
+          if (isMountedRef.current)
+            setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "done", progress: 100, url: dataUrl } : j));
         }
       } catch (err: any) {
-        setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "error", error: err.message } : j));
+        if (isMountedRef.current)
+          setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "error", error: err?.message || "Erro desconhecido" } : j));
       }
     }
 
+    if (!isMountedRef.current) return;
     if (results.length > 0) {
       setFiles((prev) => [...results, ...prev]);
-      triggerNotification(`${results.length} imagem(ns) enviada(s)!`);
+      triggerNotification(`${results.length} imagem(ns) enviada(s) com sucesso!`);
     }
   }, [supabase, uploadCategory, addMediaItem, triggerNotification]);
 
