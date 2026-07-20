@@ -2,12 +2,15 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Upload, Search, Copy, Trash2, Check, X, Image,
   Grid3X3, LayoutGrid, Square, AlertCircle, Loader2, RefreshCw,
-  ExternalLink, ChevronLeft, ChevronRight, ZoomIn
+  ExternalLink, ChevronLeft, ChevronRight, ZoomIn,
+  FolderPlus, Folder, CheckSquare, Move, MousePointer
 } from "lucide-react";
 import { getSupabase } from "../lib/supabase";
 import { useAppContext } from "../context/AppContext";
 
-const CATEGORIES = ["Geral", "Containers", "Projetos", "Depoimentos", "Fachada", "Pátio", "Logística", "Equipe"];
+const DEFAULT_FOLDERS = ["Geral", "Containers", "Projetos", "Depoimentos", "Fachada", "Pátio", "Logística", "Equipe"];
+const CATEGORIES = DEFAULT_FOLDERS; // alias for upload compatibility
+const FOLDERS_KEY = "dodisa_gallery_folders";
 const PAGE_SIZE = 40;
 const UPLOAD_CONCURRENCY = 8;
 
@@ -52,10 +55,33 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
   const [showUpload, setShowUpload] = useState(false);
   const [uploadTotal, setUploadTotal] = useState(0);
   const [uploadDoneCount, setUploadDoneCount] = useState(0);
+  // Selection mode
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  // Folders
+  const [folders, setFolders] = useState<string[]>(() => {
+    try { const s = localStorage.getItem(FOLDERS_KEY); return s ? JSON.parse(s) : DEFAULT_FOLDERS; }
+    catch { return DEFAULT_FOLDERS; }
+  });
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
+  // Drag to move
+  const [draggedFileId, setDraggedFileId] = useState<string | null>(null);
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
+  // Bulk move dropdown
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(true);
   useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
+
+  // Persist folders to localStorage
+  useEffect(() => {
+    try { localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders)); } catch { /* ignore */ }
+  }, [folders]);
 
   // ── Load ─────────────────────────────────────────────────────
   const loadImages = useCallback(async () => {
@@ -63,7 +89,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     try {
       if (supabase) {
         const allFiles: GalleryFile[] = [];
-        for (const cat of CATEGORIES) {
+        for (const cat of folders) {
           const { data, error } = await supabase.storage
             .from("site-assets")
             .list(`gallery/${cat}`, { limit: 1000, sortBy: { column: "created_at", order: "desc" } });
@@ -101,7 +127,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [supabase, mediaLibrary]);
+  }, [supabase, mediaLibrary, folders]);
 
   useEffect(() => { loadImages(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -218,6 +244,89 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // ── Selection ────────────────────────────────────────────────
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const selectAll = () => setSelectedIds(new Set(paginated.map((f) => f.id)));
+  const deselectAll = () => { setSelectedIds(new Set()); };
+
+  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()); };
+
+  // ── Bulk delete ───────────────────────────────────────────────
+  const bulkDelete = async () => {
+    if (!confirm(`Excluir ${selectedIds.size} imagem(ns) permanentemente?`)) return;
+    setIsBulkProcessing(true);
+    const toDelete = files.filter((f) => selectedIds.has(f.id));
+    try {
+      if (supabase) {
+        const paths = toDelete.filter((f) => f.path).map((f) => f.path!);
+        if (paths.length) await supabase.storage.from("site-assets").remove(paths);
+      } else {
+        toDelete.forEach((f) => deleteMediaItem(f.id));
+      }
+      setFiles((prev) => prev.filter((f) => !selectedIds.has(f.id)));
+      triggerNotification(`${toDelete.length} imagem(ns) excluída(s).`);
+      exitSelectMode();
+    } catch { triggerNotification("Erro ao excluir."); }
+    setIsBulkProcessing(false);
+  };
+
+  // ── Move single or bulk ───────────────────────────────────────
+  const moveFile = async (file: GalleryFile, targetFolder: string) => {
+    if (file.category === targetFolder) return;
+    try {
+      if (supabase && file.path) {
+        const newPath = `gallery/${targetFolder}/${file.name}`;
+        const { error } = await supabase.storage.from("site-assets").move(file.path, newPath);
+        if (error) throw error;
+        const { data: pub } = supabase.storage.from("site-assets").getPublicUrl(newPath);
+        setFiles((prev) => prev.map((f) => f.id === file.id
+          ? { ...f, category: targetFolder, path: newPath, url: pub?.publicUrl || f.url }
+          : f));
+      } else {
+        setFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, category: targetFolder } : f));
+      }
+      triggerNotification(`Movido para "${targetFolder}".`);
+    } catch { triggerNotification("Erro ao mover arquivo."); }
+  };
+
+  const bulkMove = async (targetFolder: string) => {
+    setShowMoveMenu(false);
+    setIsBulkProcessing(true);
+    const toMove = files.filter((f) => selectedIds.has(f.id) && f.category !== targetFolder);
+    for (const file of toMove) { await moveFile(file, targetFolder); }
+    triggerNotification(`${toMove.length} imagem(ns) movida(s) para "${targetFolder}".`);
+    exitSelectMode();
+    setIsBulkProcessing(false);
+  };
+
+  // ── Folders ───────────────────────────────────────────────────
+  const createFolder = () => {
+    const name = newFolderName.trim();
+    if (!name || folders.includes(name)) { triggerNotification("Nome inválido ou já existe."); return; }
+    setFolders((prev) => [...prev, name]);
+    setNewFolderName("");
+    setShowNewFolder(false);
+    triggerNotification(`Pasta "${name}" criada!`);
+  };
+
+  const deleteFolder = async (folder: string) => {
+    const count = files.filter((f) => f.category === folder).length;
+    if (count > 0 && !confirm(`A pasta "${folder}" tem ${count} imagem(ns). Excluir a pasta moverá tudo para "Geral". Continuar?`)) return;
+    // Move all images to Geral first
+    const toMove = files.filter((f) => f.category === folder);
+    for (const file of toMove) await moveFile(file, "Geral");
+    setFolders((prev) => prev.filter((f) => f !== folder));
+    if (categoryFilter === folder) setCategoryFilter("Todas");
+    setDeletingFolder(null);
+    triggerNotification(`Pasta "${folder}" removida.`);
+  };
+
   // ── Filter & Pagination ───────────────────────────────────────
   const filtered = files.filter((f) => {
     const matchCat = categoryFilter === "Todas" || f.category === categoryFilter;
@@ -282,6 +391,17 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
             title="Recarregar"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+          <button
+            onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer transition-colors border ${
+              selectMode
+                ? "bg-[#FFD400]/10 border-[#FFD400]/40 text-[#FFD400]"
+                : "bg-white/5 border-white/5 text-stone-400 hover:text-white hover:bg-white/10"
+            }`}
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{selectMode ? "Cancelar" : "Selecionar"}</span>
           </button>
           <button
             onClick={() => setShowUpload(!showUpload)}
@@ -424,26 +544,136 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
         </div>
       </div>
 
+      {/* ── Selection toolbar ── */}
+      {selectMode && (
+        <div className="flex flex-wrap items-center gap-2 bg-[#171A21] border border-[#FFD400]/20 rounded-xl px-3 py-2.5">
+          <CheckSquare className="w-4 h-4 text-[#FFD400] flex-shrink-0" />
+          <span className="text-[#FFD400] font-black text-xs uppercase">
+            {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Clique nas imagens para selecionar"}
+          </span>
+          <div className="flex gap-2 text-[10px] text-stone-500">
+            <button onClick={selectAll} className="hover:text-white cursor-pointer transition-colors">Todas da página</button>
+            {selectedIds.size > 0 && <button onClick={deselectAll} className="hover:text-white cursor-pointer transition-colors">Nenhuma</button>}
+          </div>
+          <div className="flex-1" />
+          {selectedIds.size > 0 && !isBulkProcessing && (
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <button
+                  onClick={() => setShowMoveMenu((v) => !v)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-stone-300 hover:text-white rounded-lg text-[10px] font-black uppercase cursor-pointer transition-colors"
+                >
+                  <Move className="w-3 h-3" /> Mover para
+                </button>
+                {showMoveMenu && (
+                  <div className="absolute top-full left-0 mt-1 z-50 bg-[#0F1115] border border-white/10 rounded-xl shadow-2xl py-1 min-w-[140px]">
+                    {folders.map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => bulkMove(f)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-colors text-left"
+                      >
+                        <Folder className="w-3 h-3 flex-shrink-0" /> {f}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={bulkDelete}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 rounded-lg text-[10px] font-black uppercase cursor-pointer transition-colors"
+              >
+                <Trash2 className="w-3 h-3" /> Excluir
+              </button>
+            </div>
+          )}
+          {isBulkProcessing && <Loader2 className="w-4 h-4 text-[#FFD400] animate-spin" />}
+          <button onClick={exitSelectMode} className="p-1.5 text-stone-500 hover:text-white cursor-pointer transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* ── Category tabs — horizontal scroll ── */}
       <div className="relative">
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
-          {["Todas", ...CATEGORIES].map((cat) => {
+        <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {["Todas", ...folders].map((cat) => {
             const count = cat === "Todas" ? files.length : files.filter((f) => f.category === cat).length;
+            const isDragTarget = dragOverFolder === cat && draggedFileId !== null && cat !== "Todas";
+            const isDefault = DEFAULT_FOLDERS.includes(cat);
             return (
-              <button key={cat} onClick={() => setCategoryFilter(cat)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer border transition-all ${
-                  categoryFilter === cat
-                    ? "bg-[#FFD400]/10 border-[#FFD400]/40 text-[#FFD400]"
-                    : "bg-[#171A21] border-white/5 text-stone-500 hover:text-stone-300 hover:border-white/10"
-                }`}
-              >
-                {cat}
-                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black ${
-                  categoryFilter === cat ? "bg-[#FFD400]/20 text-[#FFD400]" : "bg-white/5 text-stone-600"
-                }`}>{count}</span>
-              </button>
+              <div key={cat} className="relative flex-shrink-0 group/tab">
+                <button
+                  onClick={() => setCategoryFilter(cat)}
+                  onDragOver={(e) => { if (draggedFileId && cat !== "Todas") { e.preventDefault(); setDragOverFolder(cat); } }}
+                  onDragLeave={() => setDragOverFolder(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverFolder(null);
+                    if (draggedFileId && cat !== "Todas") {
+                      const file = files.find((f) => f.id === draggedFileId);
+                      if (file) moveFile(file, cat);
+                      setDraggedFileId(null);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer border transition-all ${
+                    isDragTarget
+                      ? "bg-[#FFD400]/25 border-[#FFD400]/70 text-[#FFD400] scale-105 shadow-lg shadow-[#FFD400]/10"
+                      : categoryFilter === cat
+                        ? "bg-[#FFD400]/10 border-[#FFD400]/40 text-[#FFD400]"
+                        : "bg-[#171A21] border-white/5 text-stone-500 hover:text-stone-300 hover:border-white/10"
+                  }`}
+                >
+                  {cat}
+                  <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black ${
+                    categoryFilter === cat ? "bg-[#FFD400]/20 text-[#FFD400]" : "bg-white/5 text-stone-600"
+                  }`}>{count}</span>
+                </button>
+                {/* Delete custom folder */}
+                {cat !== "Todas" && !isDefault && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteFolder(cat); }}
+                    className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 hover:bg-red-400 rounded-full text-white opacity-0 group-hover/tab:opacity-100 flex items-center justify-center cursor-pointer transition-opacity"
+                    title="Excluir pasta"
+                  >
+                    <X className="w-2 h-2 stroke-[3]" />
+                  </button>
+                )}
+              </div>
             );
           })}
+
+          {/* New folder button / inline input */}
+          {showNewFolder ? (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <input
+                autoFocus
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") createFolder();
+                  if (e.key === "Escape") { setShowNewFolder(false); setNewFolderName(""); }
+                }}
+                placeholder="Nome da pasta..."
+                className="w-32 px-2.5 py-1.5 bg-[#171A21] border border-[#FFD400]/40 rounded-xl text-white text-[10px] outline-none focus:border-[#FFD400]/70"
+              />
+              <button onClick={createFolder}
+                className="p-1.5 bg-[#FFD400] text-[#07090D] rounded-lg cursor-pointer hover:bg-[#FF9A00] transition-colors">
+                <Check className="w-3 h-3" />
+              </button>
+              <button onClick={() => { setShowNewFolder(false); setNewFolderName(""); }}
+                className="p-1.5 bg-white/5 text-stone-400 hover:text-white rounded-lg cursor-pointer transition-colors">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowNewFolder(true)}
+              className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-dashed border-white/15 text-stone-600 hover:text-stone-300 hover:border-white/30 text-[10px] font-bold cursor-pointer transition-colors"
+            >
+              <FolderPlus className="w-3 h-3" /> Nova pasta
+            </button>
+          )}
         </div>
       </div>
 
@@ -467,71 +697,113 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
         </div>
       ) : (
         <div className={`grid ${gridConfig.cols} gap-3`}>
-          {paginated.map((file, idx) => (
-            <div key={file.id}
-              className="group relative bg-[#0F1115] border border-white/5 hover:border-[#FFD400]/25 rounded-xl overflow-hidden transition-all duration-200 hover:shadow-lg hover:shadow-black/30"
-            >
-              {/* Thumbnail */}
-              <div
-                className={`relative ${gridConfig.thumb} bg-stone-900 overflow-hidden cursor-zoom-in`}
-                onClick={() => setLightboxIdx(idx)}
+          {paginated.map((file, fileIdx) => {
+            const isSelected = selectedIds.has(file.id);
+            const isDraggingThis = draggedFileId === file.id;
+            return (
+              <div key={file.id}
+                draggable={!selectMode}
+                onDragStart={() => setDraggedFileId(file.id)}
+                onDragEnd={() => setDraggedFileId(null)}
+                className={`group relative bg-[#0F1115] border rounded-xl overflow-hidden transition-all duration-200 ${
+                  isDraggingThis ? "opacity-40 scale-95" :
+                  isSelected ? "border-[#FFD400]/60 shadow-lg shadow-[#FFD400]/10" :
+                  "border-white/5 hover:border-[#FFD400]/25 hover:shadow-lg hover:shadow-black/30"
+                }`}
               >
-                <img
-                  src={file.url} alt={file.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                  loading="lazy"
-                />
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-black/50 backdrop-blur-sm rounded-full p-2">
-                    <ZoomIn className="w-5 h-5 text-white" />
-                  </div>
-                </div>
-                {/* Category badge */}
-                <div className={`absolute top-2 left-2 px-1.5 py-0.5 bg-black/75 backdrop-blur-sm rounded-md text-[8px] font-bold text-[#FFD400] uppercase tracking-wider transition-opacity ${gridSize === "sm" ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}>
-                  {file.category}
-                </div>
-                {/* Size */}
-                {file.size && gridSize === "lg" && (
-                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/70 rounded text-[9px] text-stone-400 font-mono">
-                    {fmtSize(file.size)}
-                  </div>
-                )}
-              </div>
+                {/* Thumbnail */}
+                <div
+                  className={`relative ${gridConfig.thumb} bg-stone-900 overflow-hidden ${selectMode ? "cursor-pointer" : "cursor-zoom-in"}`}
+                  onClick={() => selectMode ? toggleSelect(file.id) : setLightboxIdx(fileIdx)}
+                >
+                  <img
+                    src={file.url} alt={file.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    loading="lazy"
+                  />
 
-              {/* Card footer */}
-              <div className={`${gridSize === "sm" ? "p-1.5" : "p-3"}`}>
-                {gridSize !== "sm" && (
-                  <p className="text-stone-400 text-[10px] truncate leading-none mb-2.5 font-mono" title={file.name}>
-                    {file.name}
-                  </p>
-                )}
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => handleCopy(file)}
-                    className={`flex-1 flex items-center justify-center gap-1 font-black uppercase rounded-lg cursor-pointer transition-all border ${
-                      copiedId === file.id
-                        ? "bg-green-500/10 border-green-500/30 text-green-400"
-                        : "bg-[#FFD400]/8 hover:bg-[#FFD400] border-[#FFD400]/20 text-[#FFD400] hover:text-[#07090D]"
-                    } ${gridSize === "sm" ? "py-1 text-[8px]" : "py-1.5 text-[9px]"}`}
-                  >
-                    {copiedId === file.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                    {gridSize !== "sm" && (copiedId === file.id ? "Copiado" : "URL")}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(file)}
-                    className={`flex items-center justify-center bg-white/5 hover:bg-red-500/15 text-stone-600 hover:text-red-400 rounded-lg cursor-pointer transition-all ${
-                      gridSize === "sm" ? "py-1 px-1.5" : "py-1.5 px-2"
-                    }`}
-                    title="Excluir"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  {/* Select mode overlay */}
+                  {selectMode && (
+                    <div className={`absolute inset-0 transition-all duration-150 ${isSelected ? "bg-[#FFD400]/20" : "bg-black/0 group-hover:bg-black/30"}`}>
+                      <div className={`absolute top-2 right-2 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                        isSelected ? "bg-[#FFD400] border-[#FFD400]" : "bg-black/50 border-white/50 group-hover:border-white"
+                      }`}>
+                        {isSelected && <Check className="w-3 h-3 text-[#07090D] stroke-[3]" />}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Normal hover overlay (hidden in select mode) */}
+                  {!selectMode && (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-black/50 backdrop-blur-sm rounded-full p-2">
+                          <ZoomIn className="w-5 h-5 text-white" />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Category badge */}
+                  <div className={`absolute top-2 left-2 px-1.5 py-0.5 bg-black/75 backdrop-blur-sm rounded-md text-[8px] font-bold text-[#FFD400] uppercase tracking-wider transition-opacity ${gridSize === "sm" ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}>
+                    {file.category}
+                  </div>
+                  {/* Size */}
+                  {file.size && gridSize === "lg" && (
+                    <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/70 rounded text-[9px] text-stone-400 font-mono">
+                      {fmtSize(file.size)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Card footer */}
+                <div className={`${gridSize === "sm" ? "p-1.5" : "p-3"}`}>
+                  {gridSize !== "sm" && (
+                    <p className="text-stone-400 text-[10px] truncate leading-none mb-2.5 font-mono" title={file.name}>
+                      {file.name}
+                    </p>
+                  )}
+                  {selectMode ? (
+                    <button
+                      onClick={() => toggleSelect(file.id)}
+                      className={`w-full flex items-center justify-center gap-1 font-black uppercase rounded-lg cursor-pointer transition-all border ${
+                        isSelected
+                          ? "bg-[#FFD400]/15 border-[#FFD400]/40 text-[#FFD400]"
+                          : "bg-white/5 border-white/5 text-stone-500 hover:text-white"
+                      } ${gridSize === "sm" ? "py-1 text-[8px]" : "py-1.5 text-[9px]"}`}
+                    >
+                      <Check className="w-3 h-3" />
+                      {gridSize !== "sm" && (isSelected ? "Selecionada" : "Selecionar")}
+                    </button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleCopy(file)}
+                        className={`flex-1 flex items-center justify-center gap-1 font-black uppercase rounded-lg cursor-pointer transition-all border ${
+                          copiedId === file.id
+                            ? "bg-green-500/10 border-green-500/30 text-green-400"
+                            : "bg-[#FFD400]/8 hover:bg-[#FFD400] border-[#FFD400]/20 text-[#FFD400] hover:text-[#07090D]"
+                        } ${gridSize === "sm" ? "py-1 text-[8px]" : "py-1.5 text-[9px]"}`}
+                      >
+                        {copiedId === file.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        {gridSize !== "sm" && (copiedId === file.id ? "Copiado" : "URL")}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(file)}
+                        className={`flex items-center justify-center bg-white/5 hover:bg-red-500/15 text-stone-600 hover:text-red-400 rounded-lg cursor-pointer transition-all ${
+                          gridSize === "sm" ? "py-1 px-1.5" : "py-1.5 px-2"
+                        }`}
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
