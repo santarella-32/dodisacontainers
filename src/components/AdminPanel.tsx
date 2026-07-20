@@ -10,6 +10,7 @@ import {
 import { useAppContext, AppContext, EditableContainer, ProntaEntregaItem, EditableProject, EditableVideo, EditableFAQ, EditableTestimonial } from "../context/AppContext";
 import { getSupabase } from "../lib/supabase";
 import ImageUploadField from "./ImageUploadField";
+import GaleriaImagens from "./GaleriaImagens";
 import Logo from "./Logo";
 import Hero from "./Hero";
 import SimuladorOrcamento from "./SimuladorOrcamento";
@@ -1084,7 +1085,7 @@ export default function AdminPanel() {
                 { id: "containers", label: "Containers", icon: Layers, onClick: () => { setActiveTab("containers"); setContainersSubTab("catalogo"); } },
                 { id: "pronta", label: "Pronta Entrega", icon: Grid, onClick: () => { setActiveTab("containers"); setContainersSubTab("pronta"); } },
                 { id: "projects", label: "Projetos", icon: CheckCircle2, onClick: () => { setActiveTab("projects"); setProjectsSubTab("cases"); } },
-                { id: "media", label: "Mídia", icon: FileImage, count: mediaLibrary.length },
+                { id: "media", label: "Galeria", icon: FileImage },
                 { id: "testimonials", label: "Depoimentos", icon: Star, count: testimonials.length },
                 { id: "logistic", label: "Regiões", icon: MapPin },
                 { id: "settings", label: "Configurações", icon: Settings },
@@ -2567,118 +2568,10 @@ export default function AdminPanel() {
         )}
 
         {/* ---------------------------------------------------- */}
-        {/* TAB: MEDIA VAULT - Google Drive Style */}
+        {/* TAB: GALERIA DE IMAGENS */}
         {/* ---------------------------------------------------- */}
         {activeTab === "media" && (
-          <div className="space-y-8">
-            
-            <div className="bg-[#171A21] p-6 rounded-2xl border border-white/5 space-y-4">
-              <div>
-                <h3 className="text-white text-base font-black uppercase mb-1">Repositório de Mídias Premium</h3>
-                <p className="text-xs text-[#9CA3AF]">
-                  Gerencie todo o acervo visual da empresa. Use o botão para copiar o endereço URL de cada arquivo direto para os formulários de containers ou depoimentos.
-                </p>
-              </div>
-
-              {/* Grid Layout styled like Google Drive */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4">
-                {mediaLibrary.map((item) => (
-                  <div key={item.id} className="bg-[#0F1115] border border-white/5 p-3.5 rounded-xl flex flex-col justify-between text-xs font-sans group hover:border-[#FFD400]/15 transition-all min-w-0 overflow-hidden">
-                    
-                    {item.type === "image" ? (
-                      <div className="w-full h-24 bg-stone-900 rounded-lg overflow-hidden border border-white/5 mb-3 flex items-center justify-center relative">
-                        <img src={item.url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                      </div>
-                    ) : (
-                      <div className="w-full h-24 bg-[#171A21] rounded-lg border border-white/5 mb-3 flex items-center justify-center text-stone-500">
-                        <Play className="w-8 h-8 text-[#FFD400]" />
-                      </div>
-                    )}
-
-                    <div className="space-y-1 block leading-tight">
-                      <strong className="text-white block mr-2 truncate font-bold text-xs" title={item.name}>{item.name}</strong>
-                      <span className="text-[9px] text-[#9CA3AF] font-bold tracking-wider uppercase block">{item.category}</span>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-white/5 flex gap-1.5">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(item.url);
-                          triggerNotification("URL copiada com sucesso para a área de transferência!");
-                        }}
-                        className="flex-1 py-1 px-2 bg-[#FFD400]/10 hover:bg-[#FFD400] text-[#FFD400] hover:text-white font-bold text-[9px] uppercase rounded-lg text-center cursor-pointer transition-all border border-[#FFD400]/20"
-                      >
-                        Copiar URL
-                      </button>
-                      <button
-                        onClick={() => {
-                          deleteMediaItem(item.id);
-                          triggerNotification("Mídia removida com sucesso do acervo.");
-                        }}
-                        className="py-1 px-2.5 bg-white/5 hover:bg-white/10 text-stone-500 hover:text-red-400 rounded-xl cursor-pointer"
-                        title="Deletar Mídia"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                  </div>
-                ))}
-              </div>
-
-              {/* Upload addition */}
-              <div className="bg-[#0F1115] p-5 border border-white/5 rounded-xl space-y-4">
-                <span className="text-xs font-black text-[#FFD400] uppercase tracking-wider block border-b border-white/5 pb-2">Vincular Novo Arquivo Corporativo</span>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                  <div>
-                    <label className="block text-stone-400 mb-1 font-bold uppercase">Nome descritivo</label>
-                    <input
-                      type="text"
-                      value={newMedia.name}
-                      onChange={(e) => setNewMedia({ ...newMedia, name: e.target.value })}
-                      placeholder="Ex: refeito_dodisa_sul.jpg"
-                      className="w-full bg-[#171A21] border border-white/5 rounded-lg p-2 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-stone-400 mb-1 font-bold uppercase font-mono">Categoria de Filtro</label>
-                    <input
-                      type="text"
-                      value={newMedia.category}
-                      onChange={(e) => setNewMedia({ ...newMedia, category: e.target.value })}
-                      placeholder="Ex: Pátio / Reparos"
-                      className="w-full bg-[#171A21] border border-white/5 rounded-lg p-2 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-stone-400 mb-1 font-bold uppercase font-sans">Endereço (Link Cloud)</label>
-                    <input
-                      type="text"
-                      value={newMedia.url}
-                      onChange={(e) => setNewMedia({ ...newMedia, url: e.target.value })}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full bg-[#171A21] border border-white/0.1 rounded-lg p-2 text-white font-mono"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!newMedia.name || !newMedia.url) return;
-                    addMediaItem({ ...newMedia });
-                    setNewMedia({ url: "", name: "", type: "image", category: "Geral" });
-                    triggerNotification("Arquivo visual registrado e link integrado!");
-                  }}
-                  className="py-2.5 px-4 bg-[#FFD400] hover:bg-[#FF8A00] text-stone-950 font-black rounded-lg text-[11px] uppercase tracking-wider flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> Importar para Acervo
-                </button>
-              </div>
-            </div>
-
-          </div>
+          <GaleriaImagens triggerNotification={triggerNotification} />
         )}
 
         {/* ---------------------------------------------------- */}
