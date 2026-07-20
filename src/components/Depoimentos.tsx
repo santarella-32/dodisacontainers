@@ -146,7 +146,7 @@ export default function Depoimentos() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="bg-[#111827]/40 backdrop-blur-xl p-8 rounded-2xl border border-white/5 shadow-2xl relative"
+                className="bg-[#111827]/40 backdrop-blur-xl p-5 sm:p-8 rounded-2xl border border-white/5 shadow-2xl relative"
               >
                 <Quote className="absolute top-6 right-8 w-12 h-12 text-white/[0.025] stroke-[2]" />
 

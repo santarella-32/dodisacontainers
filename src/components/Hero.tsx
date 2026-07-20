@@ -218,7 +218,7 @@ export default function Hero() {
 
       {/* Main Structural Grid Container */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 sm:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-16 items-center">
           
           {/* Column 1: Typography + Headline Actions */}
           <div className="lg:col-span-6 flex flex-col items-start text-left space-y-6 sm:space-y-8">
@@ -356,7 +356,7 @@ export default function Hero() {
                 <span className="text-[10px] text-brand-yellow">PÁTIO DODISA</span>
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-3 gap-3 sm:gap-6">
                 
                 {/* Metric Item 1 */}
                 <div className="flex flex-col items-start gap-1 p-3.5 rounded-xl bg-[#0B0F14]/60 border border-white/5 group hover:border-brand-yellow/15 transition-all duration-300">

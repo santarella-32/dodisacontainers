@@ -96,7 +96,7 @@ export default function FAQInteligente() {
         </div>
 
         {/* Dynamic FAQ Support bottom CTA */}
-        <div className="text-center p-8 bg-[#111827]/40 border border-white/5 rounded-2xl max-w-2xl mx-auto backdrop-blur shadow-2xl relative">
+        <div className="text-center p-5 sm:p-8 bg-[#111827]/40 border border-white/5 rounded-2xl max-w-2xl mx-auto backdrop-blur shadow-2xl relative">
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-yellow to-brand-orange opacity-40" />
           <HelpCircle className="w-10 h-10 text-brand-yellow mx-auto mb-4" />
           <h3 className="text-white text-base sm:text-lg font-black font-display uppercase tracking-wider mb-2">

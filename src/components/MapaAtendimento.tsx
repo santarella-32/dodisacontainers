@@ -514,37 +514,43 @@ export default function MapaAtendimento() {
         </div>
 
         {/* Dynamic Navigation Tabs inside section to organize information cleanly */}
-        <div className="flex justify-center mb-10">
-          <div className="bg-[#111827]/60 p-1.5 rounded-2xl border border-white/5 inline-flex gap-1.5">
+        <div className="flex justify-center mb-10 px-4">
+          <div className="bg-[#111827]/60 p-1.5 rounded-2xl border border-white/5 flex gap-1 w-full sm:w-auto sm:inline-flex sm:gap-1.5">
             <button
               onClick={() => setActiveTab("mapa")}
-              className={`px-5 py-2.5 rounded-xl text-xs uppercase font-black tracking-widest transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "mapa" 
-                  ? "bg-[#FFD400] text-[#07090D] shadow-lg shadow-[#FFD400]/10" 
+              className={`flex-1 sm:flex-none px-3 sm:px-5 py-2.5 rounded-xl text-[10px] sm:text-xs uppercase font-black tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 ${
+                activeTab === "mapa"
+                  ? "bg-[#FFD400] text-[#07090D] shadow-lg shadow-[#FFD400]/10"
                   : "text-stone-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              <Map className="w-3.5 h-3.5" /> Mapa Interativo de Rotas
+              <Map className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Mapa Interativo de Rotas</span>
+              <span className="sm:hidden">Mapa</span>
             </button>
             <button
               onClick={() => setActiveTab("frota")}
-              className={`px-5 py-2.5 rounded-xl text-xs uppercase font-black tracking-widest transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "frota" 
-                  ? "bg-[#FFD400] text-[#07090D] shadow-lg shadow-[#FFD400]/10" 
+              className={`flex-1 sm:flex-none px-3 sm:px-5 py-2.5 rounded-xl text-[10px] sm:text-xs uppercase font-black tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 ${
+                activeTab === "frota"
+                  ? "bg-[#FFD400] text-[#07090D] shadow-lg shadow-[#FFD400]/10"
                   : "text-stone-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              <Truck className="w-3.5 h-3.5" /> Frotas & Equipamentos
+              <Truck className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Frotas & Equipamentos</span>
+              <span className="sm:hidden">Frotas</span>
             </button>
             <button
               onClick={() => setActiveTab("simulador")}
-              className={`px-5 py-2.5 rounded-xl text-xs uppercase font-black tracking-widest transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "simulador" 
-                  ? "bg-[#FFD400] text-[#07090D] shadow-lg shadow-[#FFD400]/10" 
+              className={`flex-1 sm:flex-none px-3 sm:px-5 py-2.5 rounded-xl text-[10px] sm:text-xs uppercase font-black tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 ${
+                activeTab === "simulador"
+                  ? "bg-[#FFD400] text-[#07090D] shadow-lg shadow-[#FFD400]/10"
                   : "text-stone-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              <Sliders className="w-3.5 h-3.5" /> Simulador de Carga
+              <Sliders className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Simulador de Carga</span>
+              <span className="sm:hidden">Simulador</span>
             </button>
           </div>
         </div>
@@ -919,7 +925,7 @@ export default function MapaAtendimento() {
               exit={{ opacity: 0, y: -15 }}
               className="max-w-4xl mx-auto space-y-6"
             >
-              <div className="bg-[#111827]/40 border border-white/5 p-8 rounded-3xl relative overflow-hidden shadow-2xl">
+              <div className="bg-[#111827]/40 border border-white/5 p-5 sm:p-8 rounded-3xl relative overflow-hidden shadow-2xl">
                 <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#FFD400]" />
                 
                 <h3 className="text-xl font-black font-display text-white uppercase tracking-tight mb-4 flex items-center gap-2.5">

@@ -107,15 +107,15 @@ export default function GaleriaProjetos() {
                     {proj.category}
                   </div>
 
-                  {/* Dark Elegant Glass Hover overlay */}
-                  <div className="absolute inset-0 bg-stone-950/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-6 text-center">
+                  {/* Dark Elegant Glass Hover overlay — visible on desktop hover, always on mobile via touch */}
+                  <div className="absolute inset-0 bg-stone-950/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-6 text-center pointer-events-none group-hover:pointer-events-auto [@media(hover:none)]:pointer-events-auto">
                     <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-4 text-amber-500">
                       <ImagePlus className="w-5 h-5 animate-pulse" />
                     </div>
                     <h4 className="text-white text-base font-black uppercase tracking-tight mb-2">
                       {proj.title}
                     </h4>
-                    <p className="text-xs text-stone-400 font-sans max-w-xs mb-6">
+                    <p className="text-xs text-stone-400 font-sans max-w-xs mb-6 hidden sm:block">
                       {proj.specs}
                     </p>
                     <button

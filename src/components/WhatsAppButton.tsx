@@ -41,7 +41,7 @@ export default function WhatsAppButton() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50 flex flex-col items-end">
       
       {/* Small notification count bubble above is displayed when closed */}
       {!isOpen && (
@@ -58,7 +58,7 @@ export default function WhatsAppButton() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.92 }}
             transition={{ duration: 0.25 }}
-            className="w-80 sm:w-85 rounded-xl bg-stone-950 border border-emerald-500/30 overflow-hidden shadow-2xl mb-4 text-left"
+            className="w-[calc(100vw-32px)] max-w-[340px] rounded-xl bg-stone-950 border border-emerald-500/30 overflow-hidden shadow-2xl mb-4 text-left"
           >
             {/* Header of the dialog widget */}
             <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 p-4 text-white flex items-center justify-between">
