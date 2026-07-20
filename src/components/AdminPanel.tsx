@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Lock, Eye, EyeOff, LogOut, Layout, Settings, FileText, HelpCircle, 
@@ -223,6 +223,14 @@ export default function AdminPanel() {
   // Full Screen Preview Toggle
   const [isPreviewFullScreen, setIsPreviewFullScreen] = useState(false);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
+  const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isPreviewPopupOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setIsPreviewPopupOpen(false); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [isPreviewPopupOpen]);
 
   // Landing Page Builder and Quick Edit Side Drawer States
   const [drawerSection, setDrawerSection] = useState<string | null>(null);
@@ -1291,12 +1299,72 @@ export default function AdminPanel() {
             </div>
           </div>
 
+          {/* PREVIEW POPUP WRAPPER — becomes full-screen overlay when open */}
+          <div className={isPreviewPopupOpen ? "fixed inset-0 z-[250] bg-[#07090D] flex flex-col overflow-hidden" : ""}>
+
+            {/* Popup Header Bar */}
+            {isPreviewPopupOpen && (
+              <div className="flex items-center justify-between px-6 py-3.5 border-b border-white/[0.06] bg-[#0B0F14] flex-shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-[#FFD400]">
+                    <Layout className="w-4 h-4" />
+                    <span className="text-xs font-black uppercase tracking-widest">Editor + Preview</span>
+                  </div>
+                  <select
+                    value={previewSectionLock}
+                    onChange={(e) => setPreviewSectionLock(e.target.value)}
+                    className="bg-stone-950 text-white border border-white/5 rounded-lg px-2.5 py-1.5 text-xs outline-none font-bold cursor-pointer"
+                  >
+                    <option value="auto">Auto-Detectar</option>
+                    <option value="hero">Banner Principal (Hero)</option>
+                    <option value="simulator">Simulador de Orçamento</option>
+                    <option value="differentials">Diferenciais Técnicos</option>
+                    <option value="containers">Catálogo de Modelos</option>
+                    <option value="prontaEntrega">Pronta Entrega</option>
+                    <option value="projects">Cases de Clientes</option>
+                    <option value="gallery">Galeria de Projetos</option>
+                    <option value="economy">Calculadora de Economia</option>
+                    <option value="videos">Galeria de Vídeos</option>
+                    <option value="how_it_works">Como Funciona</option>
+                    <option value="map">Mapa de Atendimento</option>
+                    <option value="about">Sobre Nós</option>
+                    <option value="faq">Perguntas Frequentes</option>
+                    <option value="testimonials">Depoimentos</option>
+                    <option value="cta">CTA Final</option>
+                    <option value="channels">Rodapé</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center bg-stone-950 p-1 rounded-xl border border-white/5">
+                    {(["desktop", "tablet", "mobile"] as const).map((dev) => (
+                      <button
+                        key={dev}
+                        onClick={() => setPreviewDevice(dev)}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                          previewDevice === dev ? "bg-[#FFD400] text-stone-950" : "text-stone-400 hover:text-white"
+                        }`}
+                      >
+                        {dev === "desktop" ? "Desktop" : dev === "tablet" ? "Tablet" : "Mobile"}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setIsPreviewPopupOpen(false)}
+                    className="w-9 h-9 rounded-xl bg-stone-900 border border-white/10 text-stone-400 hover:text-white hover:bg-stone-800 flex items-center justify-center cursor-pointer transition-all"
+                    title="Fechar (ESC)"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
           {/* TWO COLUMN PANEL (Editor | Live Preview) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
+          <div className={isPreviewPopupOpen ? "flex flex-1 overflow-hidden" : "grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"}>
+
             {/* EDITOR LEFT COLUMN */}
-            <div className={`space-y-6 min-w-0 ${
-              isPreviewFullScreen ? "hidden" : 
+            <div className={isPreviewPopupOpen ? "w-[45%] h-full overflow-y-auto border-r border-white/[0.06] p-5 space-y-6 min-w-0 flex-shrink-0" : `space-y-6 min-w-0 ${
+              isPreviewFullScreen ? "hidden" :
               activeTab === "dashboard" ? (isPreviewExpanded ? "lg:col-span-6 block" : "lg:col-span-12 block") : "lg:col-span-6 block"
             } ${
               activeTab !== "dashboard" && activeTab !== "media" && activeTab !== "landing_builder" && activeTab !== "profile" && mobileViewTab !== "editor" ? "hidden lg:block" : "block"
@@ -1343,14 +1411,10 @@ export default function AdminPanel() {
                 </button>
 
                 <button
-                  onClick={() => setIsPreviewExpanded(!isPreviewExpanded)}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all border ${
-                    isPreviewExpanded 
-                      ? "bg-[#FFD400]/10 text-[#FFD400] border-[#FFD400]/30" 
-                      : "bg-[#0F1115] text-stone-300 border-white/5 hover:bg-white/5"
-                  }`}
+                  onClick={() => setIsPreviewPopupOpen(true)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all border bg-[#0F1115] text-stone-300 border-white/5 hover:bg-[#FFD400]/10 hover:text-[#FFD400] hover:border-[#FFD400]/30"
                 >
-                  <Layout className="w-3.5 h-3.5" /> {isPreviewExpanded ? "Recolher Preview" : "Expandir Preview"}
+                  <Layout className="w-3.5 h-3.5" /> Preview + Editor
                 </button>
 
                 <button
@@ -4003,7 +4067,7 @@ export default function AdminPanel() {
           </div> {/* END OF EDITOR LEFT COLUMN */}
 
           {/* LIVE PREVIEW RIGHT COLUMN */}
-          <div className={`xl:col-span-6 bg-[#171A21] border border-white/5 rounded-3xl p-6 shadow-2xl sticky top-6 self-start max-h-[85vh] overflow-y-auto flex flex-col gap-6 font-sans ${
+          <div className={isPreviewPopupOpen ? "flex-1 h-full overflow-y-auto bg-[#171A21] p-6 flex flex-col gap-6 font-sans" : `xl:col-span-6 bg-[#171A21] border border-white/5 rounded-3xl p-6 shadow-2xl sticky top-6 self-start max-h-[85vh] overflow-y-auto flex flex-col gap-6 font-sans ${
             activeTab === "dashboard"
               ? (isPreviewExpanded ? "flex" : "hidden")
               : activeTab === "media"
@@ -4230,7 +4294,8 @@ export default function AdminPanel() {
             </div>
           </div> {/* END OF LIVE PREVIEW COLUMN */}
 
-        </div> {/* END OF TWO COLUMN PANEL */}
+          </div> {/* END OF TWO COLUMN PANEL */}
+          </div> {/* END OF POPUP WRAPPER */}
         </div>
 
       </main>
