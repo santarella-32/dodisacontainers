@@ -394,14 +394,14 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
           </button>
           <button
             onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
-            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer transition-colors border ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer transition-colors border ${
               selectMode
                 ? "bg-[#FFD400]/10 border-[#FFD400]/40 text-[#FFD400]"
                 : "bg-white/5 border-white/5 text-stone-400 hover:text-white hover:bg-white/10"
             }`}
           >
             <CheckSquare className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{selectMode ? "Cancelar" : "Selecionar"}</span>
+            {selectMode ? "Cancelar" : "Selecionar"}
           </button>
           <button
             onClick={() => setShowUpload(!showUpload)}
@@ -594,8 +594,12 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
         </div>
       )}
 
-      {/* ── Category tabs — horizontal scroll ── */}
-      <div className="relative">
+      {/* ── Category tabs / Pastas ── */}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <Folder className="w-3 h-3 text-stone-600" />
+          <span className="text-stone-600 text-[10px] font-black uppercase tracking-widest">Pastas</span>
+        </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           {["Todas", ...folders].map((cat) => {
             const count = cat === "Todas" ? files.length : files.filter((f) => f.category === cat).length;
