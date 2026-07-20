@@ -1226,6 +1226,14 @@ export default function AdminPanel() {
             </div>
 
             <div className="flex items-center gap-3 w-full xl:w-auto justify-end">
+              {/* Preview Popup Button - global, always visible */}
+              <button
+                onClick={() => setIsPreviewPopupOpen(true)}
+                className="hidden sm:flex px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider items-center gap-2 cursor-pointer transition-all border bg-[#0F1115] text-stone-300 border-white/5 hover:bg-[#FFD400]/10 hover:text-[#FFD400] hover:border-[#FFD400]/30"
+                title="Abrir preview fullscreen"
+              >
+                <Layout className="w-3.5 h-3.5" /> Preview
+              </button>
               {/* Notifications center */}
               <div className="relative">
                 <button
@@ -1299,71 +1307,11 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* PREVIEW POPUP WRAPPER — becomes full-screen overlay when open */}
-          <div className={isPreviewPopupOpen ? "fixed inset-0 z-[250] bg-[#07090D] flex flex-col overflow-hidden" : ""}>
-
-            {/* Popup Header Bar */}
-            {isPreviewPopupOpen && (
-              <div className="flex items-center justify-between px-6 py-3.5 border-b border-white/[0.06] bg-[#0B0F14] flex-shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 text-[#FFD400]">
-                    <Layout className="w-4 h-4" />
-                    <span className="text-xs font-black uppercase tracking-widest">Editor + Preview</span>
-                  </div>
-                  <select
-                    value={previewSectionLock}
-                    onChange={(e) => setPreviewSectionLock(e.target.value)}
-                    className="bg-stone-950 text-white border border-white/5 rounded-lg px-2.5 py-1.5 text-xs outline-none font-bold cursor-pointer"
-                  >
-                    <option value="auto">Auto-Detectar</option>
-                    <option value="hero">Banner Principal (Hero)</option>
-                    <option value="simulator">Simulador de Orçamento</option>
-                    <option value="differentials">Diferenciais Técnicos</option>
-                    <option value="containers">Catálogo de Modelos</option>
-                    <option value="prontaEntrega">Pronta Entrega</option>
-                    <option value="projects">Cases de Clientes</option>
-                    <option value="gallery">Galeria de Projetos</option>
-                    <option value="economy">Calculadora de Economia</option>
-                    <option value="videos">Galeria de Vídeos</option>
-                    <option value="how_it_works">Como Funciona</option>
-                    <option value="map">Mapa de Atendimento</option>
-                    <option value="about">Sobre Nós</option>
-                    <option value="faq">Perguntas Frequentes</option>
-                    <option value="testimonials">Depoimentos</option>
-                    <option value="cta">CTA Final</option>
-                    <option value="channels">Rodapé</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center bg-stone-950 p-1 rounded-xl border border-white/5">
-                    {(["desktop", "tablet", "mobile"] as const).map((dev) => (
-                      <button
-                        key={dev}
-                        onClick={() => setPreviewDevice(dev)}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                          previewDevice === dev ? "bg-[#FFD400] text-stone-950" : "text-stone-400 hover:text-white"
-                        }`}
-                      >
-                        {dev === "desktop" ? "Desktop" : dev === "tablet" ? "Tablet" : "Mobile"}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => setIsPreviewPopupOpen(false)}
-                    className="w-9 h-9 rounded-xl bg-stone-900 border border-white/10 text-stone-400 hover:text-white hover:bg-stone-800 flex items-center justify-center cursor-pointer transition-all"
-                    title="Fechar (ESC)"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
           {/* TWO COLUMN PANEL (Editor | Live Preview) */}
-          <div className={isPreviewPopupOpen ? "flex flex-1 overflow-hidden" : "grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"}>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
             {/* EDITOR LEFT COLUMN */}
-            <div className={isPreviewPopupOpen ? "w-[45%] h-full overflow-y-auto border-r border-white/[0.06] p-5 space-y-6 min-w-0 flex-shrink-0" : `space-y-6 min-w-0 ${
+            <div className={`space-y-6 min-w-0 ${
               isPreviewFullScreen ? "hidden" :
               activeTab === "dashboard" ? (isPreviewExpanded ? "lg:col-span-6 block" : "lg:col-span-12 block") : "lg:col-span-6 block"
             } ${
@@ -4067,7 +4015,7 @@ export default function AdminPanel() {
           </div> {/* END OF EDITOR LEFT COLUMN */}
 
           {/* LIVE PREVIEW RIGHT COLUMN */}
-          <div className={isPreviewPopupOpen ? "flex-1 h-full overflow-y-auto bg-[#171A21] p-6 flex flex-col gap-6 font-sans" : `xl:col-span-6 bg-[#171A21] border border-white/5 rounded-3xl p-6 shadow-2xl sticky top-6 self-start max-h-[85vh] overflow-y-auto flex flex-col gap-6 font-sans ${
+          <div className={`xl:col-span-6 bg-[#171A21] border border-white/5 rounded-3xl p-6 shadow-2xl sticky top-6 self-start max-h-[85vh] overflow-y-auto flex flex-col gap-6 font-sans ${
             activeTab === "dashboard"
               ? (isPreviewExpanded ? "flex" : "hidden")
               : activeTab === "media"
@@ -4295,10 +4243,173 @@ export default function AdminPanel() {
           </div> {/* END OF LIVE PREVIEW COLUMN */}
 
           </div> {/* END OF TWO COLUMN PANEL */}
-          </div> {/* END OF POPUP WRAPPER */}
         </div>
 
       </main>
+
+      {/* PREVIEW POPUP — rendered outside <main> to avoid stacking context issues */}
+      <AnimatePresence>
+        {isPreviewPopupOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[9999] bg-[#07090D] flex flex-col overflow-hidden font-sans"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/[0.06] bg-[#0B0F14] flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-[#FFD400]">
+                  <Layout className="w-4 h-4" />
+                  <span className="text-xs font-black uppercase tracking-widest hidden sm:block">Preview ao Vivo</span>
+                </div>
+                <select
+                  value={previewSectionLock}
+                  onChange={(e) => setPreviewSectionLock(e.target.value)}
+                  className="bg-stone-950 text-white border border-white/5 rounded-lg px-2 py-1.5 text-xs outline-none font-bold cursor-pointer"
+                >
+                  <option value="auto">Auto-Detectar</option>
+                  <option value="hero">Banner Principal</option>
+                  <option value="simulator">Simulador</option>
+                  <option value="differentials">Diferenciais</option>
+                  <option value="containers">Catálogo</option>
+                  <option value="prontaEntrega">Pronta Entrega</option>
+                  <option value="projects">Cases</option>
+                  <option value="gallery">Galeria</option>
+                  <option value="economy">Calculadora</option>
+                  <option value="videos">Vídeos</option>
+                  <option value="how_it_works">Como Funciona</option>
+                  <option value="map">Mapa</option>
+                  <option value="about">Sobre Nós</option>
+                  <option value="faq">FAQ</option>
+                  <option value="testimonials">Depoimentos</option>
+                  <option value="cta">CTA Final</option>
+                  <option value="channels">Rodapé</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-stone-950 p-1 rounded-xl border border-white/5">
+                  {(["desktop", "tablet", "mobile"] as const).map((dev) => (
+                    <button key={dev} onClick={() => setPreviewDevice(dev)}
+                      className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${previewDevice === dev ? "bg-[#FFD400] text-stone-950" : "text-stone-400 hover:text-white"}`}>
+                      {dev === "desktop" ? "Desktop" : dev === "tablet" ? "Tablet" : "Mobile"}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setIsPreviewPopupOpen(false)}
+                  className="w-8 h-8 rounded-xl bg-stone-900 border border-white/10 text-stone-400 hover:text-white hover:bg-stone-800 flex items-center justify-center cursor-pointer transition-all ml-1"
+                  title="Fechar (ESC)">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Body: Controls Left + Preview Right */}
+            <div className="flex flex-1 overflow-hidden">
+
+              {/* LEFT: Controls */}
+              <div className="w-48 sm:w-60 border-r border-white/[0.06] overflow-y-auto p-4 flex flex-col gap-4 bg-[#0D1117] flex-shrink-0">
+                <div>
+                  <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest font-mono block mb-1.5">Seção</span>
+                  <select value={previewSectionLock} onChange={(e) => setPreviewSectionLock(e.target.value)}
+                    className="w-full bg-stone-950 text-white border border-white/5 rounded-xl p-2 outline-none font-bold text-[10px] cursor-pointer">
+                    <option value="auto">Auto-Detectar</option>
+                    <option value="hero">Banner Principal</option>
+                    <option value="simulator">Simulador</option>
+                    <option value="differentials">Diferenciais</option>
+                    <option value="containers">Catálogo</option>
+                    <option value="prontaEntrega">Pronta Entrega</option>
+                    <option value="projects">Cases</option>
+                    <option value="gallery">Galeria</option>
+                    <option value="economy">Calculadora</option>
+                    <option value="videos">Vídeos</option>
+                    <option value="how_it_works">Como Funciona</option>
+                    <option value="map">Mapa</option>
+                    <option value="about">Sobre Nós</option>
+                    <option value="faq">FAQ</option>
+                    <option value="testimonials">Depoimentos</option>
+                    <option value="cta">CTA Final</option>
+                    <option value="channels">Rodapé</option>
+                  </select>
+                </div>
+
+                <div>
+                  <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest font-mono block mb-1.5">Modo</span>
+                  <div className="flex flex-col gap-1">
+                    {([
+                      { id: "draft", label: "Rascunho" },
+                      { id: "published", label: "Publicado" },
+                      { id: "side", label: "Comparar" },
+                    ] as const).map((m) => (
+                      <button key={m.id}
+                        onClick={() => { if (m.id === "side") { setCompareModes(true); } else { setCompareModes(false); setPreviewDataScope(m.id as "draft" | "published"); } }}
+                        className={`py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer text-left ${
+                          (m.id === "draft" && !compareModes && previewDataScope === "draft") ||
+                          (m.id === "published" && !compareModes && previewDataScope === "published") ||
+                          (m.id === "side" && compareModes)
+                            ? "bg-[#FFD400] text-stone-950"
+                            : "bg-stone-950 text-stone-400 hover:text-white border border-white/5"
+                        }`}>
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-auto pt-4 border-t border-white/5">
+                  <button onClick={() => setIsPreviewPopupOpen(false)}
+                    className="w-full py-2.5 px-3 bg-stone-900 hover:bg-stone-800 text-stone-300 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all">
+                    <X className="w-3 h-3" /> Fechar
+                  </button>
+                </div>
+              </div>
+
+              {/* RIGHT: Live Preview */}
+              <div className="flex-1 overflow-y-auto bg-[#171A21] p-4 sm:p-6 flex flex-col gap-4 font-sans">
+                {(() => {
+                  const appCtx = useAppContext();
+                  const getAutoSection = (): string => {
+                    if (activeTab === "containers") return containersSubTab === "catalogo" ? "containers" : "prontaEntrega";
+                    if (activeTab === "projects") { if (projectsSubTab === "cases") return "projects"; if (projectsSubTab === "videos") return "videos"; return "differentials"; }
+                    if (activeTab === "logistic") return "map";
+                    if (activeTab === "testimonials") return "testimonials";
+                    if (activeTab === "settings") { if (settingsSubTab === "logo") return "logo"; if (settingsSubTab === "hero") return "hero"; if (settingsSubTab === "conversions") return "simulator"; return "faq"; }
+                    return "hero";
+                  };
+                  const targetSec = previewSectionLock === "auto" ? getAutoSection() : previewSectionLock;
+                  const renderSec = (sec: string) => { switch(sec) { case "hero": return <Hero />; case "simulator": return <SimuladorOrcamento />; case "differentials": return <Diferenciais />; case "containers": return <ContainersGrid />; case "prontaEntrega": return <ProntaEntrega />; case "projects": return <Projetos />; case "gallery": return <GaleriaProjetos />; case "economy": return <CalculadoraEconomia />; case "videos": return <VideosReais />; case "how_it_works": return <ComoFunciona />; case "map": return <MapaAtendimento />; case "about": return <Sobre />; case "faq": return <FAQInteligente />; case "testimonials": return <Depoimentos />; case "cta": return <CTA />; case "channels": return <CanaisAtendimento />; default: return <Hero />; } };
+                  const renderFrame = (label: string, scope: "draft" | "published") => (
+                    <div className="bg-[#0F1115] border border-white/5 rounded-2xl overflow-hidden shadow-inner flex flex-col">
+                      <div className="bg-[#0A0C0E] px-4 py-2 border-b border-white/5 flex items-center justify-between text-stone-500 font-mono text-[9px]">
+                        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500/30" /><span className="w-2 h-2 rounded-full bg-yellow-500/30" /><span className="w-2 h-2 rounded-full bg-green-500/30" /></div>
+                        <div className="bg-[#171A21] px-4 py-0.5 rounded text-stone-400 font-mono truncate max-w-[180px]">dodisa.com.br/{targetSec}</div>
+                        <div className="font-mono text-[#FFD400] uppercase font-bold text-[8px]">{label} • {previewDevice}</div>
+                      </div>
+                      <div className="bg-stone-950 overflow-x-auto p-1">
+                        <div style={{ width: previewDevice === "tablet" ? "768px" : previewDevice === "mobile" ? "375px" : "100%", transition: "width 0.3s" }} className="mx-auto min-h-[300px] bg-stone-950 rounded-xl shadow-2xl relative">
+                          <AppContext.Provider value={{ ...appCtx, previewDataScope: scope, isPagePreviewMode: true, isAdminViewActive: true }}>
+                            {renderSec(targetSec)}
+                          </AppContext.Provider>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                  if (compareModes) return (
+                    <div className="flex flex-col gap-4">
+                      <div><span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 mb-2 inline-block">Publicado (Antes)</span>{renderFrame("Publicado", "published")}</div>
+                      <div><span className="text-[10px] text-orange-400 font-bold uppercase tracking-wider bg-[#FFD400]/10 px-2 py-0.5 rounded border border-[#FFD400]/20 mb-2 inline-block">Rascunho (Depois)</span>{renderFrame("Rascunho", "draft")}</div>
+                    </div>
+                  );
+                  return renderFrame(previewDataScope === "published" ? "Publicado" : "Rascunho", previewDataScope as "draft" | "published");
+                })()}
+                <p className="text-center text-[10px] text-stone-600 font-mono mt-auto">Componente real • Sincronização em tempo real</p>
+              </div>
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Sliding Drawer for Section Quick Edit */}
       <AnimatePresence>
