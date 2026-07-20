@@ -5,9 +5,8 @@ let supabaseInstance: any = null;
 export function getSupabase() {
   if (supabaseInstance) return supabaseInstance;
 
-  const meta = import.meta as any;
-  const url = meta.env?.VITE_SUPABASE_URL || "";
-  const anonKey = meta.env?.VITE_SUPABASE_ANON_KEY || "";
+  const url = import.meta.env.VITE_SUPABASE_URL || "";
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
   if (!url || !anonKey) {
     // Graceful fallback to local persistence
