@@ -9,6 +9,7 @@ import { useAppContext } from "../context/AppContext";
 
 const CATEGORIES = ["Geral", "Containers", "Projetos", "Depoimentos", "Fachada", "Pátio", "Logística", "Equipe"];
 const PAGE_SIZE = 40;
+const UPLOAD_CONCURRENCY = 8;
 
 interface GalleryFile {
   id: string;
@@ -49,6 +50,8 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [uploadCategory, setUploadCategory] = useState("Geral");
   const [showUpload, setShowUpload] = useState(false);
+  const [uploadTotal, setUploadTotal] = useState(0);
+  const [uploadDoneCount, setUploadDoneCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(true);
@@ -107,37 +110,34 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     const imageFiles = selectedFiles.filter((f) => f.type.startsWith("image/"));
     if (!imageFiles.length) return;
 
-    // Sem Supabase: limite 10 arquivos e 2MB cada para não explodir localStorage
+    // Modo local sem Supabase: limita tamanho e quantidade
     if (!supabase) {
       const tooBig = imageFiles.filter((f) => f.size > 2 * 1024 * 1024);
-      if (tooBig.length > 0) {
+      if (tooBig.length > 0)
         triggerNotification(`${tooBig.length} arquivo(s) ignorado(s) — sem Supabase o limite é 2MB por imagem.`);
-      }
       const safe = imageFiles.filter((f) => f.size <= 2 * 1024 * 1024).slice(0, 10);
       if (!safe.length) return;
-      if (imageFiles.length > 10) triggerNotification("Modo local: máximo 10 imagens por vez. Conecte o Supabase para envios em lote.");
+      if (imageFiles.length > 10) triggerNotification("Modo local: máximo 10 por vez. Supabase já está conectado para este projeto.");
       imageFiles.splice(0, imageFiles.length, ...safe);
     }
 
-    // Avisa sobre batches muito grandes com Supabase
-    const BATCH_LIMIT = 100;
-    const batch = imageFiles.slice(0, BATCH_LIMIT);
-    if (imageFiles.length > BATCH_LIMIT) {
-      triggerNotification(`Enviando primeiras ${BATCH_LIMIT} de ${imageFiles.length} imagens. Repita para o restante.`);
-    }
-
-    const jobs: UploadJob[] = batch.map((f) => ({
+    const jobs: UploadJob[] = imageFiles.map((f) => ({
       id: `job-${Date.now()}-${Math.random()}`,
-      file: f, status: "pending", progress: 0,
+      file: f, status: "pending" as const, progress: 0,
     }));
 
     if (!isMountedRef.current) return;
     setUploadJobs(jobs);
+    setUploadTotal(jobs.length);
+    setUploadDoneCount(0);
     setShowUpload(true);
-    const results: GalleryFile[] = [];
 
-    for (const job of jobs) {
-      if (!isMountedRef.current) break;
+    const results: GalleryFile[] = [];
+    let doneCount = 0;
+
+    // Worker que processa um job por vez (chamado em paralelo)
+    const uploadOne = async (job: UploadJob) => {
+      if (!isMountedRef.current) return;
       setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "uploading", progress: 20 } : j));
       try {
         const safeName = job.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -146,9 +146,8 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
 
         if (supabase) {
           const { error } = await supabase.storage.from("site-assets").upload(path, job.file, { cacheControl: "3600", upsert: false });
-          if (!isMountedRef.current) break;
+          if (!isMountedRef.current) return;
           if (error) throw error;
-          setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, progress: 80 } : j));
           const { data: pub } = supabase.storage.from("site-assets").getPublicUrl(path);
           const url = pub?.publicUrl || "";
           results.push({ id: `sb-${uploadCategory}-${uniqueName}`, name: uniqueName, url, category: uploadCategory, size: job.file.size, path });
@@ -161,25 +160,36 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
             r.onerror = () => rej(new Error("Falha ao ler arquivo"));
             r.readAsDataURL(job.file);
           });
-          try {
-            addMediaItem({ url: dataUrl, name: job.file.name, type: "image", category: uploadCategory });
-          } catch {
-            throw new Error("Armazenamento local cheio — conecte o Supabase para continuar.");
-          }
+          try { addMediaItem({ url: dataUrl, name: job.file.name, type: "image", category: uploadCategory }); }
+          catch { throw new Error("Armazenamento local cheio — reconecte o Supabase."); }
           results.push({ id: `local-${Date.now()}`, name: job.file.name, url: dataUrl, category: uploadCategory, size: job.file.size });
           if (isMountedRef.current)
             setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "done", progress: 100, url: dataUrl } : j));
         }
       } catch (err: any) {
         if (isMountedRef.current)
-          setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "error", error: err?.message || "Erro desconhecido" } : j));
+          setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "error", error: err?.message || "Erro" } : j));
+      } finally {
+        doneCount++;
+        if (isMountedRef.current) setUploadDoneCount(doneCount);
       }
-    }
+    };
+
+    // Fila com N workers em paralelo (pool pattern)
+    let idx = 0;
+    const worker = async () => {
+      while (idx < jobs.length) {
+        const job = jobs[idx++];
+        await uploadOne(job);
+      }
+    };
+    const concurrency = supabase ? UPLOAD_CONCURRENCY : 1;
+    await Promise.all(Array.from({ length: Math.min(concurrency, jobs.length) }, worker));
 
     if (!isMountedRef.current) return;
     if (results.length > 0) {
       setFiles((prev) => [...results, ...prev]);
-      triggerNotification(`${results.length} imagem(ns) enviada(s) com sucesso!`);
+      triggerNotification(`${results.length} de ${jobs.length} imagem(ns) enviada(s)!`);
     }
   }, [supabase, uploadCategory, addMediaItem, triggerNotification]);
 
@@ -243,9 +253,10 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     lg: { cols: "grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3", thumb: "h-56 sm:h-64" },
   }[gridSize];
 
-  const doneCount = uploadJobs.filter((j) => j.status === "done").length;
+  const doneCount = uploadDoneCount;
   const errorCount = uploadJobs.filter((j) => j.status === "error").length;
-  const allDone = uploadJobs.length > 0 && uploadJobs.every((j) => j.status === "done" || j.status === "error");
+  const allDone = uploadJobs.length > 0 && uploadDoneCount >= uploadJobs.length;
+  const overallPct = uploadTotal > 0 ? Math.round((uploadDoneCount / uploadTotal) * 100) : 0;
 
   const fmtSize = (bytes?: number) => {
     if (!bytes) return "";
@@ -332,36 +343,49 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
 
           {/* Progress */}
           {uploadJobs.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-stone-400">
-                <span>
-                  {allDone ? "Concluído" : "Enviando"}: {doneCount}/{uploadJobs.length}
-                  {errorCount > 0 && <span className="text-red-400 ml-2">· {errorCount} erro(s)</span>}
-                </span>
-                {allDone && <button onClick={() => setUploadJobs([])} className="text-stone-500 hover:text-white cursor-pointer">Limpar</button>}
+            <div className="space-y-3">
+              {/* Overall progress bar */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-stone-300 font-bold">
+                    {allDone ? "✓ Concluído" : `Enviando ${UPLOAD_CONCURRENCY} em paralelo...`}
+                    <span className="text-stone-500 font-normal ml-2">{doneCount}/{uploadTotal} imagens</span>
+                    {errorCount > 0 && <span className="text-red-400 ml-2">· {errorCount} erro(s)</span>}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#FFD400] font-black font-mono text-xs">{overallPct}%</span>
+                    {allDone && (
+                      <button onClick={() => { setUploadJobs([]); setUploadTotal(0); setUploadDoneCount(0); }}
+                        className="text-stone-500 hover:text-white cursor-pointer text-xs">Limpar</button>
+                    )}
+                  </div>
+                </div>
+                <div className="w-full bg-stone-800 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${allDone ? "bg-green-500" : "bg-[#FFD400]"}`}
+                    style={{ width: `${overallPct}%` }}
+                  />
+                </div>
               </div>
-              <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                {uploadJobs.map((job) => (
-                  <div key={job.id} className="flex items-center gap-3 bg-[#0F1115] rounded-lg p-2.5">
-                    <div className="w-9 h-9 rounded-lg overflow-hidden bg-stone-800 flex-shrink-0">
+
+              {/* Individual job list — scrollable, shows last 30 active */}
+              <div className="max-h-44 overflow-y-auto space-y-1 pr-1">
+                {uploadJobs.slice(-60).map((job) => (
+                  <div key={job.id} className="flex items-center gap-2.5 bg-[#0F1115] rounded-lg px-2.5 py-2">
+                    <div className="w-7 h-7 rounded-lg overflow-hidden bg-stone-800 flex-shrink-0">
                       {job.status === "done" && job.url
                         ? <img src={job.url} alt="" className="w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center">
-                            {job.status === "error" ? <AlertCircle className="w-4 h-4 text-red-400" /> : <Loader2 className="w-4 h-4 text-stone-500 animate-spin" />}
+                            {job.status === "error" ? <AlertCircle className="w-3.5 h-3.5 text-red-400" /> : <Loader2 className="w-3.5 h-3.5 text-stone-500 animate-spin" />}
                           </div>
                       }
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-stone-300 truncate text-xs font-medium">{job.file.name}</p>
-                      <div className="w-full bg-stone-800 rounded-full h-1 mt-1.5">
-                        <div className={`h-1 rounded-full transition-all duration-500 ${job.status === "error" ? "bg-red-400" : "bg-[#FFD400]"}`}
-                          style={{ width: `${job.progress}%` }} />
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold flex-shrink-0">
-                      {job.status === "done" ? <Check className="w-4 h-4 text-green-400" /> :
-                       job.status === "error" ? <span className="text-red-400">Erro</span> :
-                       <span className="text-stone-500">{job.progress}%</span>}
+                    <p className="text-stone-400 truncate text-[10px] flex-1 font-mono">{job.file.name}</p>
+                    <span className="flex-shrink-0">
+                      {job.status === "done" ? <Check className="w-3.5 h-3.5 text-green-400" /> :
+                       job.status === "error" ? <span className="text-[9px] text-red-400 font-bold">ERRO</span> :
+                       job.status === "uploading" ? <Loader2 className="w-3.5 h-3.5 text-[#FFD400] animate-spin" /> :
+                       <span className="text-[9px] text-stone-600">aguard.</span>}
                     </span>
                   </div>
                 ))}
