@@ -500,7 +500,12 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
                           </div>
                       }
                     </div>
-                    <p className="text-stone-400 truncate text-[10px] flex-1 font-mono">{job.file.name}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-stone-400 truncate text-[10px] font-mono">{job.file.name}</p>
+                      {job.status === "error" && job.error && (
+                        <p className="text-red-400 truncate text-[9px] mt-0.5">{job.error}</p>
+                      )}
+                    </div>
                     <span className="flex-shrink-0">
                       {job.status === "done" ? <Check className="w-3.5 h-3.5 text-green-400" /> :
                        job.status === "error" ? <span className="text-[9px] text-red-400 font-bold">ERRO</span> :
