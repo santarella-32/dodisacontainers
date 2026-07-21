@@ -3,7 +3,8 @@ import {
   Upload, Search, Copy, Trash2, Check, X, Image,
   Grid3X3, LayoutGrid, Square, AlertCircle, Loader2, RefreshCw,
   ExternalLink, ChevronLeft, ChevronRight, ZoomIn,
-  FolderPlus, Folder, CheckSquare, Move, MousePointer
+  FolderPlus, Folder, CheckSquare, Move, MousePointer,
+  Pencil, Download, Tag, ArrowUpDown, ArrowUp, ArrowDown
 } from "lucide-react";
 import { getSupabase } from "../lib/supabase";
 import { useAppContext } from "../context/AppContext";
@@ -72,6 +73,26 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   // Bulk move dropdown
   const [showMoveMenu, setShowMoveMenu] = useState(false);
+  // Sorting
+  const [sortBy, setSortBy] = useState<"date" | "name" | "size">("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  // Rename
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  // Infinite scroll
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  // Lightbox dimensions
+  const [lightboxDims, setLightboxDims] = useState<{ w: number; h: number } | null>(null);
+  // Tags
+  const TAGS_KEY = "dodisa_gallery_tags";
+  const [tags, setTags] = useState<Record<string, string[]>>(() => {
+    try { const s = localStorage.getItem(TAGS_KEY); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
+  const [editingTagsId, setEditingTagsId] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState("");
+  // WebP compression
+  const [compressWebP, setCompressWebP] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -147,7 +168,12 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
       imageFiles.splice(0, imageFiles.length, ...safe);
     }
 
-    const jobs: UploadJob[] = imageFiles.map((f) => ({
+    // Compress to WebP if enabled
+    const filesToUpload = compressWebP && supabase
+      ? await Promise.all(imageFiles.map((f) => f.type === "image/webp" ? f : compressToWebP(f)))
+      : imageFiles;
+
+    const jobs: UploadJob[] = filesToUpload.map((f) => ({
       id: `job-${Date.now()}-${Math.random()}`,
       file: f, status: "pending" as const, progress: 0,
     }));
@@ -327,17 +353,123 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     triggerNotification(`Pasta "${folder}" removida.`);
   };
 
-  // ── Filter & Pagination ───────────────────────────────────────
-  const filtered = files.filter((f) => {
-    const matchCat = categoryFilter === "Todas" || f.category === categoryFilter;
-    const matchSearch = !search || f.name.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  // ── WebP compression ─────────────────────────────────────────
+  const compressToWebP = (file: File, quality = 0.82): Promise<File> =>
+    new Promise((resolve) => {
+      const img = new window.Image();
+      const objUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objUrl);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext("2d")!.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".webp"), { type: "image/webp" }));
+        }, "image/webp", quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(objUrl); resolve(file); };
+      img.src = objUrl;
+    });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  useEffect(() => setPage(1), [search, categoryFilter]);
+  // ── Rename ───────────────────────────────────────────────────
+  const renameFile = async (file: GalleryFile, newBaseName: string) => {
+    const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+    const newName = newBaseName.trim() + ext;
+    if (!newName || newName === file.name) { setRenamingId(null); return; }
+    try {
+      if (supabase && file.path) {
+        const newPath = `gallery/${file.category}/${newName}`;
+        const { error } = await supabase.storage.from("site-assets").move(file.path, newPath);
+        if (error) throw error;
+        const { data: pub } = supabase.storage.from("site-assets").getPublicUrl(newPath);
+        setFiles((prev) => prev.map((f) => f.id === file.id
+          ? { ...f, name: newName, path: newPath, url: pub?.publicUrl || f.url }
+          : f));
+      } else {
+        setFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, name: newName } : f));
+      }
+      triggerNotification(`Renomeado para "${newName}".`);
+    } catch { triggerNotification("Erro ao renomear."); }
+    setRenamingId(null);
+  };
+
+  // ── Bulk copy URLs ────────────────────────────────────────────
+  const bulkCopyUrls = () => {
+    const urls = files.filter((f) => selectedIds.has(f.id)).map((f) => f.url).join("\n");
+    navigator.clipboard.writeText(urls);
+    triggerNotification(`${selectedIds.size} URL(s) copiada(s)!`);
+  };
+
+  // ── Bulk download ─────────────────────────────────────────────
+  const bulkDownload = async () => {
+    const toDownload = files.filter((f) => selectedIds.has(f.id));
+    triggerNotification(`Baixando ${toDownload.length} imagem(ns)...`);
+    for (const file of toDownload) {
+      try {
+        const resp = await fetch(file.url);
+        const blob = await resp.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        await new Promise((r) => setTimeout(r, 300));
+      } catch { /* skip failed */ }
+    }
+  };
+
+  // ── Tags ─────────────────────────────────────────────────────
+  const addTag = (fileId: string, tag: string) => {
+    const t = tag.trim().toLowerCase();
+    if (!t) return;
+    setTags((prev) => {
+      const next = { ...prev, [fileId]: [...(prev[fileId] || []).filter((x) => x !== t), t] };
+      try { localStorage.setItem(TAGS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const removeTag = (fileId: string, tag: string) => {
+    setTags((prev) => {
+      const next = { ...prev, [fileId]: (prev[fileId] || []).filter((x) => x !== tag) };
+      try { localStorage.setItem(TAGS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  // ── Infinite scroll ───────────────────────────────────────────
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setVisibleCount((n) => n + PAGE_SIZE);
+    }, { threshold: 0.1 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // ── Filter + Sort + Infinite scroll ──────────────────────────
+  const filtered = files
+    .filter((f) => {
+      const matchCat = categoryFilter === "Todas" || f.category === categoryFilter;
+      const matchSearch = !search || f.name.toLowerCase().includes(search.toLowerCase());
+      const fileTags = tags[f.id] || [];
+      const matchTag = !search || fileTags.some((t) => t.includes(search.toLowerCase()));
+      return matchCat && (matchSearch || matchTag);
+    })
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === "name") cmp = a.name.localeCompare(b.name);
+      else if (sortBy === "size") cmp = (a.size || 0) - (b.size || 0);
+      else cmp = (a.uploadedAt || "").localeCompare(b.uploadedAt || "");
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
+  const paginated = filtered.slice(0, visibleCount);
+  useEffect(() => setVisibleCount(PAGE_SIZE), [search, categoryFilter, sortBy, sortDir]);
 
   // ── Lightbox navigation ───────────────────────────────────────
   const lightboxFile = lightboxIdx !== null ? paginated[lightboxIdx] : null;
@@ -419,9 +551,21 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
         <div className="bg-[#171A21] border border-white/5 rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-white text-xs font-black uppercase tracking-widest">Enviar Imagens</span>
-            <button onClick={() => { setShowUpload(false); setUploadJobs([]); }} className="text-stone-500 hover:text-white cursor-pointer">
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCompressWebP((v) => !v)}
+                className={`flex items-center gap-1.5 text-[10px] font-bold cursor-pointer transition-colors ${compressWebP ? "text-[#FFD400]" : "text-stone-500 hover:text-stone-300"}`}
+                title="Converte para WebP automaticamente antes do upload (economiza ~70% de espaço)"
+              >
+                <div className={`w-7 h-4 rounded-full transition-colors relative ${compressWebP ? "bg-[#FFD400]" : "bg-stone-700"}`}>
+                  <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${compressWebP ? "left-3.5" : "left-0.5"}`} />
+                </div>
+                WebP
+              </button>
+              <button onClick={() => { setShowUpload(false); setUploadJobs([]); }} className="text-stone-500 hover:text-white cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Category */}
@@ -520,7 +664,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
         </div>
       )}
 
-      {/* ── Search + Grid toggle ── */}
+      {/* ── Search + Sort + Grid toggle ── */}
       <div className="flex gap-2 items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-500 pointer-events-none" />
@@ -536,6 +680,18 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
               <X className="w-3.5 h-3.5" />
             </button>
           )}
+        </div>
+        {/* Sort controls */}
+        <div className="flex gap-1 bg-[#171A21] border border-white/5 rounded-xl p-1 flex-shrink-0">
+          {(["date", "name", "size"] as const).map((s) => (
+            <button key={s} onClick={() => { if (sortBy === s) setSortDir((d) => d === "asc" ? "desc" : "asc"); else { setSortBy(s); setSortDir("desc"); } }}
+              className={`px-2 py-1.5 rounded-lg cursor-pointer transition-colors flex items-center gap-1 text-[10px] font-bold ${sortBy === s ? "bg-[#FFD400] text-[#07090D]" : "text-stone-500 hover:text-white"}`}
+              title={s === "date" ? "Ordenar por data" : s === "name" ? "Ordenar por nome" : "Ordenar por tamanho"}
+            >
+              {s === "date" ? "Data" : s === "name" ? "Nome" : "Tam."}
+              {sortBy === s ? (sortDir === "desc" ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+            </button>
+          ))}
         </div>
         <div className="flex gap-1 bg-[#171A21] border border-white/5 rounded-xl p-1 flex-shrink-0">
           {(["sm", "md", "lg"] as const).map((size) => (
@@ -585,6 +741,18 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
                 )}
               </div>
               <button
+                onClick={bulkCopyUrls}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-stone-300 hover:text-white rounded-lg text-[10px] font-black uppercase cursor-pointer transition-colors"
+              >
+                <Copy className="w-3 h-3" /> URLs
+              </button>
+              <button
+                onClick={bulkDownload}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-stone-300 hover:text-white rounded-lg text-[10px] font-black uppercase cursor-pointer transition-colors"
+              >
+                <Download className="w-3 h-3" /> Baixar
+              </button>
+              <button
                 onClick={bulkDelete}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 rounded-lg text-[10px] font-black uppercase cursor-pointer transition-colors"
               >
@@ -619,7 +787,11 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
                   onDrop={(e) => {
                     e.preventDefault();
                     setDragOverFolder(null);
-                    if (draggedFileId && cat !== "Todas") {
+                    if (e.dataTransfer.files.length > 0 && cat !== "Todas") {
+                      setUploadCategory(cat);
+                      setShowUpload(true);
+                      processFiles(Array.from(e.dataTransfer.files));
+                    } else if (draggedFileId && cat !== "Todas") {
                       const file = files.find((f) => f.id === draggedFileId);
                       if (file) moveFile(file, cat);
                       setDraggedFileId(null);
@@ -767,44 +939,71 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
                 </div>
 
                 {/* Card footer */}
-                <div className={`${gridSize === "sm" ? "p-1.5" : "p-3"}`}>
+                <div className={`${gridSize === "sm" ? "p-1.5" : "p-3"} space-y-2`}>
+                  {/* Filename / rename */}
                   {gridSize !== "sm" && (
-                    <p className="text-stone-400 text-[10px] truncate leading-none mb-2.5 font-mono" title={file.name}>
-                      {file.name}
-                    </p>
+                    renamingId === file.id ? (
+                      <input
+                        autoFocus
+                        defaultValue={file.name.replace(/\.[^.]+$/, "")}
+                        onBlur={(e) => renameFile(file, e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") renameFile(file, e.currentTarget.value); if (e.key === "Escape") setRenamingId(null); }}
+                        className="w-full px-2 py-1 bg-[#171A21] border border-[#FFD400]/40 rounded-lg text-white text-[10px] outline-none font-mono"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <div className="flex items-center gap-1 group/name">
+                        <p className="text-stone-400 text-[10px] truncate leading-none font-mono flex-1" title={file.name}>{file.name}</p>
+                        <button onClick={() => { setRenamingId(file.id); setRenameValue(file.name.replace(/\.[^.]+$/, "")); }}
+                          className="opacity-0 group-hover/name:opacity-100 text-stone-600 hover:text-[#FFD400] cursor-pointer transition-all flex-shrink-0">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )
                   )}
+                  {/* Tags */}
+                  {gridSize !== "sm" && (
+                    <div className="flex flex-wrap gap-1 items-center">
+                      {(tags[file.id] || []).map((tag) => (
+                        <span key={tag} className="flex items-center gap-0.5 px-1.5 py-0.5 bg-stone-800 rounded text-[8px] text-stone-400 group/tag">
+                          {tag}
+                          <button onClick={() => removeTag(file.id, tag)} className="opacity-0 group-hover/tag:opacity-100 text-red-400 cursor-pointer ml-0.5"><X className="w-2 h-2" /></button>
+                        </span>
+                      ))}
+                      {editingTagsId === file.id ? (
+                        <input autoFocus value={tagInput} onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { addTag(file.id, tagInput); setTagInput(""); } if (e.key === "Escape") setEditingTagsId(null); }}
+                          onBlur={() => { if (tagInput) addTag(file.id, tagInput); setTagInput(""); setEditingTagsId(null); }}
+                          placeholder="tag..." className="w-16 px-1.5 py-0.5 bg-stone-800 border border-stone-700 rounded text-[8px] text-white outline-none" />
+                      ) : (
+                        <button onClick={() => setEditingTagsId(file.id)}
+                          className="flex items-center gap-0.5 px-1.5 py-0.5 border border-dashed border-stone-700 rounded text-[8px] text-stone-600 hover:text-stone-400 cursor-pointer transition-colors">
+                          <Tag className="w-2.5 h-2.5" /> tag
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {/* Action buttons */}
                   {selectMode ? (
-                    <button
-                      onClick={() => toggleSelect(file.id)}
+                    <button onClick={() => toggleSelect(file.id)}
                       className={`w-full flex items-center justify-center gap-1 font-black uppercase rounded-lg cursor-pointer transition-all border ${
-                        isSelected
-                          ? "bg-[#FFD400]/15 border-[#FFD400]/40 text-[#FFD400]"
-                          : "bg-white/5 border-white/5 text-stone-500 hover:text-white"
-                      } ${gridSize === "sm" ? "py-1 text-[8px]" : "py-1.5 text-[9px]"}`}
-                    >
+                        isSelected ? "bg-[#FFD400]/15 border-[#FFD400]/40 text-[#FFD400]" : "bg-white/5 border-white/5 text-stone-500 hover:text-white"
+                      } ${gridSize === "sm" ? "py-1 text-[8px]" : "py-1.5 text-[9px]"}`}>
                       <Check className="w-3 h-3" />
                       {gridSize !== "sm" && (isSelected ? "Selecionada" : "Selecionar")}
                     </button>
                   ) : (
                     <div className="flex gap-1">
-                      <button
-                        onClick={() => handleCopy(file)}
+                      <button onClick={() => handleCopy(file)}
                         className={`flex-1 flex items-center justify-center gap-1 font-black uppercase rounded-lg cursor-pointer transition-all border ${
-                          copiedId === file.id
-                            ? "bg-green-500/10 border-green-500/30 text-green-400"
-                            : "bg-[#FFD400]/8 hover:bg-[#FFD400] border-[#FFD400]/20 text-[#FFD400] hover:text-[#07090D]"
-                        } ${gridSize === "sm" ? "py-1 text-[8px]" : "py-1.5 text-[9px]"}`}
-                      >
+                          copiedId === file.id ? "bg-green-500/10 border-green-500/30 text-green-400" : "bg-[#FFD400]/8 hover:bg-[#FFD400] border-[#FFD400]/20 text-[#FFD400] hover:text-[#07090D]"
+                        } ${gridSize === "sm" ? "py-1 text-[8px]" : "py-1.5 text-[9px]"}`}>
                         {copiedId === file.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                         {gridSize !== "sm" && (copiedId === file.id ? "Copiado" : "URL")}
                       </button>
-                      <button
-                        onClick={() => handleDelete(file)}
-                        className={`flex items-center justify-center bg-white/5 hover:bg-red-500/15 text-stone-600 hover:text-red-400 rounded-lg cursor-pointer transition-all ${
-                          gridSize === "sm" ? "py-1 px-1.5" : "py-1.5 px-2"
-                        }`}
-                        title="Excluir"
-                      >
+                      <button onClick={() => handleDelete(file)}
+                        className={`flex items-center justify-center bg-white/5 hover:bg-red-500/15 text-stone-600 hover:text-red-400 rounded-lg cursor-pointer transition-all ${gridSize === "sm" ? "py-1 px-1.5" : "py-1.5 px-2"}`}
+                        title="Excluir">
                         <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
@@ -816,32 +1015,11 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
         </div>
       )}
 
-      {/* ── Pagination ── */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2 pb-4">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage === 1}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-stone-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-xs font-bold transition-colors"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" /> Anterior
-          </button>
-          <div className="flex gap-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const p = safePage <= 3 ? i + 1 : safePage - 2 + i;
-              if (p < 1 || p > totalPages) return null;
-              return (
-                <button key={p} onClick={() => setPage(p)}
-                  className={`w-8 h-8 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                    p === safePage ? "bg-[#FFD400] text-[#07090D]" : "bg-white/5 text-stone-400 hover:text-white"
-                  }`}
-                >{p}</button>
-              );
-            })}
-          </div>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-stone-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-xs font-bold transition-colors"
-          >
-            Próxima <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+      {/* ── Infinite scroll sentinel ── */}
+      {visibleCount < filtered.length && (
+        <div ref={sentinelRef} className="flex items-center justify-center py-6 text-stone-600 text-xs gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Carregando mais imagens... ({paginated.length}/{filtered.length})
         </div>
       )}
 
@@ -871,10 +1049,15 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 flex-shrink-0">
               <div className="min-w-0 flex-1">
                 <p className="text-white text-xs font-bold truncate font-mono">{lightboxFile.name}</p>
-                <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex flex-wrap items-center gap-2 mt-0.5">
                   <span className="text-[#FFD400] text-[10px] font-bold uppercase">{lightboxFile.category}</span>
                   {lightboxFile.size && <span className="text-stone-500 text-[10px]">· {fmtSize(lightboxFile.size)}</span>}
+                  {lightboxDims && <span className="text-stone-500 text-[10px]">· {lightboxDims.w}×{lightboxDims.h}px</span>}
+                  {lightboxFile.uploadedAt && <span className="text-stone-600 text-[10px]">· {new Date(lightboxFile.uploadedAt).toLocaleDateString("pt-BR")}</span>}
                   <span className="text-stone-600 text-[10px]">· {lightboxIdx! + 1}/{paginated.length}</span>
+                  {(tags[lightboxFile.id] || []).map((tag) => (
+                    <span key={tag} className="px-1.5 py-0.5 bg-stone-800 rounded text-[8px] text-stone-400">#{tag}</span>
+                  ))}
                 </div>
               </div>
               <div className="flex gap-2 flex-shrink-0 ml-3">
@@ -907,6 +1090,10 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
                 alt={lightboxFile.name}
                 className="max-w-full object-contain"
                 style={{ maxHeight: "calc(92vh - 64px)" }}
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  setLightboxDims({ w: img.naturalWidth, h: img.naturalHeight });
+                }}
               />
             </div>
           </div>
