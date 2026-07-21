@@ -525,7 +525,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loginError, setLoginError] = useState<string | null>(null);
   
   // Toggle Admin Dashboard vs Main Storefront View
-  const [isAdminViewActive, setAdminViewActive] = useState<boolean>(false);
+  const [isAdminViewActive, setAdminViewActive] = useState<boolean>(() => {
+    try { return localStorage.getItem("dodisa_admin_active") === "true"; } catch { return false; }
+  });
+
+  // Persist admin view state so reload returns to same page
+  React.useEffect(() => {
+    try { localStorage.setItem("dodisa_admin_active", isAdminViewActive ? "true" : "false"); } catch { /* ignore */ }
+  }, [isAdminViewActive]);
 
   // LAST UPDATED METRIC
   const [lastUpdated, setLastUpdated] = useState<string>(() => {

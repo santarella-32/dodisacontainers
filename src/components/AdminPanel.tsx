@@ -191,9 +191,18 @@ export default function AdminPanel() {
   } = useAppContext();
 
   // Navigation tab for Admin panel - Redesigned SaaS Suite
-  const [activeTab, setActiveTab] = useState<
-    "dashboard" | "landing_builder" | "containers" | "projects" | "media" | "logistic" | "testimonials" | "settings" | "profile"
-  >("dashboard");
+  const VALID_TABS = ["dashboard", "landing_builder", "containers", "projects", "media", "logistic", "testimonials", "settings", "profile"] as const;
+  type TabType = typeof VALID_TABS[number];
+  const [activeTab, setActiveTabRaw] = useState<TabType>(() => {
+    try {
+      const saved = localStorage.getItem("dodisa_admin_tab") as TabType;
+      return VALID_TABS.includes(saved) ? saved : "dashboard";
+    } catch { return "dashboard"; }
+  });
+  const setActiveTab = (tab: TabType) => {
+    setActiveTabRaw(tab);
+    try { localStorage.setItem("dodisa_admin_tab", tab); } catch { /* ignore */ }
+  };
 
   // Secondary sub-tabs to group collapsed panels cleanly
   const [containersSubTab, setContainersSubTab] = useState<"catalogo" | "pronta">("catalogo");
