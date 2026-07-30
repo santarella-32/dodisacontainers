@@ -487,16 +487,16 @@ const DEFAULTS = {
   sectionsVisibility: {
     hero: true,
     simulator: true,
-    differentials: true,
+    differentials: false,
     containers: true,
     prontaEntrega: true,
     projects: true,
-    gallery: true,
-    economyCalculator: true,
+    gallery: false,
+    economyCalculator: false,
     videos: true,
-    timeline: true,
+    timeline: false,
     map: true,
-    about: true,
+    about: false,
     faq: true,
     testimonials: true,
     cta: true,
@@ -977,6 +977,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     localStorage.setItem("dodisa_cms_draft_visibility", JSON.stringify(sectionsVisibility));
   }, [sectionsVisibility]);
+
+  // One-time migration: apply new section visibility defaults to existing users
+  useEffect(() => {
+    if (localStorage.getItem("dodisa_visibility_v3")) return;
+    const hidden = ["differentials", "gallery", "economyCalculator", "timeline", "about"];
+    const applyHidden = (vis: SectionsVisibility): SectionsVisibility =>
+      Object.fromEntries(Object.entries(vis).map(([k, v]) => [k, hidden.includes(k) ? false : v])) as SectionsVisibility;
+    const newVis = applyHidden(DEFAULTS.sectionsVisibility);
+    setPubSectionsVisibility(newVis);
+    setSectionsVisibilityState(newVis);
+    ["dodisa_cms_pub_visibility", "dodisa_cms_draft_visibility", "dodisa_cms_visibility"].forEach(
+      (key) => localStorage.setItem(key, JSON.stringify(newVis))
+    );
+    localStorage.setItem("dodisa_visibility_v3", "true");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("dodisa_cms_draft_sections_order", JSON.stringify(sectionsOrder));
