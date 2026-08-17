@@ -1,23 +1,19 @@
-import { createClient } from "@supabase/supabase-js";
-
 let supabaseInstance: any = null;
 
-export function getSupabase() {
-  if (supabaseInstance) return supabaseInstance;
-
+// Eagerly start loading in background — removes @supabase/supabase-js from the critical path
+// while still making the client available within ~100ms after page load
+;(async () => {
   const url = import.meta.env.VITE_SUPABASE_URL || "";
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-
-  if (!url || !anonKey) {
-    // Graceful fallback to local persistence
-    return null;
-  }
-
+  if (!url || !anonKey) return;
   try {
+    const { createClient } = await import("@supabase/supabase-js");
     supabaseInstance = createClient(url, anonKey);
-    return supabaseInstance;
-  } catch (error) {
-    console.error("Failed to initialize Supabase client:", error);
-    return null;
+  } catch {
+    // ignore
   }
+})();
+
+export function getSupabase() {
+  return supabaseInstance;
 }

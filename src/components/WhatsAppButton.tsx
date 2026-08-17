@@ -30,7 +30,7 @@ export default function WhatsAppButton() {
     },
     {
       label: "Projeto Personalizado",
-      text: systemWhatsapp.categoryMessages?.["Personalizados"] || "Olá! Desejo cotar um Projeto Especial e customizado sob medida com a Dodisa.",
+      text: systemWhatsapp.categoryMessages?.["Projetos Personalizados"] || "Olá! Desejo cotar um Projeto Especial e customizado sob medida com a Dodisa.",
     },
   ];
 
@@ -45,7 +45,7 @@ export default function WhatsAppButton() {
       
       {/* Small notification count bubble above is displayed when closed */}
       {!isOpen && (
-        <span className="absolute -top-1.5 -left-1.5 w-5.5 h-5.5 bg-red-650 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce shadow-md">
+        <span className="absolute -top-1.5 -left-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce shadow-md">
           1
         </span>
       )}

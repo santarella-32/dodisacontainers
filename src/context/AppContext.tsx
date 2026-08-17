@@ -160,6 +160,7 @@ export interface SectionsVisibility {
   containers: boolean;
   prontaEntrega: boolean;
   projects: boolean;
+  carrosselGaleria: boolean;
   gallery: boolean;
   economyCalculator: boolean;
   videos: boolean;
@@ -491,20 +492,21 @@ const DEFAULTS = {
     containers: true,
     prontaEntrega: true,
     projects: true,
+    carrosselGaleria: false,
     gallery: false,
     economyCalculator: false,
     videos: true,
     timeline: false,
     map: true,
-    about: false,
+    about: true,
     faq: true,
     testimonials: true,
     cta: true,
     channels: true
   },
   sectionsOrder: [
-    "hero", "simulator", "differentials", "containers", "prontaEntrega", "projects", 
-    "gallery", "economyCalculator", "videos", "timeline", "map", 
+    "hero", "containers", "simulator", "differentials", "prontaEntrega", "projects",
+    "carrosselGaleria", "gallery", "economyCalculator", "videos", "timeline", "map",
     "about", "faq", "testimonials", "cta", "channels"
   ]
 };
@@ -512,8 +514,6 @@ const DEFAULTS = {
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const supabase = getSupabase();
-
   // Authentication State
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem("dodisa_admin_logged") === "true";
@@ -981,7 +981,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // One-time migration: apply new section visibility defaults to existing users
   useEffect(() => {
     if (localStorage.getItem("dodisa_visibility_v3")) return;
-    const hidden = ["differentials", "gallery", "economyCalculator", "timeline", "about"];
+    const hidden = ["differentials", "gallery", "economyCalculator", "timeline"];
     const applyHidden = (vis: SectionsVisibility): SectionsVisibility =>
       Object.fromEntries(Object.entries(vis).map(([k, v]) => [k, hidden.includes(k) ? false : v])) as SectionsVisibility;
     const newVis = applyHidden(DEFAULTS.sectionsVisibility);
@@ -991,6 +991,80 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       (key) => localStorage.setItem(key, JSON.stringify(newVis))
     );
     localStorage.setItem("dodisa_visibility_v3", "true");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Migration v4: enable "about" section (previously hidden by v3)
+  useEffect(() => {
+    if (localStorage.getItem("dodisa_visibility_v4")) return;
+    setSectionsVisibilityState((prev) => ({ ...prev, about: true }));
+    setPubSectionsVisibility((prev: SectionsVisibility) => ({ ...prev, about: true }));
+    ["dodisa_cms_pub_visibility", "dodisa_cms_draft_visibility", "dodisa_cms_visibility"].forEach((key) => {
+      try {
+        const stored = JSON.parse(localStorage.getItem(key) || "{}");
+        localStorage.setItem(key, JSON.stringify({ ...stored, about: true }));
+      } catch { /* ignore */ }
+    });
+    localStorage.setItem("dodisa_visibility_v4", "true");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // One-time migration: inject carrosselGaleria into existing stored sectionsOrder arrays
+  useEffect(() => {
+    if (localStorage.getItem("dodisa_sections_order_v1")) return;
+    const insertAfter = "projects";
+    const newKey = "carrosselGaleria";
+    const injectKey = (order: string[]): string[] => {
+      if (order.includes(newKey)) return order;
+      const idx = order.indexOf(insertAfter);
+      if (idx === -1) return [...order, newKey];
+      return [...order.slice(0, idx + 1), newKey, ...order.slice(idx + 1)];
+    };
+    const orderKeys = [
+      "dodisa_cms_pub_sections_order",
+      "dodisa_cms_draft_sections_order",
+      "dodisa_cms_sections_order",
+    ];
+    orderKeys.forEach((key) => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const updated = injectKey(JSON.parse(raw));
+          localStorage.setItem(key, JSON.stringify(updated));
+        }
+      } catch {}
+    });
+    const newPubOrder = injectKey(pubSectionsOrder);
+    const newDraftOrder = injectKey(sectionsOrder);
+    setPubSectionsOrder(newPubOrder);
+    setSectionsOrderState(newDraftOrder);
+    localStorage.setItem("dodisa_sections_order_v1", "true");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // One-time migration: move containers to right after hero
+  useEffect(() => {
+    if (localStorage.getItem("dodisa_sections_order_v2")) return;
+    const reorder = (order: string[]): string[] => {
+      const without = order.filter((k) => k !== "containers");
+      const heroIdx = without.indexOf("hero");
+      if (heroIdx === -1) return ["containers", ...without];
+      return [...without.slice(0, heroIdx + 1), "containers", ...without.slice(heroIdx + 1)];
+    };
+    const orderKeys = [
+      "dodisa_cms_pub_sections_order",
+      "dodisa_cms_draft_sections_order",
+      "dodisa_cms_sections_order",
+    ];
+    orderKeys.forEach((key) => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) localStorage.setItem(key, JSON.stringify(reorder(JSON.parse(raw))));
+      } catch {}
+    });
+    setPubSectionsOrder((prev) => reorder(prev));
+    setSectionsOrderState((prev) => reorder(prev));
+    localStorage.setItem("dodisa_sections_order_v2", "true");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1016,6 +1090,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLoginError(null);
 
     // If Supabase is connected, trigger real Supabase sign-in
+    const supabase = getSupabase();
     if (supabase) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -1061,6 +1136,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    const supabase = getSupabase();
     if (supabase) {
       supabase.auth.signOut().catch(() => {});
     }
@@ -1072,6 +1148,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const recoverPassword = async (email: string): Promise<string> => {
+    const supabase = getSupabase();
     if (supabase) {
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email);
@@ -1094,6 +1171,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const changeCredentials = async (newEmail: string, currentPass: string, newPass: string): Promise<{ success: boolean; message: string }> => {
     // If Supabase, delegate to it
+    const supabase = getSupabase();
     if (supabase) {
       try {
         const updates: any = {};
@@ -1212,6 +1290,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     markUpdate();
 
     // 3. Sync to Supabase tables draft_content and published_content if configured
+    const supabase = getSupabase();
     if (supabase) {
       const userEmail = adminUser?.email || "admin@dodisa.com.br";
       const sections = [

@@ -43,7 +43,7 @@ export default function Footer() {
             </a>
             
             <p className="text-xs sm:text-sm font-sans leading-relaxed mt-2 text-stone-400">
-              Engenharia modular de alto custo-benefício. Projetamos, cortamos, soldamos e entregamos containers marítimos reformados para canteiros de obras e indústrias, garantindo conformidade legal sob ART técnica.
+              Projetamos, reformamos e entregamos containers para obras e indústrias, com garantia técnica.
             </p>
 
             {/* Social media connections */}
@@ -122,7 +122,7 @@ export default function Footer() {
             </h3>
             <ul className="space-y-3.5 text-xs sm:text-sm font-sans">
               <li className="flex items-start gap-3">
-                <Phone className="w-4.5 h-4.5 text-brand-yellow flex-shrink-0 mt-0.5" />
+                <Phone className="w-4 h-4 text-brand-yellow flex-shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider leading-none">Telefone Fixo</span>
                   <a href={`tel:${APP_INFO.phone.replace(/[^0-9+]/g, "")}`} className="hover:text-white transition-colors text-xs sm:text-sm font-medium">
@@ -131,7 +131,7 @@ export default function Footer() {
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <MessageSquare className="w-4.5 h-4.5 text-brand-orange flex-shrink-0 mt-0.5" />
+                <MessageSquare className="w-4 h-4 text-brand-orange flex-shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider leading-none">WhatsApp Oficial</span>
                   <a
@@ -145,7 +145,7 @@ export default function Footer() {
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <Mail className="w-4.5 h-4.5 text-brand-yellow flex-shrink-0 mt-0.5" />
+                <Mail className="w-4 h-4 text-brand-yellow flex-shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider leading-none">E-mail Corporativo</span>
                   <a href={`mailto:${APP_INFO.email}`} className="hover:text-white transition-colors text-xs sm:text-sm font-medium">
@@ -172,7 +172,7 @@ export default function Footer() {
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <Clock className="w-4.5 h-4.5 text-brand-yellow flex-shrink-0 mt-0.5" />
+                <Clock className="w-4 h-4 text-brand-yellow flex-shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider leading-none">Expediente de Despacho</span>
                   <p className="leading-normal text-stone-300 text-xs">

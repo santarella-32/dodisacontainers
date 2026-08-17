@@ -81,7 +81,7 @@ export default function Depoimentos() {
           </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-[#FFD400] to-[#FF9A00] mx-auto mt-4 rounded-full" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
-            A credibilidade Dodisa aprovada por diretores de suprimentos, construtoras, mineradoras e engenheiros de infraestrutura.
+            Aprovado por construtoras, mineradoras e empresas de todo o Brasil.
           </p>
         </motion.div>
 

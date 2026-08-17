@@ -1,26 +1,64 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, Component } from "react";
 import { AppProvider, useAppContext } from "./context/AppContext";
+
+class AdminErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen bg-stone-950 flex flex-col items-center justify-center gap-4 text-center px-6">
+          <p className="text-red-400 font-mono text-sm font-bold">Erro ao carregar painel</p>
+          <pre className="text-red-300 text-xs bg-red-950/40 border border-red-500/20 rounded-xl p-4 max-w-xl w-full text-left overflow-auto whitespace-pre-wrap">
+            {this.state.error.message}
+            {"\n"}
+            {this.state.error.stack}
+          </pre>
+          <button
+            onClick={() => { this.setState({ error: null }); window.location.reload(); }}
+            className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import Header from "./components/Header";
 import Hero from "./components/Hero";
-import SimuladorOrcamento from "./components/SimuladorOrcamento";
-import Diferenciais from "./components/Diferenciais";
-import ContainersGrid from "./components/ContainersGrid";
-import ProntaEntrega from "./components/ProntaEntrega";
-import Projetos from "./components/Projetos";
-import ComoFunciona from "./components/ComoFunciona";
-import Sobre from "./components/Sobre";
-import Depoimentos from "./components/Depoimentos";
-import CTA from "./components/CTA";
-import CanaisAtendimento from "./components/CanaisAtendimento";
 import WhatsAppButton from "./components/WhatsAppButton";
-import Footer from "./components/Footer";
 
+// Tudo abaixo do fold carrega sob demanda — reduz o bundle inicial de 381KB para ~120KB
+const SimuladorOrcamento = lazy(() => import("./components/SimuladorOrcamento"));
+const Diferenciais = lazy(() => import("./components/Diferenciais"));
+const ContainersGrid = lazy(() => import("./components/ContainersGrid"));
+const ProntaEntrega = lazy(() => import("./components/ProntaEntrega"));
+const Projetos = lazy(() => import("./components/Projetos"));
+const ComoFunciona = lazy(() => import("./components/ComoFunciona"));
+const Sobre = lazy(() => import("./components/Sobre"));
+const Depoimentos = lazy(() => import("./components/Depoimentos"));
+const CTA = lazy(() => import("./components/CTA"));
+const CanaisAtendimento = lazy(() => import("./components/CanaisAtendimento"));
+const Footer = lazy(() => import("./components/Footer"));
+const OrcamentoPopup = lazy(() => import("./components/OrcamentoPopup"));
+const OrcamentoPage = lazy(() => import("./components/OrcamentoPage"));
 const AdminPanel = lazy(() => import("./components/AdminPanel"));
 const GaleriaProjetos = lazy(() => import("./components/GaleriaProjetos"));
 const CalculadoraEconomia = lazy(() => import("./components/CalculadoraEconomia"));
 const VideosReais = lazy(() => import("./components/VideosReais"));
 const MapaAtendimento = lazy(() => import("./components/MapaAtendimento"));
 const FAQInteligente = lazy(() => import("./components/FAQInteligente"));
+const CarrosselGaleria = lazy(() => import("./components/CarrosselGaleria"));
 
 function AppContent() {
   const { 
@@ -34,6 +72,7 @@ function AppContent() {
   } = useAppContext();
 
   const isFullPreview = window.location.pathname === "/admin/preview" || window.location.hash === "#/admin/preview" || window.location.hash === "/admin/preview";
+  const isOrcamentoPage = window.location.pathname === "/orcamento";
 
   // Dynamic Browser Favicon sync
   React.useEffect(() => {
@@ -67,23 +106,25 @@ function AppContent() {
   );
 
   // Dictionary mapping section keys to their corresponding React Components
+  // Hero is eager (above the fold). Everything else loads lazily on scroll.
   const SECTION_COMPONENTS: Record<string, React.ReactNode> = {
     hero: <Hero key="hero" />,
-    simulator: <SimuladorOrcamento key="simulator" />,
-    differentials: <Diferenciais key="differentials" />,
-    containers: <ContainersGrid key="containers" />,
-    prontaEntrega: <ProntaEntrega key="prontaEntrega" />,
-    projects: <Projetos key="projects" />,
+    simulator: <LazySection key="simulator"><SimuladorOrcamento /></LazySection>,
+    differentials: <LazySection key="differentials"><Diferenciais /></LazySection>,
+    containers: <LazySection key="containers"><ContainersGrid /></LazySection>,
+    prontaEntrega: <LazySection key="prontaEntrega"><ProntaEntrega /></LazySection>,
+    projects: <LazySection key="projects"><Projetos /></LazySection>,
+    carrosselGaleria: <LazySection key="carrosselGaleria"><CarrosselGaleria /></LazySection>,
     gallery: <LazySection key="gallery"><GaleriaProjetos /></LazySection>,
     economyCalculator: <LazySection key="economyCalculator"><CalculadoraEconomia /></LazySection>,
     videos: <LazySection key="videos"><VideosReais /></LazySection>,
-    timeline: <ComoFunciona key="timeline" />,
+    timeline: <LazySection key="timeline"><ComoFunciona /></LazySection>,
     map: <LazySection key="map"><MapaAtendimento /></LazySection>,
-    about: <Sobre key="about" />,
+    about: <LazySection key="about"><Sobre /></LazySection>,
     faq: <LazySection key="faq"><FAQInteligente /></LazySection>,
-    testimonials: <Depoimentos key="testimonials" />,
-    cta: <CTA key="cta" />,
-    channels: <CanaisAtendimento key="channels" />
+    testimonials: <LazySection key="testimonials"><Depoimentos /></LazySection>,
+    cta: <LazySection key="cta"><CTA /></LazySection>,
+    channels: <LazySection key="channels"><CanaisAtendimento /></LazySection>,
   };
 
   if (isFullPreview) {
@@ -123,17 +164,27 @@ function AppContent() {
         </main>
 
         <WhatsAppButton />
-        <Footer />
+        <Suspense fallback={null}><Footer /></Suspense>
       </div>
+    );
+  }
+
+  if (isOrcamentoPage) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-[#07090D]" />}>
+        <OrcamentoPage />
+      </Suspense>
     );
   }
 
   // If the admin user clicked the discrete footer link and logged in, show the Admin Dashboard
   if (isAdminViewActive) {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-stone-950 flex items-center justify-center text-stone-400">Carregando painel...</div>}>
-        <AdminPanel />
-      </Suspense>
+      <AdminErrorBoundary>
+        <Suspense fallback={<div className="min-h-screen bg-stone-950 flex items-center justify-center text-stone-400">Carregando painel...</div>}>
+          <AdminPanel />
+        </Suspense>
+      </AdminErrorBoundary>
     );
   }
 
@@ -156,7 +207,10 @@ function AppContent() {
       <WhatsAppButton />
 
       {/* Corporate Structural Footer with credentials */}
-      <Footer />
+      <Suspense fallback={null}><Footer /></Suspense>
+
+      {/* Scroll-triggered quote popup */}
+      <Suspense fallback={null}><OrcamentoPopup /></Suspense>
 
     </div>
   );

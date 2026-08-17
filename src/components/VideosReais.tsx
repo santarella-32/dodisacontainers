@@ -36,12 +36,12 @@ export default function VideosReais() {
             Vídeos <span className="text-red-500">Reais</span> de Logística
           </h2>
           <p className="mt-4 text-stone-400 font-sans text-sm sm:text-base leading-relaxed">
-            Testemunhe a robustez da nossa engenharia pesada. Acompanhe manobras reais de entrega de alta precisão e montagem rápida no pátio do cliente.
+            Veja de perto como entregamos e montamos seus containers.
           </p>
         </motion.div>
 
-        {/* Video cards list */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto">
+        {/* Video cards list — horizontal scroll */}
+        <div className="flex gap-6 overflow-x-auto pb-2 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {visibleVideos.map((card, idx) => (
             <motion.div
               key={card.id || card.title}
@@ -49,7 +49,7 @@ export default function VideosReais() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="group bg-stone-900 border border-stone-850 hover:border-red-500/30 rounded-xl overflow-hidden shadow-xl flex flex-col justify-between"
+              className="group bg-stone-900 border border-stone-850 hover:border-red-500/30 rounded-xl overflow-hidden shadow-xl flex flex-col justify-between flex-shrink-0 w-[320px] sm:w-[380px] snap-start"
             >
               {/* Simulated player window frame */}
               <div className="relative aspect-[16/9] bg-stone-950 overflow-hidden flex items-center justify-center">
@@ -91,7 +91,7 @@ export default function VideosReais() {
                     {card.title}
                   </h3>
                   <p className="text-xs text-stone-500 font-sans leading-relaxed mb-4">
-                    Atendimento imediato: Clique no play e peça ao consultor para receber trechos ao vivo de soldas, acabamentos de banheiro ou transportes rurais agora mesmo.
+                    Peça esse vídeo completo no WhatsApp.
                   </p>
                 </div>
 
@@ -100,7 +100,7 @@ export default function VideosReais() {
                   className="w-full py-2.5 px-4 bg-stone-950 hover:bg-stone-850 text-stone-300 hover:text-white font-bold text-xs uppercase tracking-widest rounded border border-stone-800 hover:border-red-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4 fill-current text-red-500" />
-                  Vídeo do projeto em breve • Solicitar no WhatsApp
+                  Pedir vídeo no WhatsApp
                 </button>
               </div>
 
@@ -114,7 +114,7 @@ export default function VideosReais() {
             <HardHat className="w-5 h-5" />
           </div>
           <p className="text-xs text-stone-400 font-sans leading-normal">
-            <strong>Logística Assegurada:</strong> Nossos vídeos demonstrativos foram gravados por nossos engenheiros e motoristas em canteiros de obra reais de parceiros industriais. Pedidos de material complementar podem ser solicitados em tempo real de gravação aos técnicos no pátio central de Santa Rosa - RS.
+            <strong>Vídeos Reais:</strong> Gravados em obras de clientes de verdade, sem atores nem cenário.
           </p>
         </div>
 

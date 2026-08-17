@@ -40,23 +40,23 @@ export default function CanaisAtendimento() {
           transition={{ duration: 0.6 }}
           className="text-center max-w-3xl mx-auto mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-stone-900 border border-stone-800 text-xs font-black text-red-500 uppercase tracking-widest mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-stone-900 border border-stone-800 text-xs font-black text-amber-500 uppercase tracking-widest mb-4">
             Contatos Digitais
           </div>
           <h2 className="text-3xl sm:text-5xl font-black font-sans uppercase tracking-tight text-white leading-none">
-            Nossos Canais <span className="text-red-500">Oficiais</span>
+            Nossos Canais <span className="text-[#FFD400]">Oficiais</span>
           </h2>
           <p className="mt-4 text-stone-400 font-sans text-sm sm:text-base leading-relaxed">
-            Consulte nossas mídias oficiais, agende uma chamada direta com o consultor comercial ou venha visitar nosso pátio.
+            Fale com a gente pelo WhatsApp, Instagram ou visite nosso pátio.
           </p>
         </motion.div>
 
         {/* The requested Red-themed block containing 3 gorgeous cards */}
-        <div className="bg-[#cc0000] p-6 sm:p-10 rounded-2xl border border-red-700/50 shadow-2xl relative overflow-hidden">
-          
+        <div className="bg-white p-6 sm:p-10 rounded-2xl border border-amber-200 shadow-2xl relative overflow-hidden">
+
           {/* Background subtle glowing effect */}
-          <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -left-20 -top-20 w-80 h-80 bg-stone-950/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-amber-100/30 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -left-20 -top-20 w-80 h-80 bg-amber-50/20 rounded-full blur-3xl pointer-events-none" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 relative z-10">
             
@@ -66,12 +66,12 @@ export default function CanaisAtendimento() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-[#f03a33] text-white p-6 sm:p-8 rounded-xl border border-white/20 shadow-lg flex flex-col items-center text-center justify-between min-h-[280px] hover:scale-[1.02] transition-transform duration-300 group"
+              className="bg-amber-50 text-stone-900 p-6 sm:p-8 rounded-xl border border-amber-200 shadow-lg flex flex-col items-center text-center justify-between min-h-[280px] hover:scale-[1.02] transition-transform duration-300 group"
             >
               <div className="flex flex-col items-center">
                 {/* Whatsapp Icon Container */}
-                <div className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center mb-4 transition-colors">
-                  <MessageSquare className="w-8 h-8 text-white fill-current" />
+                <div className="w-14 h-14 rounded-full bg-amber-100 hover:bg-amber-200 flex items-center justify-center mb-4 transition-colors">
+                  <MessageSquare className="w-8 h-8 text-amber-600 fill-current" />
                 </div>
                 
                 <h3 className="text-lg sm:text-xl font-bold uppercase tracking-wider mb-2">
@@ -82,14 +82,14 @@ export default function CanaisAtendimento() {
                   {APP_INFO.phone}
                 </p>
                 
-                <p className="text-xs sm:text-sm text-white/80 font-sans">
+                <p className="text-xs sm:text-sm text-stone-500 font-sans">
                   Atendimento rápido e direto
                 </p>
               </div>
 
               <button
                 onClick={handleWhatsapp}
-                className="mt-6 w-full py-2.5 px-4 bg-white hover:bg-stone-100 text-[#ec433c] font-black text-xs uppercase tracking-widest rounded-lg shadow transition-colors cursor-pointer"
+                className="mt-6 w-full py-2.5 px-4 bg-stone-900 hover:bg-stone-800 text-[#FFD400] font-black text-xs uppercase tracking-widest rounded-lg shadow transition-colors cursor-pointer"
               >
                 Chamar no WhatsApp
               </button>
@@ -101,12 +101,12 @@ export default function CanaisAtendimento() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-[#f03a33] text-white p-6 sm:p-8 rounded-xl border border-white/20 shadow-lg flex flex-col items-center text-center justify-between min-h-[280px] hover:scale-[1.02] transition-transform duration-300 group"
+              className="bg-amber-50 text-stone-900 p-6 sm:p-8 rounded-xl border border-amber-200 shadow-lg flex flex-col items-center text-center justify-between min-h-[280px] hover:scale-[1.02] transition-transform duration-300 group"
             >
               <div className="flex flex-col items-center">
                 {/* Instagram Icon Container */}
-                <div className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center mb-4 transition-colors">
-                  <Instagram className="w-8 h-8 text-white" />
+                <div className="w-14 h-14 rounded-full bg-amber-100 hover:bg-amber-200 flex items-center justify-center mb-4 transition-colors">
+                  <Instagram className="w-8 h-8 text-amber-600" />
                 </div>
                 
                 <h3 className="text-lg sm:text-xl font-bold uppercase tracking-wider mb-2">
@@ -117,14 +117,14 @@ export default function CanaisAtendimento() {
                   {APP_INFO.instagram}
                 </p>
                 
-                <p className="text-xs sm:text-sm text-white/80 font-sans">
+                <p className="text-xs sm:text-sm text-stone-500 font-sans">
                   Acompanhe nossos projetos
                 </p>
               </div>
 
               <button
                 onClick={handleInstagram}
-                className="mt-6 w-full py-2.5 px-4 bg-white hover:bg-stone-100 text-[#ec433c] font-black text-xs uppercase tracking-widest rounded-lg shadow transition-colors cursor-pointer"
+                className="mt-6 w-full py-2.5 px-4 bg-stone-900 hover:bg-stone-800 text-[#FFD400] font-black text-xs uppercase tracking-widest rounded-lg shadow transition-colors cursor-pointer"
               >
                 Seguir no Instagram
               </button>
@@ -136,12 +136,12 @@ export default function CanaisAtendimento() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="bg-[#f03a33] text-white p-6 sm:p-8 rounded-xl border border-white/20 shadow-lg flex flex-col items-center text-center justify-between min-h-[280px] hover:scale-[1.02] transition-transform duration-300 group"
+              className="bg-amber-50 text-stone-900 p-6 sm:p-8 rounded-xl border border-amber-200 shadow-lg flex flex-col items-center text-center justify-between min-h-[280px] hover:scale-[1.02] transition-transform duration-300 group"
             >
               <div className="flex flex-col items-center">
                 {/* Location Icon Container */}
-                <div className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center mb-4 transition-colors">
-                  <MapPin className="w-8 h-8 text-white" />
+                <div className="w-14 h-14 rounded-full bg-amber-100 hover:bg-amber-200 flex items-center justify-center mb-4 transition-colors">
+                  <MapPin className="w-8 h-8 text-amber-600" />
                 </div>
                 
                 <h3 className="text-lg sm:text-xl font-bold uppercase tracking-wider mb-2">
@@ -159,7 +159,7 @@ export default function CanaisAtendimento() {
 
               <button
                 onClick={handleMaps}
-                className="mt-6 w-full py-2.5 px-4 bg-white hover:bg-stone-100 text-[#ec433c] font-black text-xs uppercase tracking-widest rounded-lg shadow transition-colors cursor-pointer"
+                className="mt-6 w-full py-2.5 px-4 bg-stone-900 hover:bg-stone-800 text-[#FFD400] font-black text-xs uppercase tracking-widest rounded-lg shadow transition-colors cursor-pointer"
               >
                 Ver no Mapa
               </button>

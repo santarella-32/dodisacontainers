@@ -91,14 +91,14 @@ Celular: ${whatsapp}`;
           className="text-center max-w-3xl mx-auto mb-16"
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-yellow/10 border border-brand-yellow/20 text-[10px] font-mono font-black text-brand-yellow uppercase tracking-widest mb-4">
-            COTAÇÃO DE ENGENHARIA MODULAR
+            ORÇAMENTO RÁPIDO
           </div>
           <h2 className="text-3xl sm:text-5xl font-black font-display uppercase tracking-tight text-white leading-none">
             Simulador de <span className="text-brand-yellow">Orçamento</span>
           </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
-            Gere as especificações do seu pavilhão ou container ideal em segundos. Nosso sistema organizará o roteamento comercial direto ao engenheiro encarregado.
+            Monte seu orçamento em poucos cliques e fale direto com um especialista.
           </p>
         </motion.div>
 
@@ -291,7 +291,7 @@ Celular: ${whatsapp}`;
                 <div>
                   <h3 className="text-white text-xs font-black uppercase tracking-wider font-display">Resumo da Especificação</h3>
                   <p className="text-[10px] text-brand-yellow flex items-center gap-1.5 font-mono font-bold mt-0.5">
-                    <span className="w-2 h-2 rounded-full bg-brand-yellow animate-pulse" /> PRONTO PARA TRANSMISSÃO
+                    <span className="w-2 h-2 rounded-full bg-brand-yellow animate-pulse" /> PRONTO PARA ENVIAR
                   </p>
                 </div>
               </div>
@@ -331,7 +331,7 @@ Celular: ${whatsapp}`;
                 </p>
                 <p className="flex items-center gap-2 text-stone-300">
                   <ShieldCheck className="w-4 h-4 text-brand-yellow flex-shrink-0" />
-                  Em conformidade técnica com as normas NR-18 e NR-24.
+                  Dentro das normas NR-18 e NR-24.
                 </p>
                 <p className="flex items-center gap-2 text-stone-300">
                   <ShieldCheck className="w-4 h-4 text-brand-yellow flex-shrink-0" />

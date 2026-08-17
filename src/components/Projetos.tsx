@@ -80,7 +80,7 @@ export default function Projetos() {
           </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
-            Testemunhe o poder de conversão espacial. Convertemos pátios planos e plantas complexas em infraestruturas industriais e corporativas vedadas, robustas e prontas.
+            Veja como transformamos terrenos vazios em espaços prontos para uso.
           </p>
         </motion.div>
 
@@ -142,7 +142,7 @@ export default function Projetos() {
             <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3.5 mt-2">
               <div className="w-2.5 h-2.5 rounded-full bg-brand-orange animate-ping flex-shrink-0" />
               <p className="text-[11px] text-stone-400 font-sans leading-normal">
-                <span className="font-bold text-stone-200 uppercase">Laudo de Engenharia:</span> Todas as nossas transformações passam por processos fotográficos internos, emissão de ART e ensaio estrutural.
+                <span className="font-bold text-stone-200 uppercase">Laudo de Engenharia:</span> Cada obra tem registro fotográfico, ART e teste estrutural.
               </p>
             </div>
           </motion.div>
@@ -189,7 +189,7 @@ export default function Projetos() {
                         className="px-4.5 py-2.5 text-[10px] font-black bg-brand-black/90 hover:bg-brand-yellow text-white hover:text-brand-black rounded-lg border border-white/5 hover:border-brand-yellow shadow-xl flex items-center gap-2 transition-all cursor-pointer backdrop-blur-md font-mono"
                       >
                         <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
-                        Alternar: {showBeforeMap[activeProject.id] ? "Ver DEPOIS (Instalado)" : "Ver ANTES (Pátio vazio)"}
+                        {showBeforeMap[activeProject.id] ? "Ver Depois" : "Ver Antes"}
                       </button>
                     </div>
                   )}

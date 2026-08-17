@@ -861,7 +861,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
       {/* ── Status bar ── */}
       <div className="flex items-center justify-between text-[10px] text-stone-500 font-mono">
         <span>{filtered.length} imagem(ns){search ? ` para "${search}"` : ""}{categoryFilter !== "Todas" ? ` em ${categoryFilter}` : ""}</span>
-        {totalPages > 1 && <span>Pág. {safePage}/{totalPages}</span>}
+        {filtered.length > paginated.length && <span>{paginated.length}/{filtered.length} exibidas</span>}
       </div>
 
       {/* ── Grid ── */}

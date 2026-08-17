@@ -28,14 +28,14 @@ export default function ComoFunciona() {
           className="text-center max-w-3xl mx-auto mb-20"
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-yellow/10 border border-brand-yellow/20 text-[10px] font-mono font-black text-brand-yellow uppercase tracking-widest mb-4">
-            FLUXO OPERACIONAL DE ENGENHARIA
+            PASSO A PASSO SIMPLES
           </div>
           <h2 className="text-3xl sm:text-5xl font-black font-display text-white uppercase tracking-tight">
-            COMO FUNCIONA A <span className="text-brand-yellow">ENTREGABILIDADE?</span>
+            COMO FUNCIONA A <span className="text-brand-yellow">ENTREGA?</span>
           </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
-            Do primeiro clique de contato e alinhamento comercial ao içamento final por caminhões munck pesados na sua garagem ou pátio de obras. Sem burocracia técnica.
+            Do primeiro contato até a entrega no seu pátio. Sem burocracia.
           </p>
         </motion.div>
 
@@ -95,7 +95,7 @@ export default function ComoFunciona() {
         {/* Highlight footer step CTA info */}
         <div className="mt-16 text-center max-w-xl mx-auto">
           <p className="text-[10px] font-mono font-bold text-stone-500 uppercase tracking-widest">
-            ★ MÉDIA DE INÍCIO DE PRODUÇÃO: <span className="text-brand-yellow font-black">24 HORAS</span> APÓS ASSINATURA DE CONTRATO COMERCIAL.
+            ★ PRODUÇÃO COMEÇA EM <span className="text-brand-yellow font-black">24 HORAS</span> APÓS O CONTRATO.
           </p>
         </div>
 

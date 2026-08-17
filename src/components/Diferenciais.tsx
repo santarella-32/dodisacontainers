@@ -59,7 +59,7 @@ export default function Diferenciais() {
           </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
-            Unimos aço corten de alta durabilidade, isolamento termoacústico de alta performance e acabamento premium para entregar as estruturas modulares mais resistentes do Brasil.
+            Aço resistente, bom isolamento e acabamento de qualidade — containers feitos para durar.
           </p>
         </div>
 

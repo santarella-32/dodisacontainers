@@ -5,21 +5,21 @@ export default function Sobre() {
   const values = [
     {
       title: "Nossa Missão",
-      description: "Fornecer módulos habitáveis e industriais de altíssima resistência e adaptabilidade, reduzindo prazos e otimizando layouts com engenharia limpa.",
+      description: "Containers resistentes que reduzem prazo e otimizam espaço.",
       icon: Target,
       color: "text-brand-yellow",
       bg: "bg-[#111827]/30 border-brand-yellow/10 hover:border-brand-yellow/30"
     },
     {
       title: "Nossa Visão",
-      description: "Ser reconhecida nacionalmente como o padrão de ouro absoluto em engenhosidade mecânica, robustez estrutural e integridade logística.",
+      description: "Ser referência nacional em qualidade e confiança.",
       icon: Compass,
       color: "text-brand-orange",
       bg: "bg-[#111827]/30 border-brand-orange/10 hover:border-brand-orange/30"
     },
     {
       title: "Nossos Valores",
-      description: "Segurança estrutural sob ART, rigor com normas NR-18 e NR-24, transparência comercial absoluta e suporte pós-venda incondicional.",
+      description: "Segurança (ART, NR-18, NR-24), preço justo e suporte após a venda.",
       icon: Heart,
       color: "text-brand-yellow",
       bg: "bg-[#111827]/30 border-brand-yellow/10 hover:border-brand-yellow/30"
@@ -59,13 +59,13 @@ export default function Sobre() {
 
             <div className="space-y-5 text-stone-300 font-sans text-xs sm:text-sm leading-relaxed">
               <p>
-                A <span className="font-extrabold text-white">Dodisa Containers</span> nasceu da sinergia de engenheiros especialistas em plantas mecânicas de alta complexidade e transporte pesado. Identificando a necessidade regional por módulos verdadeiramente robustos para canteiros, criamos nossa própria linha de produção focada em soldabilidade balística e isolação térmica termoacústica premium.
+                A <span className="font-extrabold text-white">Dodisa Containers</span> nasceu de uma equipe de engenheiros especialistas em estruturas metálicas e transporte pesado, com produção própria.
               </p>
               <p>
-                Operamos com estrita observância das normas regulamentadoras nacionais vigentes (<span className="text-brand-yellow font-semibold">NR-18 e NR-24 da Portaria 3.214</span>), entregando todos os nossos módulos homologados com laudos de descontaminação e testes estruturais de vedabilidade.
+                Seguimos as normas <span className="text-brand-yellow font-semibold">NR-18 e NR-24</span> e entregamos cada módulo com laudo de descontaminação e teste estrutural.
               </p>
               <p>
-                Nossos revestimentos passam por pintura eletrostática anticorrosiva marítima tripla de poliuretano epóxi, blindando cada chapa de aço contra corrosão ou vazamentos por longos anos, sob sol causticante ou chuvas intensas.
+                Pintura eletrostática com poliuretano epóxi protege o aço contra corrosão por anos, sol ou chuva.
               </p>
             </div>
 
@@ -111,8 +111,8 @@ export default function Sobre() {
                   <Building2 className="w-5 h-5" />
                 </div>
                 <p className="text-xs text-stone-300 font-sans leading-relaxed">
-                  <span className="font-extrabold text-white block">Visite Nosso Pátio Logístico:</span>
-                  Visitas técnicas guiadas estão sempre disponíveis em nossa planta industrial sob marcação junto ao comercial.
+                  <span className="font-extrabold text-white block">Visite Nosso Pátio:</span>
+                  Visitas guiadas com agendamento prévio.
                 </p>
               </div>
             </div>

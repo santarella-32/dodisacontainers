@@ -49,7 +49,7 @@ export default function CTA() {
           </h2>
 
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm max-w-2xl leading-relaxed">
-            Nossa equipe técnica e comercial está homologada sob ART para emitir orçamentos detalhados imediatos. Converse com quem entende de logística pesada.
+            Fale agora com um especialista e receba seu orçamento na hora.
           </p>
 
           {/* Large actionable button */}

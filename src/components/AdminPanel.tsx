@@ -30,6 +30,192 @@ import CTA from "./CTA";
 import CanaisAtendimento from "./CanaisAtendimento";
 import Header from "./Header";
 import Footer from "./Footer";
+import {
+  CarrosselConfig,
+  DEFAULT_CARROSSEL_CONFIG,
+  getCarrosselConfig,
+  saveCarrosselConfigToStorage,
+} from "./CarrosselGaleria";
+
+// ─── Carrossel Landing Page Admin Panel ──────────────────────────────────────
+function CarrosselAdminPanel({ triggerNotification }: { triggerNotification: (msg: string) => void }) {
+  const [config, setConfig] = React.useState<CarrosselConfig>(getCarrosselConfig);
+  const [folders, setFolders] = React.useState<string[]>([]);
+  const [previewCount, setPreviewCount] = React.useState<number | null>(null);
+  const [loadingFolders, setLoadingFolders] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [rawUrls, setRawUrls] = React.useState<string>(config.selectedUrls.join("\n"));
+
+  React.useEffect(() => {
+    const load = async () => {
+      setLoadingFolders(true);
+      const supabase = getSupabase();
+      if (!supabase) { setLoadingFolders(false); return; }
+      try {
+        const { data } = await supabase.storage.from("site-assets").list("gallery", { limit: 100 });
+        if (data) {
+          const folderNames = data.filter((f) => !f.metadata).map((f) => f.name);
+          setFolders(folderNames);
+        }
+      } catch {}
+      setLoadingFolders(false);
+    };
+    load();
+  }, []);
+
+  React.useEffect(() => {
+    if (!config.folder) { setPreviewCount(null); return; }
+    const load = async () => {
+      const supabase = getSupabase();
+      if (!supabase) return;
+      try {
+        const { data } = await supabase.storage
+          .from("site-assets")
+          .list(`gallery/${config.folder}`, { limit: 200 });
+        if (data) {
+          setPreviewCount(data.filter((f) => f.name !== ".emptyFolderPlaceholder").length);
+        }
+      } catch {}
+    };
+    load();
+  }, [config.folder]);
+
+  const handleSave = () => {
+    setSaving(true);
+    const urls = rawUrls.split("\n").map((u) => u.trim()).filter(Boolean);
+    const toSave: CarrosselConfig = { ...config, selectedUrls: urls };
+    saveCarrosselConfigToStorage(toSave);
+    setConfig(toSave);
+    setSaving(false);
+    triggerNotification("Carrossel salvo! Ative a seção no painel de seções para exibir na landing page.");
+  };
+
+  const inputCls = "w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white text-xs outline-none focus:border-orange-500 font-mono transition-colors";
+  const labelCls = "block text-stone-400 text-xs mb-1.5 uppercase font-bold tracking-wide";
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-[#171A21] border border-white/5 p-6 rounded-2xl">
+        <h3 className="text-white text-base font-black uppercase mb-1">Carrossel na Landing Page</h3>
+        <p className="text-stone-400 text-xs mb-6">
+          Configure as imagens que aparecem no carrossel da landing page. Escolha uma pasta da galeria ou cole URLs individuais.
+          Após salvar, ative a seção <span className="text-orange-400 font-bold">Carrossel</span> no painel de seções.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-sans">
+          <div>
+            <label className={labelCls}>Título da Seção</label>
+            <input
+              type="text"
+              value={config.title}
+              onChange={(e) => setConfig((c) => ({ ...c, title: e.target.value }))}
+              className={inputCls}
+              placeholder="Ex: Nossos Projetos"
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Subtítulo</label>
+            <input
+              type="text"
+              value={config.subtitle}
+              onChange={(e) => setConfig((c) => ({ ...c, subtitle: e.target.value }))}
+              className={inputCls}
+              placeholder="Ex: Veja nossos trabalhos realizados"
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>
+              Pasta da Galeria
+              {loadingFolders && <span className="ml-2 text-stone-500 normal-case font-normal">carregando...</span>}
+            </label>
+            <select
+              value={config.folder}
+              onChange={(e) => setConfig((c) => ({ ...c, folder: e.target.value }))}
+              className={inputCls}
+              disabled={loadingFolders}
+            >
+              <option value="">-- Selecionar pasta --</option>
+              {folders.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+            {config.folder && previewCount !== null && (
+              <p className="text-stone-500 mt-1.5">
+                {previewCount} {previewCount === 1 ? "imagem" : "imagens"} encontradas em <span className="text-orange-400">{config.folder}</span>
+              </p>
+            )}
+            {!config.folder && folders.length === 0 && !loadingFolders && (
+              <p className="text-stone-500 mt-1.5">Nenhuma pasta encontrada. Crie pastas na aba Galeria.</p>
+            )}
+          </div>
+
+          <div>
+            <label className={labelCls}>Velocidade do Carrossel (ms)</label>
+            <input
+              type="number"
+              value={config.autoplaySpeed}
+              min={1000}
+              max={15000}
+              step={500}
+              onChange={(e) => setConfig((c) => ({ ...c, autoplaySpeed: Number(e.target.value) }))}
+              className={inputCls}
+            />
+            <p className="text-stone-500 mt-1.5">{config.autoplaySpeed / 1000}s por slide</p>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className={labelCls}>
+              URLs Individuais (opcional — uma por linha)
+              <span className="ml-2 text-stone-500 normal-case font-normal">Se preenchido, substitui a pasta</span>
+            </label>
+            <textarea
+              rows={5}
+              value={rawUrls}
+              onChange={(e) => setRawUrls(e.target.value)}
+              className={`${inputCls} resize-y`}
+              placeholder={"https://...\nhttps://..."}
+            />
+            {rawUrls.trim() && (
+              <p className="text-stone-500 mt-1.5">
+                {rawUrls.split("\n").filter((u) => u.trim()).length} URLs configuradas
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6 pt-5 border-t border-white/5">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            {saving ? "Salvando..." : "Salvar Carrossel"}
+          </button>
+          <button
+            onClick={() => {
+              setConfig(DEFAULT_CARROSSEL_CONFIG);
+              setRawUrls("");
+            }}
+            className="text-stone-500 hover:text-white text-xs uppercase font-bold tracking-wider transition-colors cursor-pointer px-3"
+          >
+            Resetar
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-[#0F1115] border border-white/5 rounded-2xl p-5">
+        <p className="text-stone-400 text-xs leading-relaxed">
+          <span className="text-orange-400 font-bold">Como funciona:</span> As imagens são carregadas diretamente da pasta selecionada na Galeria do Supabase.
+          Para adicionar fotos ao carrossel, basta subir imagens nessa pasta na aba <span className="text-orange-400">Galeria</span>.
+          O carrossel avança automaticamente e o visitante pode navegar com setas ou swipe no celular.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function ProfileTab({ adminUser, changeCredentials, triggerNotification }: {
   adminUser: any;
@@ -208,6 +394,7 @@ export default function AdminPanel() {
   const [containersSubTab, setContainersSubTab] = useState<"catalogo" | "pronta">("catalogo");
   const [projectsSubTab, setProjectsSubTab] = useState<"cases" | "videos" | "differentials">("cases");
   const [settingsSubTab, setSettingsSubTab] = useState<"hero" | "conversions" | "faq" | "logo" | "domain" | "base">("hero");
+  const [mediaSubTab, setMediaSubTab] = useState<"gallery" | "carrossel">("gallery");
 
   // Live Preview layout controller states
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -2589,10 +2776,42 @@ export default function AdminPanel() {
         )}
 
         {/* ---------------------------------------------------- */}
-        {/* TAB: GALERIA DE IMAGENS */}
+        {/* TAB: GALERIA DE IMAGENS + CARROSSEL */}
         {/* ---------------------------------------------------- */}
         {activeTab === "media" && (
-          <GaleriaImagens triggerNotification={triggerNotification} />
+          <div className="space-y-0">
+            {/* Sub-tab nav */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setMediaSubTab("gallery")}
+                className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-colors cursor-pointer ${
+                  mediaSubTab === "gallery"
+                    ? "bg-orange-500 text-white"
+                    : "bg-[#171A21] text-stone-400 hover:text-white border border-white/5"
+                }`}
+              >
+                Galeria
+              </button>
+              <button
+                onClick={() => setMediaSubTab("carrossel")}
+                className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-colors cursor-pointer ${
+                  mediaSubTab === "carrossel"
+                    ? "bg-orange-500 text-white"
+                    : "bg-[#171A21] text-stone-400 hover:text-white border border-white/5"
+                }`}
+              >
+                Carrossel Landing
+              </button>
+            </div>
+
+            {mediaSubTab === "gallery" && (
+              <GaleriaImagens triggerNotification={triggerNotification} />
+            )}
+
+            {mediaSubTab === "carrossel" && (
+              <CarrosselAdminPanel triggerNotification={triggerNotification} />
+            )}
+          </div>
         )}
 
         {/* ---------------------------------------------------- */}

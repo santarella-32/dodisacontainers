@@ -6,7 +6,7 @@ import { useAppContext } from "../context/AppContext";
 const ThreeContainerVisualizer = lazy(() => import("./ThreeContainerVisualizer"));
 
 // Smooth real-time count-up component for premium metrics
-function CountUp({ target, duration = 2000, suffix = "" }) {
+function CountUp({ target, duration = 2000, suffix = "" }: { target: string; duration?: number; suffix?: string }) {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
   const [isIntersecting, setIsIntersecting] = useState(false);
@@ -27,10 +27,9 @@ function CountUp({ target, duration = 2000, suffix = "" }) {
   useEffect(() => {
     if (!isIntersecting) return;
 
-    let start = 0;
     const end = parseInt(target.replace(/\D/g, ""), 10) || 0;
     if (end === 0) {
-      setCount(target);
+      setCount(0);
       return;
     }
     const startTime = performance.now();
@@ -60,23 +59,6 @@ function CountUp({ target, duration = 2000, suffix = "" }) {
 export default function Hero() {
   const { hero, whatsapp } = useAppContext();
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  
-  // Interactive mouse perspective coords
-  const [coords, setCoords] = useState({ x: 0, y: 0 });
-  const [isHovered, setIsHovered] = useState(false);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const { currentTarget, clientX, clientY } = e;
-    const { left, top, width, height } = currentTarget.getBoundingClientRect();
-    const xVal = (clientX - left - width / 2) / (width / 2); // normalised -1 to 1
-    const yVal = (clientY - top - height / 2) / (height / 2); // normalised -1 to 1
-    setCoords({ x: xVal, y: yVal });
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    setCoords({ x: 0, y: 0 });
-  };
 
   // Auto-helper to detect if the URL is direct MP4 or from YouTube
   const isDirectVideo = (url: string) => {
@@ -180,9 +162,6 @@ export default function Hero() {
     <section
       id="inicio"
       className="relative min-h-screen flex items-center justify-center bg-[#07090D] overflow-hidden pt-28 pb-16"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onMouseEnter={() => setIsHovered(true)}
     >
       {/* Abstract Blueprint Grid Backdrop with lighting overlays */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -288,7 +267,7 @@ export default function Hero() {
                   className="px-5 py-4 bg-white/5 hover:bg-white/10 text-stone-300 hover:text-white font-black text-[10px] uppercase tracking-widest rounded-xl border border-white/5 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer font-mono"
                 >
                   <Play className="w-3.5 h-3.5 fill-current text-brand-yellow" />
-                  Assitir Tour
+                  Assistir Tour
                 </button>
               )}
             </motion.div>
@@ -398,7 +377,7 @@ export default function Hero() {
               <div className="mt-5 p-3 rounded-lg bg-white/[0.02] border border-white/5 flex items-center gap-3">
                 <ShieldAlert className="w-5 h-5 text-brand-orange flex-shrink-0 animate-pulse" />
                 <p className="text-[10px] text-stone-300 leading-normal font-sans font-medium">
-                  Rigorosa testagem de fadiga mecânica, hidrossanitária e laudo técnico com engenheiro responsável.
+                  Testado e aprovado por engenheiro responsável.
                 </p>
               </div>
 
@@ -465,7 +444,7 @@ export default function Hero() {
 
               {/* Detail Footer */}
               <div className="p-4 sm:p-5 bg-[#0B0F14] text-stone-400 text-xs text-center font-sans tracking-wide">
-                Pátio Industrial Santa Rosa - RS. Atendimento de alta velocidade no sul do Brasil.
+                Pátio Industrial Santa Rosa - RS.
               </div>
             </motion.div>
           </motion.div>
