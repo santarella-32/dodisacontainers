@@ -799,6 +799,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Load published content from Supabase on mount so all visitors see the latest data
   useEffect(() => {
     const loadPublished = async () => {
+      const supabase = getSupabase();
       if (!supabase) return;
       try {
         const { data, error } = await supabase
@@ -1074,6 +1075,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Sync state modifications to Supabase database if credentials are valid
   const syncToSupabase = async (table: string, data: any) => {
+    const supabase = getSupabase();
     if (!supabase) return;
     try {
       const { error } = await supabase
