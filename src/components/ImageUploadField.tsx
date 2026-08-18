@@ -23,14 +23,50 @@ export default function ImageUploadField({
   const [uploading, setUploading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const handleFile = async (file: File) => {
+  // Downscale + re-encode as WebP before upload. These single-image fields (hero,
+  // container cards, etc.) previously uploaded the raw file as-is — a 4000px+ phone
+  // photo would then be downloaded at full size by every visitor. Caps the longest
+  // side at 1920px (plenty for any layout slot these images fill) and falls back to
+  // the original file if anything goes wrong.
+  const MAX_DIMENSION = 1920;
+  const compressImage = (file: File, quality = 0.85): Promise<File> =>
+    new Promise((resolve) => {
+      if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
+        resolve(file);
+        return;
+      }
+      const img = new window.Image();
+      const objUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objUrl);
+        const { naturalWidth: w, naturalHeight: h } = img;
+        const scale = Math.min(1, MAX_DIMENSION / Math.max(w, h));
+        if (scale >= 1) { resolve(file); return; }
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(file); return; }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".webp"), { type: "image/webp" }));
+        }, "image/webp", quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(objUrl); resolve(file); };
+      img.src = objUrl;
+    });
+
+  const handleFile = async (rawFile: File) => {
     setError(null);
-    if (file.size > 5 * 1024 * 1024) {
+    if (rawFile.size > 5 * 1024 * 1024) {
       setError("Arquivo muito grande. Máximo: 5MB.");
       return;
     }
 
     setUploading(true);
+
+    const file = await compressImage(rawFile);
 
     // Immediate local preview via base64
     const reader = new FileReader();

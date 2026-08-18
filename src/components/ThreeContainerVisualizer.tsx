@@ -60,7 +60,7 @@ export default function ThreeContainerVisualizer() {
         }
 
         // Add fine steel noise & heavy metal pitting
-        for (let i = 0; i < 15000; i++) {
+        for (let i = 0; i < 5000; i++) {
           const x = Math.random() * size;
           const y = Math.random() * size;
           const val = Math.floor(Math.random() * 40 - 20);
@@ -89,15 +89,11 @@ export default function ThreeContainerVisualizer() {
     // B. TEXTURE MAP WITH DECALS & BRAND IDENTITY (8K/4K Industrial Resolution)
     const createDecalTexture = () => {
       const canvas = document.createElement("canvas");
-      // Double the backing canvas size for incredibly sharp text rendering on all displays
-      canvas.width = 4096;
-      canvas.height = 2048;
+      canvas.width = 2048;
+      canvas.height = 1024;
       const ctx = canvas.getContext("2d");
-      
-      if (ctx) {
-        // Scale everything up transparently so coordinates remain exactly compatible and simple to read
-        ctx.scale(2, 2);
 
+      if (ctx) {
         // Base coat: Premium Safety Yellow
         ctx.fillStyle = "#eab308";
         ctx.fillRect(0, 0, 2048, 1024);
@@ -116,7 +112,7 @@ export default function ThreeContainerVisualizer() {
         }
 
         // Add ultra-realistic physical weathering noise & metallic pitting
-        for (let i = 0; i < 25000; i++) {
+        for (let i = 0; i < 8000; i++) {
           const x = Math.random() * 2048;
           const y = Math.random() * 1024;
           const size = Math.random() * 1.5 + 0.5;
@@ -124,7 +120,7 @@ export default function ThreeContainerVisualizer() {
           ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.25})`; // Tiny aluminum chips/dust
           ctx.fillRect(x, y, size, size);
         }
-        for (let i = 20000; i > 0; i--) {
+        for (let i = 6000; i > 0; i--) {
           const x = Math.random() * 2048;
           const y = Math.random() * 1024;
           const size = Math.random() * 1.5;
@@ -287,7 +283,7 @@ export default function ThreeContainerVisualizer() {
         ctx.fillRect(0, 0, 512, 512);
 
         // Corrosion rings and weather staining
-        for (let i = 0; i < 4000; i++) {
+        for (let i = 0; i < 1500; i++) {
           const x = Math.random() * 512;
           const y = Math.random() * 512;
           const r = Math.random() * 2.0;
@@ -784,8 +780,8 @@ export default function ThreeContainerVisualizer() {
     const sunLight = new THREE.DirectionalLight(0xfff6e5, 5.8);
     sunLight.position.set(6, 10, 4);
     sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 4096;
-    sunLight.shadow.mapSize.height = 4096;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.bias = -0.00015;
     sunLight.shadow.camera.near = 0.5;
     sunLight.shadow.camera.far = 20;

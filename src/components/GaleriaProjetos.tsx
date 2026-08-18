@@ -100,6 +100,7 @@ export default function GaleriaProjetos() {
                     alt={proj.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     referrerPolicy="no-referrer"
+                    loading="lazy"
                   />
                   
                   {/* Category Float Tag */}

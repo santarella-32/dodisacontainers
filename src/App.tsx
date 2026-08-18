@@ -60,6 +60,51 @@ const MapaAtendimento = lazy(() => import("./components/MapaAtendimento"));
 const FAQInteligente = lazy(() => import("./components/FAQInteligente"));
 const CarrosselGaleria = lazy(() => import("./components/CarrosselGaleria"));
 
+// Only mounts (and therefore only triggers the lazy import() for) a section once it
+// scrolls near the viewport. Previously every section in sectionsOrder was rendered
+// in one pass on first paint, so all ~17 lazy chunks (plus vendor-three, vendor-motion,
+// leaflet, etc.) started downloading simultaneously right after load — competing for
+// bandwidth with the hero content. rootMargin pre-fetches slightly ahead of scroll so
+// content still feels instant when it comes into view.
+// Defined at module scope (not inside AppContent) so it keeps a stable component
+// identity across re-renders — otherwise React would remount it (and lose the
+// already-loaded state) every time AppContent re-renders.
+function LazySection({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [isNear, setIsNear] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isNear) return;
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setIsNear(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsNear(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "600px 0px", threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isNear]);
+
+  return (
+    <div ref={ref}>
+      {isNear ? (
+        <Suspense fallback={<div className="py-16" />}>{children}</Suspense>
+      ) : (
+        <div className="py-16" />
+      )}
+    </div>
+  );
+}
+
 function AppContent() {
   const { 
     isAdminViewActive, 
@@ -100,10 +145,6 @@ function AppContent() {
       }
     }
   }, [isFullPreview, isAdminViewActive, setPagePreviewMode]);
-
-  const LazySection = ({ children }: { children: React.ReactNode }) => (
-    <Suspense fallback={<div className="py-16" />}>{children}</Suspense>
-  );
 
   // Dictionary mapping section keys to their corresponding React Components
   // Hero is eager (above the fold). Everything else loads lazily on scroll.

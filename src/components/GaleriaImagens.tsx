@@ -354,16 +354,23 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
   };
 
   // ── WebP compression ─────────────────────────────────────────
+  // Also caps the longest side at MAX_DIMENSION — phone photos routinely arrive at
+  // 4000-8000px wide, far beyond what the grid thumbnails or lightbox (max 92vh) ever
+  // display. Downscaling before upload cuts payload size (and visitor download time)
+  // dramatically without any visible quality loss, on top of the WebP re-encode.
+  const MAX_DIMENSION = 2200;
   const compressToWebP = (file: File, quality = 0.82): Promise<File> =>
     new Promise((resolve) => {
       const img = new window.Image();
       const objUrl = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(objUrl);
+        const { naturalWidth: w, naturalHeight: h } = img;
+        const scale = Math.min(1, MAX_DIMENSION / Math.max(w, h));
         const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        canvas.getContext("2d")!.drawImage(img, 0, 0);
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob((blob) => {
           if (!blob) { resolve(file); return; }
           resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".webp"), { type: "image/webp" }));

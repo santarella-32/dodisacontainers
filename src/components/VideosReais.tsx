@@ -60,6 +60,7 @@ export default function VideosReais() {
                   alt={card.title}
                   className="absolute inset-0 w-full h-full object-cover opacity-35 filter blur-[1px] group-hover:scale-102 transition-transform duration-500"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
                 />
 
                 {/* Dark overlay gradients */}
