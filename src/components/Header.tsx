@@ -39,7 +39,7 @@ export default function Header() {
       id="main-header"
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
         isScrolled
-          ? "bg-brand-black/85 backdrop-blur-xl border-b border-white/5 py-2.5 shadow-2xl shadow-[#0B0F14]/80"
+          ? "bg-brand-black/95 backdrop-blur-xl border-b border-zinc-800/60 py-2.5"
           : "bg-gradient-to-b from-brand-black/90 via-brand-black/40 to-transparent py-4"
       }`}
     >
@@ -101,7 +101,7 @@ export default function Header() {
           <div className="hidden md:block border-none">
             <button
               onClick={handleWhatsappClick}
-              className="relative group overflow-hidden bg-brand-yellow hover:bg-brand-orange text-brand-black text-xs font-black uppercase tracking-widest py-2.5 px-6 rounded-lg shadow-lg shadow-brand-yellow/10 transition-all duration-300 border border-brand-yellow hover:border-brand-orange flex items-center gap-2 cursor-pointer font-display"
+              className="group bg-brand-yellow hover:bg-brand-orange text-brand-black text-xs font-black uppercase tracking-widest py-2.5 px-6 min-h-[44px] rounded-lg transition-colors flex items-center gap-2 cursor-pointer font-display"
             >
               Solicitar Orçamento
               <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform stroke-[2.5]" />
@@ -112,7 +112,7 @@ export default function Header() {
           <div className="md:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-stone-400 hover:text-white hover:bg-brand-dark rounded-lg transition-colors border border-white/5"
+              className="p-2.5 text-stone-400 hover:text-white hover:bg-brand-dark rounded-lg transition-colors border border-white/5"
               aria-label="Abrir menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -141,7 +141,7 @@ export default function Header() {
                   setMobileMenuOpen(false);
                   handleWhatsappClick();
                 }}
-                className="w-full bg-brand-yellow hover:bg-brand-orange text-brand-black hover:text-brand-black font-black uppercase tracking-widest text-center py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all duration-300 border border-brand-yellow hover:border-brand-orange"
+                className="w-full bg-brand-yellow hover:bg-brand-orange text-brand-black font-black uppercase tracking-widest text-center py-4 min-h-[44px] rounded-lg flex items-center justify-center gap-2 transition-colors"
               >
                 Solicitar Orçamento (WhatsApp)
                 <ArrowUpRight className="w-5 h-5" />

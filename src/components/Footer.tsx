@@ -13,7 +13,7 @@ export default function Footer() {
   };
 
   return (
-    <footer id="contato" className="relative bg-[#07090D] text-stone-400 border-t border-white/5 pt-20 pb-10 overflow-hidden z-20">
+    <footer id="contato" className="relative bg-[#07090D] text-stone-400 border-t border-white/5 pt-14 sm:pt-20 pb-8 sm:pb-10 overflow-hidden z-20">
       
       {/* Decorative premium yellow steel bar at the top */}
       <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-brand-yellow via-brand-orange to-brand-yellow" />
@@ -199,7 +199,7 @@ export default function Footer() {
               </button>{" "}
               LTDA. Todos os direitos reservados.
             </p>
-            <p className="text-[10px] text-stone-600 mt-1">CNPJ: {APP_INFO.cnpj} • Eng. Responsável CREA-SP: 507.822/01</p>
+            <p className="text-[10px] text-stone-600 mt-1">CNPJ: {APP_INFO.cnpj} • IE: {(APP_INFO as any).stateRegistration} • Santa Rosa/RS</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-stone-600 text-[10px]">Padrão de Engenharia Modular • RS 2026</span>

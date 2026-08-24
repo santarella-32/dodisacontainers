@@ -1,13 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import { MessageSquare, MapPin, BadgeCheck, Zap, ChevronLeft, ChevronRight, Flame } from "lucide-react";
+import { MessageSquare, MapPin, BadgeCheck, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAppContext, ProntaEntregaItem } from "../context/AppContext";
-
-function dailyViewCount(seed: string) {
-  const day = new Date().getDate() + new Date().getMonth() * 31;
-  const hash = [...seed].reduce((acc, c) => acc + c.charCodeAt(0), day);
-  return 5 + (hash % 12); // 5–16 pessoas
-}
 
 function ProntaEntregaCard({
   item,
@@ -40,7 +34,7 @@ function ProntaEntregaCard({
   };
 
   return (
-    <div className="bg-[#111827]/40 backdrop-blur-md border border-white/5 hover:border-brand-yellow/30 rounded-2xl overflow-hidden transition-all duration-300 group flex flex-col shadow-xl h-full">
+    <div className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl overflow-hidden transition-colors group flex flex-col h-full">
       {/* Image gallery */}
       <div className="relative h-60 overflow-hidden bg-[#0B0F14] flex-shrink-0">
         <img
@@ -71,10 +65,10 @@ function ProntaEntregaCard({
         )}
 
         {/* Top badges */}
-        <div className="absolute top-3 left-3 z-10 bg-brand-orange text-white font-black text-[9px] uppercase tracking-widest px-2.5 py-1 rounded shadow-lg flex items-center gap-1.5 ring-1 ring-white/10">
-          <Zap className="w-3 h-3 fill-current animate-pulse" /> DISPONÍVEL HOJE
+        <div className="absolute top-3 left-3 z-10 bg-brand-orange text-white font-black text-[9px] uppercase tracking-widest px-2.5 py-1 rounded flex items-center gap-1.5">
+          <Zap className="w-3 h-3 fill-current" /> DISPONÍVEL HOJE
         </div>
-        <div className="absolute top-3 right-3 z-10 bg-black/75 backdrop-blur text-brand-yellow text-[9px] font-bold px-2.5 py-1 rounded border border-white/5 shadow-md">
+        <div className="absolute top-3 right-3 z-10 bg-black/75 text-brand-yellow text-[9px] font-bold px-2.5 py-1 rounded border border-white/5">
           {getDealType()}
         </div>
 
@@ -96,12 +90,6 @@ function ProntaEntregaCard({
             )}
           </div>
         )}
-
-        {/* Social proof */}
-        <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1 bg-black/70 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-1 rounded-full">
-          <Flame className="w-2.5 h-2.5 text-brand-orange" />
-          {dailyViewCount(item.id)} interessados hoje
-        </div>
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
       </div>
@@ -136,7 +124,7 @@ function ProntaEntregaCard({
 
         <button
           onClick={onInterest}
-          className="mt-5 w-full py-3 px-4 bg-brand-yellow hover:bg-brand-orange text-brand-black font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer font-display border-none shadow-md"
+          className="mt-5 w-full py-3 px-4 min-h-[44px] bg-brand-yellow hover:bg-brand-orange text-brand-black font-black text-xs uppercase tracking-widest rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer font-display"
         >
           <MessageSquare className="w-4 h-4" />
           Tenho interesse
@@ -167,49 +155,16 @@ export default function ProntaEntrega() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  const autoRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isHoveredRef = useRef(false);
-  const skipAnimRef = useRef(false);
+  const touchStartX = useRef(0);
   const maxIdx = Math.max(0, visibleItems.length - 1);
-
-  const startAuto = useCallback(() => {
-    if (autoRef.current) clearInterval(autoRef.current);
-    autoRef.current = setInterval(() => {
-      if (!isHoveredRef.current) {
-        setCurrentIdx((prev) => {
-          if (prev >= maxIdx) {
-            skipAnimRef.current = true;
-            return 0;
-          }
-          return prev + 1;
-        });
-      }
-    }, 1800);
-  }, [maxIdx]);
-
-  useEffect(() => {
-    startAuto();
-    return () => { if (autoRef.current) clearInterval(autoRef.current); };
-  }, [startAuto]);
-
-  useEffect(() => { skipAnimRef.current = false; }, [currentIdx]);
 
   useEffect(() => {
     setCurrentIdx((prev) => Math.min(prev, maxIdx));
   }, [maxIdx]);
 
-  const goTo = (idx: number) => {
-    setCurrentIdx(Math.max(0, Math.min(idx, maxIdx)));
-    startAuto();
-  };
-  const prev = () => {
-    if (currentIdx <= 0) { skipAnimRef.current = true; goTo(maxIdx); }
-    else goTo(currentIdx - 1);
-  };
-  const next = () => {
-    if (currentIdx >= maxIdx) { skipAnimRef.current = true; goTo(0); }
-    else goTo(currentIdx + 1);
-  };
+  const goTo = (idx: number) => setCurrentIdx(Math.max(0, Math.min(idx, maxIdx)));
+  const prev = () => setCurrentIdx(Math.max(0, currentIdx - 1));
+  const next = () => setCurrentIdx(Math.min(maxIdx, currentIdx + 1));
 
   const handleInterest = (item: ProntaEntregaItem) => {
     const dealTypeStr = (() => {
@@ -223,7 +178,7 @@ export default function ProntaEntrega() {
   };
 
   return (
-    <section id="pronta-entrega" className="relative bg-[#07090D] py-24 border-b border-white/5 scroll-mt-20 overflow-hidden">
+    <section id="pronta-entrega" className="relative bg-[#07090D] py-14 sm:py-24 border-b border-white/5 scroll-mt-20 overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Section header */}
@@ -235,13 +190,10 @@ export default function ProntaEntrega() {
           style={{ perspective: "800px" }}
           className="text-center max-w-3xl mx-auto mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-orange/10 border border-brand-orange/20 text-[10px] font-mono font-black text-brand-orange uppercase tracking-widest mb-4 shadow-sm shadow-brand-orange/5">
-            <Zap className="w-3.5 h-3.5 animate-pulse" /> EMBARQUE IMEDIATO HOJE
-          </div>
           <h2 className="text-3xl sm:text-5xl font-black font-display uppercase tracking-tight text-white leading-none">
             Lotes à <span className="text-brand-yellow">Pronta Entrega</span>
           </h2>
-          <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
+          <div className="w-12 h-0.5 bg-brand-yellow mx-auto mt-4 mb-6" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
             Containers prontos, limpos e revisados no pátio. Envio imediato.
           </p>
@@ -255,27 +207,31 @@ export default function ProntaEntrega() {
         ) : (
           <>
             <div
-              className="relative group/carousel"
-              onMouseEnter={() => { isHoveredRef.current = true; }}
-              onMouseLeave={() => { isHoveredRef.current = false; }}
+              className="relative"
+              onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+              onTouchEnd={(e) => {
+                const diff = touchStartX.current - e.changedTouches[0].clientX;
+                if (diff > 40) next();
+                else if (diff < -40) prev();
+              }}
             >
               {/* Left arrow */}
-              {maxIdx > 0 && (
+              {visibleItems.length > 1 && (
                 <button
                   onClick={prev}
                   aria-label="Anterior"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 bg-black/70 hover:bg-brand-yellow backdrop-blur-sm text-white hover:text-brand-black p-3 rounded-full transition-all shadow-xl cursor-pointer opacity-0 group-hover/carousel:opacity-100 sm:-translate-x-4"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 bg-black/70 hover:bg-brand-yellow backdrop-blur-sm text-white hover:text-brand-black p-3 rounded-full transition-all shadow-xl cursor-pointer sm:-translate-x-4"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
               )}
 
               {/* Right arrow */}
-              {maxIdx > 0 && (
+              {visibleItems.length > 1 && (
                 <button
                   onClick={next}
                   aria-label="Próximo"
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 bg-black/70 hover:bg-brand-yellow backdrop-blur-sm text-white hover:text-brand-black p-3 rounded-full transition-all shadow-xl cursor-pointer opacity-0 group-hover/carousel:opacity-100 sm:translate-x-4"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 bg-black/70 hover:bg-brand-yellow backdrop-blur-sm text-white hover:text-brand-black p-3 rounded-full transition-all shadow-xl cursor-pointer sm:translate-x-4"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -285,7 +241,9 @@ export default function ProntaEntrega() {
               <div className="overflow-hidden py-6" style={{ perspective: "1400px" }}>
                 <div style={{ display: "grid" }}>
                   {visibleItems.map((item, index) => {
-                    const offset = index - currentIdx;
+                    const n = visibleItems.length;
+                    const raw = index - currentIdx;
+                    const offset = raw - Math.round(raw / n) * n;
                     const absOffset = Math.abs(offset);
                     if (absOffset > 2) return null;
                     const isCenter = absOffset === 0;
@@ -300,9 +258,7 @@ export default function ProntaEntrega() {
                           opacity: isCenter ? 1 : isSide ? 0.65 : 0,
                           zIndex: isCenter ? 10 : isSide ? 5 : 0,
                         }}
-                        transition={skipAnimRef.current
-                          ? { duration: 0 }
-                          : { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
                         onClick={!isCenter ? () => goTo(index) : undefined}
                         aria-hidden={!isCenter && !isSide}
                         style={{
@@ -345,7 +301,7 @@ export default function ProntaEntrega() {
         )}
 
         {/* Trust banner */}
-        <div className="mt-12 p-5 rounded-2xl bg-[#111827]/40 border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto text-center sm:text-left shadow-xl">
+        <div className="mt-12 p-5 rounded-xl bg-zinc-900 border border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto text-center sm:text-left">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-full bg-brand-yellow/10 flex items-center justify-center text-brand-yellow border border-brand-yellow/20 flex-shrink-0">
               <BadgeCheck className="w-5 h-5" />
@@ -362,7 +318,7 @@ export default function ProntaEntrega() {
                 "_blank"
               )
             }
-            className="py-2.5 px-5 rounded-lg bg-[#0B0F14] hover:bg-[#1c2638] border border-white/5 text-stone-200 hover:text-brand-yellow text-[10px] font-black uppercase tracking-widest transition-all shrink-0 cursor-pointer font-mono whitespace-nowrap"
+            className="py-2.5 px-5 min-h-[44px] rounded-lg border border-zinc-700 text-stone-200 hover:border-zinc-500 hover:text-brand-yellow text-[10px] font-black uppercase tracking-widest transition-colors shrink-0 cursor-pointer font-mono whitespace-nowrap flex items-center justify-center"
           >
             Ver pátio completo
           </button>
