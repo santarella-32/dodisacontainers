@@ -188,32 +188,7 @@ export const PROJECTS_DATA: Project[] = [
   }
 ];
 
-export const TESTIMONIALS_DATA: Testimonial[] = [
-  {
-    id: "t1",
-    name: "Eng. Marcos Vinícius",
-    role: "Diretor de Obras",
-    company: "Construtora AlfaTec",
-    content: "Adquirimos 12 containers escritórios e depósitos com a Dodisa. A robustez do aço e os acabamentos internos surpreenderam nossos engenheiros. O pós-venda deles é excelente, entregaram tudo no prazo prometido.",
-    rating: 5
-  },
-  {
-    id: "t2",
-    name: "Tatiana Rezende",
-    role: "Diretora de Logística",
-    company: "LogMax Brasil",
-    content: "Excelente custo-benefício. Precisávamos expandir nosso almoxarifado de forma ultra rápida devido a um surto nas vendas. A Dodisa montou e entregou os módulos em tempo recorde.",
-    rating: 5
-  },
-  {
-    id: "t3",
-    name: "Carlos Eduardo Santos",
-    role: "Gestor Comercial",
-    company: "Grupo MultiPlantas",
-    content: "O nosso estande comercial personalizado de três andares modulares virou referência. Fomos muito bem atendidos do desenho inicial CAD à entrega com caminhão munck próprio.",
-    rating: 5
-  }
-];
+export const TESTIMONIALS_DATA: Testimonial[] = [];
 
 export const STEPS_DATA: ProcessStep[] = [
   {
