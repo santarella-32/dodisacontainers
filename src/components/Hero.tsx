@@ -8,43 +8,75 @@ import type { ProntaEntregaItem } from "../context/AppContext";
 const ThreeContainerVisualizer = lazy(() => import("./ThreeContainerVisualizer"));
 
 // Count-down-to-lock: starts high, rapidly drops, snaps into final value (easeOutQuart)
-function CountUp({ target, duration = 3800, suffix = "" }: { target: string; duration?: number; suffix?: string }) {
-  const end = parseInt(target.replace(/\D/g, ""), 10) || 0;
-  // Start from 30% above but capped to same digit count to avoid layout shift
-  const start = end > 0 ? 200 : 0;
-
-  const [display, setDisplay] = useState(start);
-  const ref = useRef<HTMLSpanElement>(null);
+// Drives all three Hero metrics (Projetos/Clientes/Experiência) from ONE shared rAF loop
+// and ONE IntersectionObserver, instead of three independent loops each triggering its
+// own setState every frame. This halves render overhead during the animation and — more
+// importantly — the start is deferred one tick past mount so it doesn't fight the heavy
+// synchronous Three.js scene/texture setup (ThreeContainerVisualizer) for the same frame
+// budget, which is what was causing the stutter/freeze-then-jump look.
+function useHeroMetricsCountUp(targets: readonly [number, number, number], duration = 3800) {
+  const starts = targets.map((t) => (t > 0 ? 200 : 0)) as [number, number, number];
+  const [values, setValues] = useState<[number, number, number]>(starts);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [triggered, setTriggered] = useState(false);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setTriggered(true); },
       { threshold: 0.2 }
     );
-    if (ref.current) observer.observe(ref.current);
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    if (!triggered || end === 0) return;
-    const t0 = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min((now - t0) / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 4); // easeOutQuart → hard lock at end
-      setDisplay(Math.round(start - (start - end) * eased));
-      if (t < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      } else {
-        setDisplay(end);
-      }
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [triggered, end, start, duration]);
+    if (!triggered) return;
+    let cancelled = false;
+    let idleId: number | undefined;
+    let timeoutId: number | undefined;
 
-  return <span ref={ref} className="tabular-nums">{display}{suffix}</span>;
+    const run = () => {
+      if (cancelled) return;
+      const t0 = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min((now - t0) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 4); // easeOutQuart → hard lock at end
+        setValues(targets.map((end, i) => Math.round(starts[i] - (starts[i] - end) * eased)) as [number, number, number]);
+        if (t < 1) {
+          rafRef.current = requestAnimationFrame(tick);
+        } else {
+          setValues([...targets] as [number, number, number]);
+        }
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    // Give the browser a chance to clear any pending heavy work (e.g. the Three.js
+    // scene mount) before kicking off the animation, so it gets a clean frame budget.
+    const w = window as typeof window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof w.requestIdleCallback === "function") {
+      idleId = w.requestIdleCallback(run, { timeout: 300 });
+    } else {
+      timeoutId = window.setTimeout(run, 120);
+    }
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafRef.current);
+      if (idleId !== undefined) w.cancelIdleCallback?.(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
+    // targets/starts are static per call site (65/27/3) — only triggered/duration matter
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggered, duration]);
+
+  return { values, cardRef };
 }
 
 function StockModal({ items, whatsappNumber, onClose }: { items: ProntaEntregaItem[]; whatsappNumber: string; onClose: () => void }) {
@@ -176,6 +208,8 @@ export default function Hero() {
   const { hero, whatsapp, prontaEntrega } = useAppContext();
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const { values: metricValues, cardRef: metricsCardRef } = useHeroMetricsCountUp([65, 27, 3]);
+  const [projetosCount, clientesCount, experienciaCount] = metricValues;
 
   // Auto-helper to detect if the URL is direct MP4 or from YouTube
   const isDirectVideo = (url: string) => {
@@ -385,6 +419,7 @@ export default function Hero() {
 
             {/* Metrics and Interactive Performance Bento Panel */}
             <motion.div
+              ref={metricsCardRef}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.3 }}
@@ -399,12 +434,12 @@ export default function Hero() {
               </h3>
 
               <div className="grid grid-cols-3 gap-3 sm:gap-6">
-                
+
                 {/* Metric Item 1 */}
                 <div className="flex flex-col items-start gap-1 p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800 hover:border-zinc-700 transition-colors">
                   <span className="text-brand-yellow text-[10px] font-bold font-mono tracking-widest uppercase">PROJETOS</span>
                   <div className="text-2xl sm:text-3xl font-black text-white leading-none font-display flex items-baseline">
-                    <CountUp target="65" suffix="+" />
+                    <span className="tabular-nums">{projetosCount}+</span>
                   </div>
                   <span className="text-[9px] font-semibold text-stone-400 mt-1 uppercase tracking-wider leading-snug">
                     Módulos Entregues
@@ -415,7 +450,7 @@ export default function Hero() {
                 <div className="flex flex-col items-start gap-1 p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800 hover:border-zinc-700 transition-colors">
                   <span className="text-brand-yellow text-[10px] font-bold font-mono tracking-widest uppercase">CLIENTES</span>
                   <div className="text-2xl sm:text-3xl font-black text-white leading-none font-display flex items-baseline">
-                    <CountUp target="27" suffix="+" />
+                    <span className="tabular-nums">{clientesCount}+</span>
                   </div>
                   <span className="text-[9px] font-semibold text-stone-400 mt-1 uppercase tracking-wider leading-snug">
                     Empresas Atendidas
@@ -426,7 +461,7 @@ export default function Hero() {
                 <div className="flex flex-col items-start gap-1 p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800 hover:border-zinc-700 transition-colors">
                   <span className="text-brand-orange text-[10px] font-bold font-mono tracking-widest uppercase">EXPERIÊNCIA</span>
                   <div className="text-2xl sm:text-3xl font-black text-white leading-none font-display flex items-baseline">
-                    <CountUp target="3" suffix="" />
+                    <span className="tabular-nums">{experienciaCount}</span>
                     <span className="text-sm font-sans font-light text-stone-400 ml-1">Anos</span>
                   </div>
                   <span className="text-[9px] font-semibold text-stone-400 mt-1 uppercase tracking-wider leading-snug">
