@@ -593,47 +593,12 @@ export default function ThreeContainerVisualizer() {
     containerGroup.add(placardMesh);
 
     // --- CINEMATIC AMBIENT STAGE & REFLECTIVE INDUSTRIAL FLOOR ---
+    // (The concrete floor, grid markings, and runway guideline meshes that used to live
+    // here were built every mount but never added to the scene — scene.add() was
+    // commented out to keep the transparent floating-container look. Removed entirely;
+    // they cost real CPU/geometry work for zero visual effect.)
 
-    // 1. High-Polished Premium Concrete Floor - Crisp, light paint color for clean museum-showroom style
-    const floorGeo = new THREE.PlaneGeometry(40, 40);
-    const floorMaterial = new THREE.MeshStandardMaterial({
-      color: 0xe2e8f0, // Recesses to soft slate/silver gray
-      roughness: 0.18,  // Highly reflective glossy satin epoxy
-      metalness: 0.22,  // Premium subtle metallic coating shine
-    });
-    const floor = new THREE.Mesh(floorGeo, floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -0.88; // Ground level base
-    floor.receiveShadow = true;
-    // Omitted scene.add(floor) to maintain perfect transparent PNG floating background
-
-    // Premium Technological Logistic Grid Markings - Subtle colors for clean light grey theme
-    const gridHelper = new THREE.GridHelper(40, 40, 0xffa500, 0x94a3b8);
-    gridHelper.position.y = -0.879; // Prevent Z-fighting flicker
-    if (Array.isArray(gridHelper.material)) {
-      gridHelper.material.forEach((mat) => {
-        mat.opacity = 0.08;
-        mat.transparent = true;
-      });
-    } else {
-      gridHelper.material.opacity = 0.08;
-      gridHelper.material.transparent = true;
-    }
-    // Omitted scene.add(gridHelper) to maintain transparent PNG floating background
-
-    // 2. INDUSTRIAL FLOOR REFLECTIVE GUIDELINE (Sleek high-contrast orange guideline)
-    const lineGeo = new THREE.PlaneGeometry(0.04, 38);
-    const lineMat = new THREE.MeshBasicMaterial({
-      color: 0xFFB300,
-      transparent: true,
-      opacity: 0.22
-    });
-    const runwayLine = new THREE.Mesh(lineGeo, lineMat);
-    runwayLine.rotation.x = -Math.PI / 2;
-    runwayLine.position.set(0, -0.878, 0);
-    // Omitted scene.add(runwayLine) to maintain transparent PNG floating background
-
-    // 3. AMBIENT CONTACT SHADOW (AO) PLANE
+    // AMBIENT CONTACT SHADOW (AO) PLANE
     // Directly caught below the container for zero floating-glitch, blending perfectly with MultiplyBlending!
     const shadowPlaneGeo = new THREE.PlaneGeometry(5.0, 2.5);
     const shadowPlaneMat = new THREE.MeshBasicMaterial({
@@ -648,143 +613,12 @@ export default function ThreeContainerVisualizer() {
     contactShadowMesh.position.set(0, -0.875, 0); // Positioned directly over the concrete floor
     scene.add(contactShadowMesh);
 
-    // --- BACKGROUND ENVIRONMENT STRUCTURES (Premium Warehouse / Logistics Yard) ---
-    const bgGroup = new THREE.Group();
-    // Omitted scene.add(bgGroup) to maintain transparent PNG floating background
-
-    // Background Geometries
-    const pillarGeo = new THREE.BoxGeometry(0.5, 6, 0.5);
-    const lightBarGeo = new THREE.CylinderGeometry(0.025, 0.025, 2.5, 8);
-    const beamGeo = new THREE.BoxGeometry(20, 0.2, 0.3);
-    const bgContainerGeo = new THREE.BoxGeometry(3.6, 1.4, 1.4);
-    const coneGeo = new THREE.ConeGeometry(1.8, 8, 16, 1, true);
-    coneGeo.translate(0, -4, 0); // Align pivot to top peak of the cone for realistic beam projection
-
-    // Background Materials
-    const pillarMat = new THREE.MeshStandardMaterial({
-      color: 0x94a3b8, // Clean light-grey concrete
-      roughness: 0.55,
-      metalness: 0.25,
-    });
-    const lightBarMat = new THREE.MeshBasicMaterial({
-      color: 0xff8800, // Tech warning amber
-    });
-    const beamMat = new THREE.MeshStandardMaterial({
-      color: 0x475569, // Slate steel beam
-      roughness: 0.40,
-      metalness: 0.82,
-    });
-    const leftBgContainerMat1 = new THREE.MeshStandardMaterial({
-      color: 0x1e3a8a, // Logistics Blue
-      roughness: 0.52,
-      metalness: 0.58,
-    });
-    const leftBgContainerMat2 = new THREE.MeshStandardMaterial({
-      color: 0xea580c, // Safety Orange
-      roughness: 0.55,
-      metalness: 0.55,
-    });
-    const rightBgContainerMat1 = new THREE.MeshStandardMaterial({
-      color: 0x334155, // Charcoal/Slate
-      roughness: 0.58,
-      metalness: 0.65,
-    });
-    const rightBgContainerMat2 = new THREE.MeshStandardMaterial({
-      color: 0xeab308, // Dynamic yellow/gold
-      roughness: 0.50,
-      metalness: 0.60,
-    });
-    const coneMatBlue = new THREE.MeshBasicMaterial({
-      color: 0x3b82f6,
-      transparent: true,
-      opacity: 0.07,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-    const coneMatGold = new THREE.MeshBasicMaterial({
-      color: 0xffaa00,
-      transparent: true,
-      opacity: 0.05,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-
-    // Create 3D concrete pillars with vertical glowing neon bars
-    const pillarPositions = [
-      [-7.5, 2, -11],
-      [-2.5, 2, -11],
-      [2.5, 2, -11],
-      [7.5, 2, -11]
-    ];
-    
-    pillarPositions.forEach(([px, py, pz]) => {
-      const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-      pillar.position.set(px, py, pz);
-      pillar.receiveShadow = true;
-      pillar.castShadow = true;
-      bgGroup.add(pillar);
-      
-      const lightBar = new THREE.Mesh(lightBarGeo, lightBarMat);
-      lightBar.position.set(px, py, pz + 0.26);
-      bgGroup.add(lightBar);
-      
-      const pointGlow = new THREE.PointLight(0xffaa00, 1.2, 5);
-      pointGlow.position.set(px, py, pz + 0.4);
-      bgGroup.add(pointGlow);
-    });
-
-    // Horizontal structural steel trusses
-    const highBeam = new THREE.Mesh(beamGeo, beamMat);
-    highBeam.position.set(0, 3.5, -11);
-    bgGroup.add(highBeam);
-    
-    const midBeam = new THREE.Mesh(beamGeo, beamMat);
-    midBeam.position.set(0, 0.8, -11);
-    bgGroup.add(midBeam);
-
-    // Side-stacked container visualizers in background for shipping yard realism
-    const leftBgContainer1 = new THREE.Mesh(bgContainerGeo, leftBgContainerMat1);
-    leftBgContainer1.position.set(-6.2, -0.18, -9);
-    leftBgContainer1.rotation.y = 0.25;
-    leftBgContainer1.castShadow = true;
-    leftBgContainer1.receiveShadow = true;
-    bgGroup.add(leftBgContainer1);
-
-    const leftBgContainer2 = new THREE.Mesh(bgContainerGeo, leftBgContainerMat2);
-    leftBgContainer2.position.set(-6.0, 1.22, -9.1);
-    leftBgContainer2.rotation.y = 0.18;
-    leftBgContainer2.castShadow = true;
-    leftBgContainer2.receiveShadow = true;
-    bgGroup.add(leftBgContainer2);
-
-    const rightBgContainer1 = new THREE.Mesh(bgContainerGeo, rightBgContainerMat1);
-    rightBgContainer1.position.set(6.2, -0.18, -9.2);
-    rightBgContainer1.rotation.y = -0.3;
-    rightBgContainer1.castShadow = true;
-    rightBgContainer1.receiveShadow = true;
-    bgGroup.add(rightBgContainer1);
-
-    const rightBgContainer2 = new THREE.Mesh(bgContainerGeo, rightBgContainerMat2);
-    rightBgContainer2.position.set(6.4, 1.22, -9.0);
-    rightBgContainer2.rotation.y = -0.25;
-    rightBgContainer2.castShadow = true;
-    rightBgContainer2.receiveShadow = true;
-    bgGroup.add(rightBgContainer2);
-
-    // Cinematic Volumetric Light Cones (Spotlight Beams)
-    const volBeamLeft = new THREE.Mesh(coneGeo, coneMatBlue);
-    volBeamLeft.position.set(-4.5, 4, -8);
-    volBeamLeft.rotation.z = -0.4;
-    bgGroup.add(volBeamLeft);
-
-    const volBeamRight = new THREE.Mesh(coneGeo, coneMatGold);
-    volBeamRight.position.set(4.5, 4, -8);
-    volBeamRight.rotation.z = 0.4;
-    bgGroup.add(volBeamRight);
-
     // --- IMMERSIVE LIGHTING SYSTEM ---
+    // (A whole background warehouse-yard group — pillars, steel trusses, 4 background
+    // containers, volumetric light cones, plus 4 extra point lights — used to be built
+    // here on every mount. Like the floor above, it was never added to the scene
+    // (scene.add(bgGroup) was commented out), so it was pure dead work: dozens of
+    // meshes/geometries/materials constructed and instantly discarded. Removed.)
 
     // A. Sunny Golden Studio Spotlight (Casting premium detailed shadows)
     const sunLight = new THREE.DirectionalLight(0xfff6e5, 5.8);
@@ -919,11 +753,6 @@ export default function ThreeContainerVisualizer() {
       hingeGeo.dispose();
       diamondGeo.dispose();
       diamondTex.dispose();
-      floorGeo.dispose();
-      floorMaterial.dispose();
-      gridHelper.dispose();
-      lineGeo.dispose();
-      lineMat.dispose();
       shadowPlaneGeo.dispose();
       shadowPlaneMat.dispose();
 
@@ -935,22 +764,6 @@ export default function ThreeContainerVisualizer() {
       hardwareMaterial.dispose();
       cornerCastingMaterial.dispose();
       diamondMat.dispose();
-
-      // Background Environment Disposals
-      pillarGeo.dispose();
-      lightBarGeo.dispose();
-      beamGeo.dispose();
-      bgContainerGeo.dispose();
-      coneGeo.dispose();
-      pillarMat.dispose();
-      lightBarMat.dispose();
-      beamMat.dispose();
-      leftBgContainerMat1.dispose();
-      leftBgContainerMat2.dispose();
-      rightBgContainerMat1.dispose();
-      rightBgContainerMat2.dispose();
-      coneMatBlue.dispose();
-      coneMatGold.dispose();
 
       renderer.dispose();
     };
