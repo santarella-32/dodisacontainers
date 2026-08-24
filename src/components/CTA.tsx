@@ -12,7 +12,7 @@ export default function CTA() {
   };
 
   return (
-    <section className="relative py-28 bg-[#0B0F14] overflow-hidden">
+    <section className="relative py-14 sm:py-28 bg-[#0B0F14] overflow-hidden">
       
       {/* Heavy mesh background gradient overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(#ffd54a04_1px,transparent_1px)] bg-[size:24px_24px] opacity-60" />
@@ -25,7 +25,7 @@ export default function CTA() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
-          className="relative p-8 sm:p-20 rounded-2xl bg-[#111827]/40 backdrop-blur-md border border-white/5 shadow-2xl text-center flex flex-col items-center overflow-hidden"
+          className="relative p-6 sm:p-20 rounded-2xl bg-[#111827]/40 backdrop-blur-md border border-white/5 shadow-2xl text-center flex flex-col items-center overflow-hidden"
         >
           
           {/* Construction safety warning strip stripes left and right */}
@@ -44,12 +44,16 @@ export default function CTA() {
             Atendimento Rápido Nacional
           </span>
 
+          <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-3">
+            +940 empresas atendidas · Resposta em até 15 min
+          </p>
+
           <h2 className="text-3xl sm:text-5xl font-black font-display text-white uppercase tracking-tight max-w-3xl leading-none">
-            PRECISA DE UM CONTAINER?
+            ESTRUTURAS MODULARES<br />PRONTAS EM ATÉ 30 DIAS ÚTEIS
           </h2>
 
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm max-w-2xl leading-relaxed">
-            Fale agora com um especialista e receba seu orçamento na hora.
+            Fale agora com um especialista e receba seu orçamento comercial detalhado.
           </p>
 
           {/* Large actionable button */}
@@ -63,10 +67,13 @@ export default function CTA() {
               <ArrowRight className="w-4 h-4 text-brand-black group-hover:translate-x-1.5 transition-transform stroke-[2.5]" />
             </button>
             
-            <p className="text-xs text-stone-500 font-mono flex items-center gap-1.5 mt-2 font-bold select-all">
+            <a
+              href={`tel:${APP_INFO.phone}`}
+              className="text-xs text-stone-500 font-mono flex items-center gap-1.5 mt-2 font-bold hover:text-stone-300 transition-colors"
+            >
               <PhoneCall className="w-3.5 h-3.5 text-stone-600" />
               Se preferir ligar: {APP_INFO.phone}
-            </p>
+            </a>
           </div>
 
         </motion.div>

@@ -39,11 +39,11 @@ export default function FAQInteligente() {
             ENGENHARIA INTEGRADA RESOLVIDA
           </div>
           <h2 className="text-3xl sm:text-5xl font-black font-display uppercase tracking-tight text-white leading-none">
-            FAQ <span className="text-brand-yellow">Inteligente</span>
+            Central de <span className="text-brand-yellow">Inteligência</span> Técnica
           </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
-            Esclareça todas as dúvidas primárias de engenharia, isolamento termoacústico, laudos NR-18/NR-24, fundações simplificadas e fretes municipais antes de fechar contrato.
+            Transparência absoluta. Respostas diretas da nossa engenharia sobre conformidade legal, eficiência térmica e mobilização de frotas.
           </p>
         </motion.div>
 

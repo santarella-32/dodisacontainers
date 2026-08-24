@@ -41,23 +41,16 @@ export default function Diferenciais() {
   const visibleDiffs = differentials.filter((d) => d.visible);
 
   return (
-    <section id="diferenciais" className="relative py-28 bg-[#0B0F14] border-t border-white/5 overflow-hidden">
-      
-      {/* Background Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808003_1px,transparent_1px),linear-gradient(to_bottom,#80808003_1px,transparent_1px)] bg-[size:30px_30px]" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-brand-yellow/3 rounded-full blur-[120px] pointer-events-none" />
+    <section id="diferenciais" className="relative py-14 sm:py-28 bg-[#0B0F14] border-b border-zinc-800/60 overflow-hidden">
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-20 animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-yellow/10 border border-brand-yellow/20 text-[10px] font-mono font-black text-brand-yellow uppercase tracking-widest mb-4">
-            DIFERENCIAIS EXCLUSIVOS
-          </div>
+        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-20 animate-fade-in">
           <h2 className="text-3xl sm:text-5xl font-black font-display text-white uppercase tracking-tight">
             POR QUE ESCOLHER A <span className="text-brand-yellow">DODISA?</span>
           </h2>
-          <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
+          <div className="w-12 h-0.5 bg-brand-yellow mx-auto mt-4 mb-6" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
             Aço resistente, bom isolamento e acabamento de qualidade — containers feitos para durar.
           </p>
@@ -74,12 +67,8 @@ export default function Diferenciais() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.5, delay: idx * 0.08 }}
-                className="group relative p-6 sm:p-7 bg-gradient-to-br from-[#111827]/40 to-[#0B0F14]/40 hover:from-[#111827]/60 hover:to-[#0B0F14]/60 rounded-2xl border border-white/5 hover:border-brand-yellow/20 shadow-2xl transition-all duration-300 flex flex-col justify-between backdrop-blur-sm"
+                className="group relative p-6 sm:p-7 bg-zinc-900 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col justify-between"
               >
-                {/* Top Corner safety lines highlight on hover */}
-                <div className="absolute top-0 left-0 w-0 h-[2px] bg-gradient-to-r from-brand-yellow to-brand-orange group-hover:w-full transition-all duration-300 rounded-tl-full" />
-                <div className="absolute top-0 right-0 w-[2px] h-0 bg-brand-orange group-hover:h-full transition-all duration-300 rounded-tr-full" />
-
                 <div>
                   {/* Icon holder with modern metal shield styling */}
                   <div className="w-12 h-12 rounded-xl bg-[#0B0F14]/55 border border-white/5 text-brand-yellow flex items-center justify-center mb-6 group-hover:text-brand-black group-hover:bg-brand-yellow transition-all duration-300">

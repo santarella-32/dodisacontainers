@@ -81,12 +81,24 @@ export interface ProntaEntregaItem {
   active: boolean;
 }
 
+export interface ProjectHotspot {
+  id: string;
+  x: number;
+  y: number;
+  label: string;
+  spec: string;
+  image?: string;
+}
+
 export interface EditableProject {
   id: string;
   title: string;
   category: string;
   imageBefore?: string;
   imageAfter: string;
+  imageNight?: string;
+  hotspots?: ProjectHotspot[];
+  gallery?: string[];
   description: string;
   specs: string[];
   visible: boolean;
@@ -97,6 +109,8 @@ export interface EditableVideo {
   id: string;
   title: string;
   url: string;
+  thumbnail?: string;
+  duration?: string;
   category: "Transporte" | "Logística" | "Instalação" | "Projeto finalizado" | "Antes e depois";
   visible: boolean;
   orderIndex: number;
@@ -109,6 +123,11 @@ export interface EditableFAQ {
   visible: boolean;
   orderIndex: number;
 }
+
+// Detects the pre-B2B FAQ content so it can be replaced on any load path
+const isLegacyFaq = (items: EditableFAQ[]) =>
+  Array.isArray(items) && items.length > 0 &&
+  items[0].question.toLowerCase().includes("esquenta");
 
 export interface EditableTestimonial {
   id: string;
@@ -311,13 +330,13 @@ const DEFAULTS = {
     keywords: "containers, container santa rosa, aluguel container, comprar container, container escritorio, container oficina, v-40, e-30, d-20, rio grande do sul"
   },
   hero: {
-    title: "CONTAINERS PRONTO PARA SUA EMPRESA,\nOBRA OU PROJETO.",
+    title: "A Solução Mais Rápida e Segura em Containers para sua Empresa ou Obra.",
     subtitle: "Containers marítimos transformados em escritórios, depósitos, banheiros e projetos personalizados de alto padrão. Robustez, de vedação impecável e pronta entrega rápida.",
     image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80",
     videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     primaryBtnText: "SIMULAR CONTAINER VIA WHATSAPP",
     primaryBtnUrl: "#simulador",
-    secondaryBtnText: "VER PRONTA ENTREGA",
+    secondaryBtnText: "VER ESTOQUE",
     secondaryBtnUrl: "#pronta-entrega",
     visible: true
   },
@@ -385,7 +404,7 @@ const DEFAULTS = {
     {
       id: "v-1",
       title: "Içamento de Módulo d-20 para Depósito de Fábrica",
-      url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      url: "",
       category: "Transporte" as const,
       visible: true,
       orderIndex: 0
@@ -393,7 +412,7 @@ const DEFAULTS = {
     {
       id: "v-2",
       title: "Instalação Completa do Stand de Vendas de Luxo",
-      url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      url: "",
       category: "Instalação" as const,
       visible: true,
       orderIndex: 1
@@ -401,7 +420,7 @@ const DEFAULTS = {
     {
       id: "v-3",
       title: "Tour Interno e Acabamentos do Escritório Premium e-30",
-      url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      url: "",
       category: "Projeto finalizado" as const,
       visible: true,
       orderIndex: 2
@@ -410,24 +429,38 @@ const DEFAULTS = {
   faq: [
     {
       id: "faq-1",
-      question: "O container esquenta muito?",
-      answer: "Por ser de aço corten, ele conduz calor. Porém, todos os nossos modelos habitáveis (escritório, habitacional) recebem isolamento térmico premium de lã de rocha de alta densidade e revestimentos adequados.",
+      question: "Qual o desempenho térmico real dos módulos e como ele é comprovado tecnicamente?",
+      answer: "Os módulos habitáveis Dodisa utilizam painéis PIR (Poliisocianurato) com espessura de 50 mm, atingindo coeficiente de transmitância térmica (U) inferior a 0,40 W/m²K — equivalente a edificações convencionais climatizadas. O desempenho é documentado por laudo técnico com ART, cobrindo envoltória, vedação perimetral e análise de risco de condensação intersticial. Para projetos com exigência de conformidade NR-17 (conforto térmico), fornecemos memória de cálculo completa sob demanda.",
       visible: true,
       orderIndex: 0
     },
     {
       id: "faq-2",
-      question: "Qual o prazo de entrega padrão para Santa Rosa e região?",
-      answer: "Possuímos frota de caminhão munck própria. Para itens à pronta entrega, o despacho ocorre em até 24 a 48 horas úteis.",
+      question: "Quais são os SLAs de mobilização, entrega e içamento para projetos corporativos?",
+      answer: "Módulos em estoque: despacho em até 24 h úteis após assinatura do pedido. Projetos sob medida: cronograma formalizado em contrato com milestones de fabricação, acabamento e entrega. A mobilização inclui içamento com caminhão munck próprio (sem dependência de terceiros), nivelamento topográfico e conexão de infraestrutura, com janela operacional de 4 a 8 horas para módulos isolados. Para canteiros completos (conjuntos modulares), fornecemos cronograma Gantt integrado.",
       visible: true,
       orderIndex: 1
     },
     {
       id: "faq-3",
-      question: "Fazem projetos de containers personalizados com mezanino?",
-      answer: "Sim! Desenvolvemos do projeto conceitual inicial até a montagem final com memorial de cálculo estrutural e ART oficial.",
+      question: "Os módulos suportam sobreposição estrutural e integração com redes MEP prediais existentes?",
+      answer: "Sim. O chassi naval em aço Corten (espessura mínima 3 mm) suporta empilhamento de até 3 módulos habitáveis com cargas de serviço padrão, mediante análise estrutural e ART de responsabilidade técnica. A integração com redes MEP (Mecânica, Elétrica e Hidráulica) é viabilizada pelos breakouts elétricos em conduit IMC, conexões hidráulicas com flange de 1½\" e eletrodutos pré-instalados para dados. Adaptações adicionais são especificadas em projeto executivo.",
       visible: true,
       orderIndex: 2
+    },
+    {
+      id: "faq-4",
+      question: "Como é garantida a conformidade com as Normas NR-18 e NR-24 em canteiros de obras?",
+      answer: "Todos os módulos destinados a canteiros de obras são fabricados em conformidade com os requisitos das Normas Regulamentadoras NR-18 (Condições e Meio Ambiente de Trabalho na Indústria da Construção) e NR-24 (Condições Sanitárias e de Conforto nos Locais de Trabalho). Fornecemos laudo técnico de conformidade assinado por engenheiro habilitado (CREA), documentação de vestiários, instalações sanitárias e áreas de refeição dimensionadas conforme o efetivo do canteiro. O conjunto documental está disponível para auditoria do cliente e fiscalização do MTE.",
+      visible: true,
+      orderIndex: 3
+    },
+    {
+      id: "faq-5",
+      question: "É possível locar módulos com opção de compra futura (lease-to-own) para projetos de longa duração?",
+      answer: "Sim. Operamos com modalidade de locação operacional com cláusula de opção de compra ao término do contrato, aplicável a contratos com prazo mínimo de 12 meses. O valor residual é negociado no momento da contratação e descontado proporcionalmente dos aluguéis pagos. Para projetos corporativos de infraestrutura temporária com horizonte superior a 24 meses, o modelo lease-to-own apresenta custo total de propriedade (TCO) equivalente ou inferior ao de construção convencional, com vantagem adicional de mobilidade e reaproveitamento do ativo.",
+      visible: true,
+      orderIndex: 4
     }
   ],
   testimonials: TESTIMONIALS_DATA.map((t) => ({
@@ -564,9 +597,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (cachedPub) {
       try {
         const parsed = JSON.parse(cachedPub);
-        if (parsed && parsed.title && (parsed.title.includes("ENGENHARIA") || parsed.title.includes("ESTRUTURAS MODULARES") || parsed.title.includes("PRONTOS") || parsed.title.includes("PRONTO PARA\nSUA EMPRESA"))) {
-          parsed.title = "CONTAINERS PRONTO PARA SUA EMPRESA,\nOBRA OU PROJETO.";
-          localStorage.setItem("dodisa_cms_pub_hero", JSON.stringify(parsed));
+        if (parsed && parsed.title) {
+          const clean = parsed.title.replace(/\s/g, "").toUpperCase();
+          if (!clean.includes("ASOLUCAOMAISRAPIDA")) {
+            parsed.title = "A Solução Mais Rápida e Segura em Containers para sua Empresa ou Obra.";
+            localStorage.setItem("dodisa_cms_pub_hero", JSON.stringify(parsed));
+          }
         }
         return parsed;
       } catch (e) {
@@ -577,9 +613,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (legacy) {
       try {
         const parsed = JSON.parse(legacy);
-        if (parsed && parsed.title && (parsed.title.includes("ENGENHARIA") || parsed.title.includes("ESTRUTURAS MODULARES") || parsed.title.includes("PRONTOS") || parsed.title.includes("PRONTO PARA\nSUA EMPRESA"))) {
-          parsed.title = "CONTAINERS PRONTO PARA SUA EMPRESA,\nOBRA OU PROJETO.";
-          localStorage.setItem("dodisa_cms_hero", JSON.stringify(parsed));
+        if (parsed && parsed.title) {
+          const clean = parsed.title.replace(/\s/g, "").toUpperCase();
+          if (!clean.includes("ASOLUCAOMAISRAPIDA")) {
+            parsed.title = "A Solução Mais Rápida e Segura em Containers para sua Empresa ou Obra.";
+            localStorage.setItem("dodisa_cms_hero", JSON.stringify(parsed));
+          }
         }
         return parsed;
       } catch (e) {
@@ -626,9 +665,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [pubFaq, setPubFaq] = useState<EditableFAQ[]>(() => {
     const cachedPub = localStorage.getItem("dodisa_cms_pub_faq");
-    if (cachedPub) return JSON.parse(cachedPub);
+    if (cachedPub) { const p = JSON.parse(cachedPub); if (!isLegacyFaq(p)) return p; }
     const legacy = localStorage.getItem("dodisa_cms_faq");
-    return legacy ? JSON.parse(legacy) : DEFAULTS.faq;
+    if (legacy) { const p = JSON.parse(legacy); if (!isLegacyFaq(p)) return p; }
+    return DEFAULTS.faq;
   });
 
   const [pubTestimonials, setPubTestimonials] = useState<EditableTestimonial[]>(() => {
@@ -661,9 +701,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [pubSectionsVisibility, setPubSectionsVisibility] = useState<SectionsVisibility>(() => {
     const cachedPub = localStorage.getItem("dodisa_cms_pub_visibility");
-    if (cachedPub) return JSON.parse(cachedPub);
+    if (cachedPub) return { ...JSON.parse(cachedPub), prontaEntrega: true };
     const legacy = localStorage.getItem("dodisa_cms_visibility");
-    return legacy ? JSON.parse(legacy) : DEFAULTS.sectionsVisibility;
+    return legacy ? { ...JSON.parse(legacy), prontaEntrega: true } : DEFAULTS.sectionsVisibility;
   });
 
   const [pubSectionsOrder, setPubSectionsOrder] = useState<string[]>(() => {
@@ -737,7 +777,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [faq, setFaq] = useState<EditableFAQ[]>(() => {
     const cachedDraft = localStorage.getItem("dodisa_cms_draft_faq");
-    if (cachedDraft) return JSON.parse(cachedDraft);
+    if (cachedDraft) { const p = JSON.parse(cachedDraft); if (!isLegacyFaq(p)) return p; }
     return pubFaq;
   });
 
@@ -776,7 +816,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [sectionsVisibility, setSectionsVisibilityState] = useState<SectionsVisibility>(() => {
     const cachedDraft = localStorage.getItem("dodisa_cms_draft_visibility");
-    if (cachedDraft) return JSON.parse(cachedDraft);
+    if (cachedDraft) return { ...JSON.parse(cachedDraft), prontaEntrega: true };
     return pubSectionsVisibility;
   });
 
@@ -820,11 +860,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setSeo(content_data);
               localStorage.setItem("dodisa_cms_pub_seo", JSON.stringify(content_data));
               break;
-            case "hero":
-              setPubHero(content_data);
-              setHero(content_data);
-              localStorage.setItem("dodisa_cms_pub_hero", JSON.stringify(content_data));
+            case "hero": {
+              const heroData = { ...content_data };
+              if (heroData.title) {
+                const clean = heroData.title.replace(/\s/g, "").toUpperCase();
+                if (!clean.includes("ASOLUCAOMAISRAPIDA")) {
+                  heroData.title = "A Solução Mais Rápida e Segura em Containers para sua Empresa ou Obra.";
+                }
+              }
+              setPubHero(heroData);
+              setHero(heroData);
+              localStorage.setItem("dodisa_cms_pub_hero", JSON.stringify(heroData));
               break;
+            }
             case "differentials":
               setPubDifferentials(content_data);
               setDifferentials(content_data);
@@ -850,11 +898,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setVideos(content_data);
               localStorage.setItem("dodisa_cms_pub_videos", JSON.stringify(content_data));
               break;
-            case "faq":
-              setPubFaq(content_data);
-              setFaq(content_data);
-              localStorage.setItem("dodisa_cms_pub_faq", JSON.stringify(content_data));
+            case "faq": {
+              const faqData = isLegacyFaq(content_data) ? DEFAULTS.faq : content_data;
+              setPubFaq(faqData);
+              setFaq(faqData);
+              localStorage.setItem("dodisa_cms_pub_faq", JSON.stringify(faqData));
               break;
+            }
             case "testimonials":
               setPubTestimonials(content_data);
               setTestimonials(content_data);
@@ -875,11 +925,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setWhatsApp(content_data);
               localStorage.setItem("dodisa_cms_pub_whatsapp", JSON.stringify(content_data));
               break;
-            case "visibility":
-              setPubSectionsVisibility(content_data);
-              setSectionsVisibilityState(content_data);
-              localStorage.setItem("dodisa_cms_pub_visibility", JSON.stringify(content_data));
+            case "visibility": {
+              const visData = { ...content_data, prontaEntrega: false };
+              setPubSectionsVisibility(visData);
+              setSectionsVisibilityState(visData);
+              localStorage.setItem("dodisa_cms_pub_visibility", JSON.stringify(visData));
               break;
+            }
             case "sections_order":
               setPubSectionsOrder(content_data);
               setSectionsOrderState(content_data);
