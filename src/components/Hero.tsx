@@ -14,9 +14,12 @@ const ThreeContainerVisualizer = lazy(() => import("./ThreeContainerVisualizer")
 // importantly — the start is deferred one tick past mount so it doesn't fight the heavy
 // synchronous Three.js scene/texture setup (ThreeContainerVisualizer) for the same frame
 // budget, which is what was causing the stutter/freeze-then-jump look.
-function useHeroMetricsCountUp(targets: readonly [number, number, number], duration = 3800) {
-  const starts = targets.map((t) => (t > 0 ? 200 : 0)) as [number, number, number];
-  const [values, setValues] = useState<[number, number, number]>(starts);
+function useHeroMetricsCountUp(
+  targets: readonly [number, number, number],
+  starts: readonly [number, number, number],
+  duration = 3800
+) {
+  const [values, setValues] = useState<[number, number, number]>(starts as [number, number, number]);
   const cardRef = useRef<HTMLDivElement>(null);
   const [triggered, setTriggered] = useState(false);
   const rafRef = useRef<number>(0);
@@ -41,14 +44,23 @@ function useHeroMetricsCountUp(targets: readonly [number, number, number], durat
     const run = () => {
       if (cancelled) return;
       const t0 = performance.now();
+      // Numbers don't need 60fps precision — the eye can't tell a counter apart from
+      // one updating ~15x/sec, but each React setState here competes with the Three.js
+      // visualizer's own render loop for the same frame budget. Throttling the *state
+      // updates* (not the underlying elapsed-time math, which stays frame-accurate)
+      // cuts that contention for the animation's whole duration, not just its start.
+      let lastUpdate = 0;
+      const minInterval = 65;
       const tick = (now: number) => {
         const t = Math.min((now - t0) / duration, 1);
-        const eased = 1 - Math.pow(1 - t, 4); // easeOutQuart → hard lock at end
-        setValues(targets.map((end, i) => Math.round(starts[i] - (starts[i] - end) * eased)) as [number, number, number]);
-        if (t < 1) {
+        const isDone = t >= 1;
+        if (isDone || now - lastUpdate >= minInterval) {
+          lastUpdate = now;
+          const eased = 1 - Math.pow(1 - t, 4); // easeOutQuart → hard lock at end
+          setValues(targets.map((end, i) => Math.round(starts[i] - (starts[i] - end) * eased)) as [number, number, number]);
+        }
+        if (!isDone) {
           rafRef.current = requestAnimationFrame(tick);
-        } else {
-          setValues([...targets] as [number, number, number]);
         }
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -61,9 +73,9 @@ function useHeroMetricsCountUp(targets: readonly [number, number, number], durat
       cancelIdleCallback?: (id: number) => void;
     };
     if (typeof w.requestIdleCallback === "function") {
-      idleId = w.requestIdleCallback(run, { timeout: 300 });
+      idleId = w.requestIdleCallback(run, { timeout: 600 });
     } else {
-      timeoutId = window.setTimeout(run, 120);
+      timeoutId = window.setTimeout(run, 300);
     }
 
     return () => {
@@ -72,7 +84,7 @@ function useHeroMetricsCountUp(targets: readonly [number, number, number], durat
       if (idleId !== undefined) w.cancelIdleCallback?.(idleId);
       if (timeoutId !== undefined) clearTimeout(timeoutId);
     };
-    // targets/starts are static per call site (65/27/3) — only triggered/duration matter
+    // targets/starts are static per call site — only triggered/duration matter
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [triggered, duration]);
 
@@ -208,7 +220,7 @@ export default function Hero() {
   const { hero, whatsapp, prontaEntrega } = useAppContext();
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
-  const { values: metricValues, cardRef: metricsCardRef } = useHeroMetricsCountUp([65, 27, 3]);
+  const { values: metricValues, cardRef: metricsCardRef } = useHeroMetricsCountUp([65, 27, 3], [2340, 200, 200]);
   const [projetosCount, clientesCount, experienciaCount] = metricValues;
 
   // Auto-helper to detect if the URL is direct MP4 or from YouTube
