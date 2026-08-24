@@ -32,7 +32,10 @@ export default function ThreeContainerVisualizer() {
       powerPreference: "high-performance",
     });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+    // Capped at 2x instead of 3x — beyond 2x the extra sharpness is imperceptible on
+    // this element's size, but the fragment-shader cost (all those PBR materials +
+    // shadows) scales with pixel count, so 3x was a heavy, mostly-wasted multiplier.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -408,7 +411,10 @@ export default function ThreeContainerVisualizer() {
     const widthCore = 4.14;
     const heightCore = 1.62;
     const depthCore = 1.62;
-    const innerBodyGeo = new THREE.BoxGeometry(widthCore, heightCore, depthCore, 50, 10, 10);
+    // Segments dropped from 50x10x10 to 1x1x1: bump/normal detail comes entirely from the
+    // texture maps (bumpMap), not vertex displacement, so the extra ~2500 vertices were
+    // pure GPU overhead (vertex processing + shadow pass) with zero visual difference.
+    const innerBodyGeo = new THREE.BoxGeometry(widthCore, heightCore, depthCore, 1, 1, 1);
     const bodyMesh = new THREE.Mesh(innerBodyGeo, bodyMaterials);
     bodyMesh.castShadow = true;
     bodyMesh.receiveShadow = true;
@@ -819,8 +825,12 @@ export default function ThreeContainerVisualizer() {
 
     const clock = new THREE.Clock();
     let animationFrameId: number;
+    // Gate the render loop by visibility — without this it kept rendering forever,
+    // even scrolled far off-screen, burning CPU/GPU continuously in the background.
+    let isRunning = false;
 
     const animate = () => {
+      if (!isRunning) return;
       animationFrameId = requestAnimationFrame(animate);
 
       const elapsed = clock.getElapsedTime();
@@ -857,15 +867,35 @@ export default function ThreeContainerVisualizer() {
       renderer.setSize(w, h);
     };
 
+    isRunning = true;
     animate();
     handleResize();
     setLoading(false);
 
     window.addEventListener("resize", handleResize);
 
+    // Pause the render loop while scrolled off-screen, resume when back in view
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!isRunning) {
+            isRunning = true;
+            animate();
+          }
+        } else {
+          isRunning = false;
+          cancelAnimationFrame(animationFrameId);
+        }
+      },
+      { threshold: 0 }
+    );
+    visibilityObserver.observe(containerRef.current);
+
     // clean memory on unmount
     return () => {
       window.removeEventListener("resize", handleResize);
+      visibilityObserver.disconnect();
+      isRunning = false;
       cancelAnimationFrame(animationFrameId);
 
       // Deep clean THREE geometries and textures to prevent hardware memory leaks
@@ -893,7 +923,18 @@ export default function ThreeContainerVisualizer() {
       floorMaterial.dispose();
       gridHelper.dispose();
       lineGeo.dispose();
+      lineMat.dispose();
       shadowPlaneGeo.dispose();
+      shadowPlaneMat.dispose();
+
+      // Body/structural materials (previously leaked — never disposed on unmount)
+      sideMaterial.dispose();
+      frameMaterial.dispose();
+      roofMaterial.dispose();
+      chassisMaterial.dispose();
+      hardwareMaterial.dispose();
+      cornerCastingMaterial.dispose();
+      diamondMat.dispose();
 
       // Background Environment Disposals
       pillarGeo.dispose();
