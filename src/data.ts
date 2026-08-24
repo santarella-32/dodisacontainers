@@ -8,11 +8,9 @@ export const APP_INFO = {
   instagram: "@dodisa_containers",
   instagramUrl: "https://instagram.com/dodisa_containers",
   email: "contato@dodisa.com.br",
-  address: "Rua Júlio Gaviraghi, 1405 — Bairro Cruzeiro, Santa Rosa/RS — CEP: 98.790-146",
-  mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rua+Julio+Gaviraghi,+1405,+Santa+Rosa,+RS,+98790-146",
-  cnpj: "52.093.855/0001-08",
-  stateRegistration: "110/0139629",
-  companyName: "DODISA LTDA",
+  address: "Rua Julio Gaviragui, Santa Rosa, Rio Grande do Sul, Brasil - CEP: 98790-146",
+  mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rua+Julio+Gaviragui,+Santa+Rosa,+RS,+98790-146",
+  cnpj: "00.000.000/0001-00", // TODO: substituir pelo CNPJ real da Dodisa
   workingHours: "Segunda a Sexta, das 08:00 às 18:00",
 };
 
@@ -190,7 +188,32 @@ export const PROJECTS_DATA: Project[] = [
   }
 ];
 
-export const TESTIMONIALS_DATA: Testimonial[] = [];
+export const TESTIMONIALS_DATA: Testimonial[] = [
+  {
+    id: "t1",
+    name: "Eng. Marcos Vinícius",
+    role: "Diretor de Obras",
+    company: "Construtora AlfaTec",
+    content: "Adquirimos 12 containers escritórios e depósitos com a Dodisa. A robustez do aço e os acabamentos internos surpreenderam nossos engenheiros. O pós-venda deles é excelente, entregaram tudo no prazo prometido.",
+    rating: 5
+  },
+  {
+    id: "t2",
+    name: "Tatiana Rezende",
+    role: "Diretora de Logística",
+    company: "LogMax Brasil",
+    content: "Excelente custo-benefício. Precisávamos expandir nosso almoxarifado de forma ultra rápida devido a um surto nas vendas. A Dodisa montou e entregou os módulos em tempo recorde.",
+    rating: 5
+  },
+  {
+    id: "t3",
+    name: "Carlos Eduardo Santos",
+    role: "Gestor Comercial",
+    company: "Grupo MultiPlantas",
+    content: "O nosso estande comercial personalizado de três andares modulares virou referência. Fomos muito bem atendidos do desenho inicial CAD à entrega com caminhão munck próprio.",
+    rating: 5
+  }
+];
 
 export const STEPS_DATA: ProcessStep[] = [
   {

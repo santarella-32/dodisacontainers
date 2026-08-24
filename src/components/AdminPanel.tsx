@@ -402,30 +402,6 @@ export default function AdminPanel() {
   const [compareModes, setCompareModes] = useState<boolean>(false);
   const [mobileViewTab, setMobileViewTab] = useState<"editor" | "preview">("editor");
 
-  // Sync left editor panel when preview section changes
-  useEffect(() => {
-    if (previewSectionLock === "auto") return;
-    const map: Record<string, () => void> = {
-      hero:          () => { setActiveTab("settings"); setSettingsSubTab("hero"); },
-      simulator:     () => { setActiveTab("settings"); setSettingsSubTab("conversions"); },
-      cta:           () => { setActiveTab("settings"); setSettingsSubTab("conversions"); },
-      channels:      () => { setActiveTab("settings"); setSettingsSubTab("conversions"); },
-      faq:           () => { setActiveTab("settings"); setSettingsSubTab("faq"); },
-      logo:          () => { setActiveTab("settings"); setSettingsSubTab("logo"); },
-      domain:        () => { setActiveTab("settings"); setSettingsSubTab("domain"); },
-      map:           () => { setActiveTab("settings"); setSettingsSubTab("base"); },
-      containers:    () => { setActiveTab("containers"); setContainersSubTab("catalogo"); },
-      prontaEntrega: () => { setActiveTab("containers"); setContainersSubTab("pronta"); },
-      projects:      () => { setActiveTab("projects"); setProjectsSubTab("cases"); },
-      videos:        () => { setActiveTab("projects"); setProjectsSubTab("videos"); },
-      differentials: () => { setActiveTab("projects"); setProjectsSubTab("differentials"); },
-      gallery:       () => { setActiveTab("media"); setMediaSubTab("gallery"); },
-      testimonials:  () => { setActiveTab("testimonials"); },
-      logistic:      () => { setActiveTab("logistic"); },
-    };
-    map[previewSectionLock]?.();
-  }, [previewSectionLock]);
-
   // Sidebar collapsing state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);

@@ -16,13 +16,9 @@ export default function ThreeContainerVisualizer() {
     // 1. Scene setup with premium clean corporate studio atmosphere (transparent)
     const scene = new THREE.Scene();
 
-    // 2. Camera setup — z calculated so diagonal never clips during rotation
-    const aspect = width / height;
-    const fov = 42;
-    // Container diagonal half = sqrt(4.14²+1.62²)/2 ≈ 2.23 — add 15% safety margin
-    const calcZ = (asp: number) => Math.max((2.23 * 1.15) / (Math.tan((fov / 2) * Math.PI / 180) * Math.max(asp, 0.5)), 5.0);
-    const camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 100);
-    camera.position.set(0, 1.4, calcZ(aspect));
+    // 2. Camera setup - Positioned elegantly for optimal presentation (less zoom, multiplier 6.5)
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    camera.position.set(0, 1.4, 6.5);
 
     // 3. Renderer setup - High-fidelity PBR pipeline
     const renderer = new THREE.WebGLRenderer({
@@ -838,9 +834,9 @@ export default function ThreeContainerVisualizer() {
       shadowPlaneMat.opacity = Math.max(0.2, 0.88 - floatHeight * 0.7);
 
       // Subtle camera breathing float
-      camera.position.y = 0.6 + Math.sin(elapsed * 0.35) * 0.05;
+      camera.position.y = 1.0 + Math.sin(elapsed * 0.35) * 0.05;
       camera.position.x = Math.sin(elapsed * 0.18) * 0.05;
-      camera.lookAt(0, floatHeight - 0.4, 0);
+      camera.lookAt(0, floatHeight, 0);
 
       renderer.render(scene, camera);
     };
@@ -850,9 +846,21 @@ export default function ThreeContainerVisualizer() {
       if (!containerRef.current || !canvasRef.current) return;
       const w = containerRef.current.clientWidth;
       const h = containerRef.current.clientHeight;
-      const asp = w / h;
-      camera.aspect = asp;
-      camera.position.z = calcZ(asp);
+
+      camera.aspect = w / h;
+
+      // Perfectly scaled camera distance with custom LESS ZOOM factor (baseline 6.5)
+      if (w < h) {
+        camera.position.z = 6.5 * (h / w) * 0.75;
+      } else {
+        const ratio = w / h;
+        if (ratio < 1.4) {
+          camera.position.z = 6.5 * (1.1 / ratio);
+        } else {
+          camera.position.z = 6.5;
+        }
+      }
+
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
@@ -918,7 +926,7 @@ export default function ThreeContainerVisualizer() {
   return (
     <div
       ref={containerRef}
-      className="w-full h-full relative flex items-center justify-center bg-transparent"
+      className="w-full h-full relative flex items-center justify-center min-h-[420px] bg-transparent overflow-hidden"
     >
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/10 backdrop-blur-sm z-30 space-y-3 rounded-xl">

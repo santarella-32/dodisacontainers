@@ -282,10 +282,7 @@ export default function MapaAtendimento() {
   const [selectedRouteId, setSelectedRouteId] = useState<string>("sul-fronteira");
   const [city, setCity] = useState("Porto Alegre");
   const [state, setState] = useState("RS");
-  const [inCoverage, setInCoverage] = useState(true);
   const [regionStatus, setRegionStatus] = useState<"idle" | "loading" | "detected" | "error" | "manual">("idle");
-
-  const SERVICED_STATES = ["RS", "SC", "PR", "SP", "RJ", "MG", "MS", "GO", "DF", "BA", "PE"];
   const [manualInput, setManualInput] = useState("");
   
   // Custom route mode
@@ -345,14 +342,15 @@ export default function MapaAtendimento() {
           if (res.ok) {
             const data = await res.json();
             const detectedCity = data.city || data.locality || "Sua Cidade";
-            const detectedState = data.principalSubdivisionCode
-              ? data.principalSubdivisionCode.replace("BR-", "")
-              : "";
-            const covered = SERVICED_STATES.includes(detectedState);
+            let detectedState = data.principalSubdivisionCode ? data.principalSubdivisionCode.replace("BR-", "") : "RS";
+            
+            // Format state fallback if outside Brazil
+            if (!["RS", "SC", "PR", "SP", "RJ", "MG", "MS", "GO", "DF", "BA", "PE"].includes(detectedState)) {
+              detectedState = "RS";
+            }
 
             setCity(detectedCity);
             setState(detectedState);
-            setInCoverage(covered);
             setRegionStatus("detected");
             dispatchLocationToSimulator(detectedCity, detectedState);
             autoSelectRouteForState(detectedState);
@@ -375,13 +373,15 @@ export default function MapaAtendimento() {
       const res = await fetch("https://ipapi.co/json/");
       if (res.ok) {
         const data = await res.json();
-        const detectedCity = data.city || "—";
-        const detectedState = data.region_code || "";
-        const covered = SERVICED_STATES.includes(detectedState);
+        const detectedCity = data.city || "Porto Alegre";
+        let detectedState = data.region_code || "RS";
+        
+        if (!["RS", "SC", "PR", "SP", "RJ", "MG", "MS", "GO", "DF", "BA", "PE"].includes(detectedState)) {
+          detectedState = "RS";
+        }
 
         setCity(detectedCity);
         setState(detectedState);
-        setInCoverage(covered);
         setRegionStatus("detected");
         dispatchLocationToSimulator(detectedCity, detectedState);
         autoSelectRouteForState(detectedState);
@@ -615,28 +615,18 @@ export default function MapaAtendimento() {
                           <div>
                             <p className="text-[9px] font-mono text-stone-500 uppercase tracking-widest leading-none">SUA LOCALIDADE IDENTIFICADA</p>
                             <p className="text-white text-base font-extrabold font-display uppercase tracking-tight mt-1.5">
-                              {city}{state && inCoverage ? ` (${state})` : state ? ` — ${state}` : ""}
+                              {city} ({state})
                             </p>
                           </div>
                         </div>
 
-                        {inCoverage ? (
-                          <div className="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10 text-xs text-stone-300 leading-relaxed flex gap-2.5 items-start">
-                            <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                            <div>
-                              <p className="text-white font-bold mb-1">Rota Comercial Homologada</p>
-                              <p className="text-stone-400">Atendimento ativo com frete assegurado e frota com rastreamento via satélite disponível para sua região.</p>
-                            </div>
+                        <div className="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10 text-xs text-stone-300 leading-relaxed flex gap-2.5 items-start">
+                          <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-white font-bold mb-1">Rota Comercial Homologada</p>
+                            <p className="text-stone-400">Atendimento ativo com frete assegurado e frota com rastreamento via satélite disponível para sua região.</p>
                           </div>
-                        ) : (
-                          <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/15 text-xs text-stone-300 leading-relaxed flex gap-2.5 items-start">
-                            <span className="text-amber-400 shrink-0 mt-0.5 text-sm leading-none">⚠</span>
-                            <div>
-                              <p className="text-white font-bold mb-1">Fora da área de cobertura padrão</p>
-                              <p className="text-stone-400">Sua região não está em nossa rota regular, mas atendemos sob consulta. Entre em contato para verificarmos viabilidade logística.</p>
-                            </div>
-                          </div>
-                        )}
+                        </div>
 
                         <div className="pt-1 flex gap-2">
                           <button

@@ -11,4 +11,3 @@ assets/.aistudio/
 metadata.json
 
 .vercel
-.env*

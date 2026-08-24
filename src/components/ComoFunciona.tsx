@@ -12,22 +12,28 @@ const stepIcons = [
 
 export default function ComoFunciona() {
   return (
-    <section id="como-funciona" className="relative py-14 sm:py-28 bg-[#0B0F14] border-t border-white/5 overflow-hidden">
+    <section id="como-funciona" className="relative py-28 bg-[#0B0F14] border-t border-white/5 overflow-hidden">
+      
+      {/* Decorative vertical blueprint coordinate indicators */}
+      <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px] bg-dashed border-l border-white/5 pointer-events-none hidden lg:block" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
+        
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
-          className="text-center max-w-3xl mx-auto mb-12 sm:mb-20"
+          className="text-center max-w-3xl mx-auto mb-20"
         >
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-yellow/10 border border-brand-yellow/20 text-[10px] font-mono font-black text-brand-yellow uppercase tracking-widest mb-4">
+            PASSO A PASSO SIMPLES
+          </div>
           <h2 className="text-3xl sm:text-5xl font-black font-display text-white uppercase tracking-tight">
             COMO FUNCIONA A <span className="text-brand-yellow">ENTREGA?</span>
           </h2>
-          <div className="w-12 h-0.5 bg-brand-yellow mx-auto mt-4 mb-6" />
+          <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
             Do primeiro contato até a entrega no seu pátio. Sem burocracia.
           </p>
@@ -45,10 +51,10 @@ export default function ComoFunciona() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-80px" }}
                 transition={{ duration: 0.6, delay: idx * 0.15 }}
-                className="group relative bg-zinc-900 p-6 sm:p-7 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col justify-between"
+                className="group relative bg-[#111827]/40 p-6 sm:p-7 rounded-2xl border border-white/5 hover:border-brand-yellow/30 shadow-2xl transition-all duration-300 flex flex-col justify-between backdrop-blur-sm"
               >
                 {/* Large architectural step watermarking */}
-                <span className="absolute top-4 right-6 text-4xl sm:text-5xl font-black text-stone-900/40 font-mono select-none group-hover:text-brand-yellow/10 transition-colors">
+                <span className="absolute top-4 right-6 text-5xl font-black text-stone-900/40 font-mono select-none group-hover:text-brand-yellow/10 transition-colors">
                   0{step.number}
                 </span>
 
