@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
-import { Upload, Link, X } from "lucide-react";
+import { Upload, Link, X, Images } from "lucide-react";
 import { getSupabase } from "../lib/supabase";
+import GalleryPickerModal from "./GalleryPickerModal";
 
 interface ImageUploadFieldProps {
   label: string;
@@ -22,6 +23,7 @@ export default function ImageUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [showGallery, setShowGallery] = React.useState(false);
 
   // Downscale + re-encode as WebP before upload. These single-image fields (hero,
   // container cards, etc.) previously uploaded the raw file as-is — a 4000px+ phone
@@ -139,6 +141,15 @@ export default function ImageUploadField({
         </div>
         <button
           type="button"
+          onClick={() => setShowGallery(true)}
+          disabled={uploading}
+          className="flex items-center gap-1.5 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-stone-300 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap"
+        >
+          <Images size={12} />
+          Galeria
+        </button>
+        <button
+          type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
           className="flex items-center gap-1.5 px-3 py-2 bg-[#FFD400]/10 hover:bg-[#FFD400]/20 border border-[#FFD400]/20 text-[#FFD400] rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap"
@@ -161,6 +172,13 @@ export default function ImageUploadField({
           e.target.value = "";
         }}
       />
+
+      {showGallery && (
+        <GalleryPickerModal
+          onSelect={(url) => onChange(url)}
+          onClose={() => setShowGallery(false)}
+        />
+      )}
     </div>
   );
 }
