@@ -1086,21 +1086,19 @@ export default function AdminPanel() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-stone-400 uppercase mb-1.5">Foto (ANTES) URL</label>
-                <input
-                  type="text"
+                <ImageUploadField
+                  label="Foto (Antes)"
                   value={item.imageBefore}
-                  onChange={(e) => editProject(item.id, { imageBefore: e.target.value })}
-                  className="w-full bg-[#0F1115] border border-white/10 rounded-xl p-3 text-xs text-stone-400 focus:border-[#FFD400] outline-none font-mono"
+                  onChange={(url) => editProject(item.id, { imageBefore: url })}
+                  folder="projetos"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-stone-400 uppercase mb-1.5">Foto (DEPOIS / PRONTO) URL</label>
-                <input
-                  type="text"
+                <ImageUploadField
+                  label="Foto (Depois / Pronto)"
                   value={item.imageAfter}
-                  onChange={(e) => editProject(item.id, { imageAfter: e.target.value })}
-                  className="w-full bg-[#0F1115] border border-white/10 rounded-xl p-3 text-xs text-stone-400 focus:border-[#FFD400] outline-none font-mono"
+                  onChange={(url) => editProject(item.id, { imageAfter: url })}
+                  folder="projetos"
                 />
               </div>
             </div>
