@@ -36,12 +36,15 @@ export default function ThreeContainerVisualizer() {
     // this element's size, but the fragment-shader cost (all those PBR materials +
     // shadows) scales with pixel count, so 3x was a heavy, mostly-wasted multiplier.
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    // PCFSoftShadowMap does a large multi-tap blur per shadowed fragment (recomputed every
-    // single frame, forever, while this is on screen). PCFShadowMap is a cheap 4-tap filter —
-    // still an anti-aliased soft-ish edge, just not as feathered. Given this runs continuously
-    // at display refresh rate, this is one of the biggest per-frame levers available here.
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    // Real-time shadow mapping DISABLED. A dynamic shadow means an entire second render
+    // pass every frame — the whole scene redrawn from the light's point of view into a
+    // depth texture, on top of the normal camera render — across 15+ shadow-casting
+    // meshes, forever, while this is on screen. That was still the single most expensive
+    // thing left after every other pass of optimization. The floating container already
+    // has its own fake "contact shadow" — a cheap textured plane (contactShadowMesh,
+    // below) that dims/scales with float height — carrying the visual "grounded" read on
+    // its own, so a real dynamic shadow is no longer necessary here.
+    renderer.shadowMap.enabled = false;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.35;
 
@@ -628,23 +631,9 @@ export default function ThreeContainerVisualizer() {
     // (scene.add(bgGroup) was commented out), so it was pure dead work: dozens of
     // meshes/geometries/materials constructed and instantly discarded. Removed.)
 
-    // A. Sunny Golden Studio Spotlight (Casting premium detailed shadows)
+    // A. Sunny Golden Studio Spotlight (shadow casting disabled above — see renderer setup)
     const sunLight = new THREE.DirectionalLight(0xfff6e5, 5.8);
     sunLight.position.set(6, 10, 4);
-    sunLight.castShadow = true;
-    // 2048 -> 1024: this element renders at a modest on-screen size, so the extra shadow
-    // resolution was invisible while still costing a full extra shadow-pass render at 4x
-    // the pixel count, every frame.
-    sunLight.shadow.mapSize.width = 1024;
-    sunLight.shadow.mapSize.height = 1024;
-    sunLight.shadow.bias = -0.00015;
-    sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 20;
-    const shadowSize = 3.5;
-    sunLight.shadow.camera.left = -shadowSize;
-    sunLight.shadow.camera.right = shadowSize;
-    sunLight.shadow.camera.top = shadowSize;
-    sunLight.shadow.camera.bottom = -shadowSize;
     scene.add(sunLight);
 
     // B. Dramatic Blue Accent Outline Rimlight (Highlighting metal gloss corners)
