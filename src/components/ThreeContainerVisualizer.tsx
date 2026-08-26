@@ -27,15 +27,19 @@ export default function ThreeContainerVisualizer() {
     // 3. Renderer setup - High-fidelity PBR pipeline
     const renderer = new THREE.WebGLRenderer({
       canvas: canvasRef.current,
-      antialias: true,
+      // MSAA has a real per-frame cost and matters far less once the render itself is
+      // already supersampled by devicePixelRatio below — turned off as another ongoing-
+      // cost cut, on top of everything else already trimmed in this file.
+      antialias: false,
       alpha: true,
       powerPreference: "high-performance",
     });
     renderer.setSize(width, height);
-    // Capped at 2x instead of 3x — beyond 2x the extra sharpness is imperceptible on
-    // this element's size, but the fragment-shader cost (all those PBR materials +
-    // shadows) scales with pixel count, so 3x was a heavy, mostly-wasted multiplier.
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // 2x -> 1.5x: fragment-shader cost (every PBR material, every light) scales with
+    // pixel count, so devicePixelRatio 2 means 4x the fragment work of 1x; 1.5 cuts that
+    // to ~2.25x instead — still sharper than native on most screens, meaningfully cheaper
+    // than the previous cap.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     // Real-time shadow mapping DISABLED. A dynamic shadow means an entire second render
     // pass every frame — the whole scene redrawn from the light's point of view into a
     // depth texture, on top of the normal camera render — across 15+ shadow-casting
@@ -335,7 +339,10 @@ export default function ThreeContainerVisualizer() {
       return texture;
     };
 
-    const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
+    // Capped at 4 instead of the device max (can be 16 on some GPUs) — anisotropic
+    // filtering cost scales with this value, and at this element's on-screen size the
+    // difference beyond 4x is not visible.
+    const maxAnisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
 
     const bumpMap = createCorrugationBumpMap();
     bumpMap.anisotropy = maxAnisotropy;
@@ -666,15 +673,13 @@ export default function ThreeContainerVisualizer() {
     // even scrolled far off-screen, burning CPU/GPU continuously in the background.
     let isRunning = false;
 
-    // Cap the actual GPU render to ~30fps. The rAF callback itself still fires at the
-    // display's native rate (needed so cancel/visibility toggling stays responsive), but the
-    // expensive part — renderer.render(), which re-runs the fragment shaders, the shadow
-    // pass, everything — only happens on roughly every other tick on a 60Hz screen, and
-    // roughly every 4th tick on a 120Hz/144Hz one. For a slow, ambient drift/rotation like
-    // this, 30fps is visually indistinguishable from 60+ fps, but it is a direct ~2-4x cut
-    // in the ongoing, continuous per-frame cost — the actual bottleneck once mount-time
-    // costs were already trimmed in earlier passes.
-    const minFrameInterval = 1000 / 30;
+    // Cap the actual GPU render to ~24fps (down from an earlier 30fps pass). The rAF
+    // callback itself still fires at the display's native rate (needed so cancel/
+    // visibility toggling stays responsive), but the expensive part — renderer.render(),
+    // which re-runs every fragment shader — only happens on a fraction of those ticks.
+    // For a slow, ambient drift/rotation like this, 24fps reads as smooth continuous
+    // motion while cutting real per-frame cost further.
+    const minFrameInterval = 1000 / 24;
     let lastRenderTime = 0;
 
     const animate = (now: number) => {
