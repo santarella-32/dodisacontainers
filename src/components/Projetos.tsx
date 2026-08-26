@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Hammer, CheckCircle2, Award, ChevronLeft, ChevronRight, X, MessageSquare } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
-import type { ProjectHotspot } from "../context/AppContext";
 
 // ─── Before/After drag slider ─────────────────────────────────────────────────
 
@@ -71,68 +70,6 @@ function BeforeAfterSlider({ before, after, alt }: { before?: string; after: str
       <span className="absolute top-3 right-3 z-20 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg bg-emerald-600/90 text-white backdrop-blur-sm pointer-events-none">
         Depois
       </span>
-    </div>
-  );
-}
-
-// ─── Default hotspots (fallback when project has none) ────────────────────────
-
-const DEFAULT_HOTSPOTS: ProjectHotspot[] = [
-  { id: "teto",      x: 48, y: 10, label: "Cobertura",  spec: "Isolamento térmico com painéis PIR de alta densidade" },
-  { id: "parede",    x: 10, y: 50, label: "Estrutura",  spec: "Chassi naval em aço Corten tratado anticorrosão" },
-  { id: "piso",      x: 58, y: 84, label: "Piso",       spec: "Piso emborrachado antiderrapante nivelado" },
-  { id: "esquadria", x: 80, y: 42, label: "Esquadria",  spec: "Vidros temperados Blindex com perfil de alumínio" },
-];
-
-// ─── Hotspot layer ────────────────────────────────────────────────────────────
-
-function HotspotLayer({ hotspots }: { hotspots?: ProjectHotspot[] }) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const list = hotspots && hotspots.length > 0 ? hotspots : DEFAULT_HOTSPOTS;
-
-  return (
-    <div className="absolute inset-0 z-30 pointer-events-none">
-      {list.map((h) => {
-        const isActive = activeId === h.id;
-        const tipLeft = h.x > 55;
-        const tipUp   = h.y > 55;
-
-        return (
-          <div
-            key={h.id}
-            className="absolute pointer-events-auto"
-            style={{ left: `${h.x}%`, top: `${h.y}%`, transform: "translate(-50%, -50%)" }}
-          >
-            {!isActive && (
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-brand-yellow/35 animate-ping" />
-            )}
-            <button
-              className={`relative z-10 w-7 h-7 rounded-full flex items-center justify-center text-base font-black border-2 shadow-[0_0_10px_rgba(0,0,0,0.6)] transition-transform duration-150 cursor-pointer ${
-                isActive
-                  ? "bg-brand-yellow text-brand-black border-white scale-110"
-                  : "bg-brand-yellow/90 text-brand-black border-white/80 hover:scale-110"
-              }`}
-              onMouseEnter={() => setActiveId(h.id)}
-              onMouseLeave={() => setActiveId(null)}
-              onClick={() => setActiveId(isActive ? null : h.id)}
-              aria-label={h.label}
-            >
-              {isActive ? "×" : "+"}
-            </button>
-            {isActive && (
-              <div className={`absolute z-40 w-52 pointer-events-none ${tipLeft ? "right-9" : "left-9"} ${tipUp ? "bottom-0" : "top-0"}`}>
-                <div className="px-3 py-2.5 rounded-xl bg-zinc-950/95 border border-white/10 backdrop-blur-md shadow-2xl">
-                  <span className="block text-[8px] font-black text-brand-yellow uppercase tracking-widest mb-1.5">{h.label}</span>
-                  <span className="block text-[10px] text-zinc-200 leading-snug font-sans">{h.spec}</span>
-                  {h.image && (
-                    <img src={h.image} alt={h.label} className="mt-2 w-full rounded-lg object-cover aspect-video" />
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -458,7 +395,6 @@ export default function Projetos() {
                     after={activeProject.imageAfter}
                     alt={activeProject.title}
                   />
-                  <HotspotLayer hotspots={activeProject.hotspots} />
                   <DayNightOverlay
                     nightImage={activeProject.imageNight}
                     afterImage={activeProject.imageAfter}
