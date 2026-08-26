@@ -37,7 +37,11 @@ export default function ThreeContainerVisualizer() {
     // shadows) scales with pixel count, so 3x was a heavy, mostly-wasted multiplier.
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // PCFSoftShadowMap does a large multi-tap blur per shadowed fragment (recomputed every
+    // single frame, forever, while this is on screen). PCFShadowMap is a cheap 4-tap filter —
+    // still an anti-aliased soft-ish edge, just not as feathered. Given this runs continuously
+    // at display refresh rate, this is one of the biggest per-frame levers available here.
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.35;
 
@@ -350,16 +354,20 @@ export default function ThreeContainerVisualizer() {
 
     // --- EXPERT PHYSICAL PBR MATERIALS ASSEMBLY ---
     
-    // Core side panel corrugated plates material (using clearcoat for epic industrial shine/paint finish)
-    const sideMaterial = new THREE.MeshPhysicalMaterial({
+    // Core side panel corrugated plates material.
+    // Previously MeshPhysicalMaterial with a clearcoat layer (an extra BRDF pass evaluated
+    // per fragment, per light, every frame, forever). Dropped down to MeshStandardMaterial —
+    // still metallic/glossy via metalness+roughness, just without the second glossy coat
+    // layer on top. Visual trade-off: the paint reads very slightly less "wet/glossy" up
+    // close, but at this element's on-screen size it is very hard to notice, and it removes
+    // real continuous per-frame shader cost.
+    const sideMaterial = new THREE.MeshStandardMaterial({
       map: decalMap,
       bumpMap: bumpMap,
-      bumpScale: 0.08, 
+      bumpScale: 0.08,
       roughnessMap: roughnessMap,
-      roughness: 0.40, 
+      roughness: 0.40,
       metalness: 0.88,
-      clearcoat: 0.35,
-      clearcoatRoughness: 0.15,
     });
 
     // Outer framing structural metal
@@ -624,8 +632,11 @@ export default function ThreeContainerVisualizer() {
     const sunLight = new THREE.DirectionalLight(0xfff6e5, 5.8);
     sunLight.position.set(6, 10, 4);
     sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 2048;
-    sunLight.shadow.mapSize.height = 2048;
+    // 2048 -> 1024: this element renders at a modest on-screen size, so the extra shadow
+    // resolution was invisible while still costing a full extra shadow-pass render at 4x
+    // the pixel count, every frame.
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
     sunLight.shadow.bias = -0.00015;
     sunLight.shadow.camera.near = 0.5;
     sunLight.shadow.camera.far = 20;
@@ -650,10 +661,13 @@ export default function ThreeContainerVisualizer() {
     const skyLight = new THREE.AmbientLight(0xffffff, 2.2);
     scene.add(skyLight);
 
-    // E. Glowing Highlight Spot on the Floor
-    const floorSpot = new THREE.PointLight(0xffae00, 2.5, 8);
-    floorSpot.position.set(0, -0.8, 1.5);
-    scene.add(floorSpot);
+    // E. Glowing Highlight Spot on the Floor — REMOVED.
+    // Every active light in the scene is evaluated per-fragment, every frame, across every
+    // PBR material (7 materials on this model). A PointLight is pricier than a directional
+    // one because it also needs a per-fragment distance/attenuation calc. This one only ever
+    // added a subtle warm glow on the floor contact-shadow plane — the ambient + sun light
+    // already carry the visible read of "grounded", so cutting it trims real per-frame cost
+    // across the whole model for a change that's essentially invisible.
 
     // --- RENDER LOOP WITH CINEMATIC AUTOMATIONS ---
 
@@ -663,9 +677,23 @@ export default function ThreeContainerVisualizer() {
     // even scrolled far off-screen, burning CPU/GPU continuously in the background.
     let isRunning = false;
 
-    const animate = () => {
+    // Cap the actual GPU render to ~30fps. The rAF callback itself still fires at the
+    // display's native rate (needed so cancel/visibility toggling stays responsive), but the
+    // expensive part — renderer.render(), which re-runs the fragment shaders, the shadow
+    // pass, everything — only happens on roughly every other tick on a 60Hz screen, and
+    // roughly every 4th tick on a 120Hz/144Hz one. For a slow, ambient drift/rotation like
+    // this, 30fps is visually indistinguishable from 60+ fps, but it is a direct ~2-4x cut
+    // in the ongoing, continuous per-frame cost — the actual bottleneck once mount-time
+    // costs were already trimmed in earlier passes.
+    const minFrameInterval = 1000 / 30;
+    let lastRenderTime = 0;
+
+    const animate = (now: number) => {
       if (!isRunning) return;
       animationFrameId = requestAnimationFrame(animate);
+
+      if (now - lastRenderTime < minFrameInterval) return;
+      lastRenderTime = now;
 
       const elapsed = clock.getElapsedTime();
 
@@ -702,7 +730,7 @@ export default function ThreeContainerVisualizer() {
     };
 
     isRunning = true;
-    animate();
+    animate(0);
     handleResize();
     setLoading(false);
 
@@ -714,7 +742,8 @@ export default function ThreeContainerVisualizer() {
         if (entry.isIntersecting) {
           if (!isRunning) {
             isRunning = true;
-            animate();
+            lastRenderTime = 0;
+            animate(0);
           }
         } else {
           isRunning = false;

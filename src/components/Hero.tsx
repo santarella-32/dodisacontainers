@@ -66,16 +66,21 @@ function useHeroMetricsCountUp(
       rafRef.current = requestAnimationFrame(tick);
     };
 
-    // Give the browser a chance to clear any pending heavy work (e.g. the Three.js
-    // scene mount) before kicking off the animation, so it gets a clean frame budget.
+    // Give the browser one short beat to clear any pending heavy work (e.g. the Three.js
+    // scene mount) before kicking off the animation. This used to wait up to 600ms — long
+    // enough that the numbers just sat motionless at their start value, which itself reads
+    // as "frozen" if a user's eye lands on the card during that window. Now that the 3D
+    // visualizer's mount and per-frame cost are both much lighter (see
+    // ThreeContainerVisualizer.tsx), a much shorter yield is enough to avoid contention
+    // while no longer looking stuck.
     const w = window as typeof window & {
       requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
       cancelIdleCallback?: (id: number) => void;
     };
     if (typeof w.requestIdleCallback === "function") {
-      idleId = w.requestIdleCallback(run, { timeout: 600 });
+      idleId = w.requestIdleCallback(run, { timeout: 120 });
     } else {
-      timeoutId = window.setTimeout(run, 300);
+      timeoutId = window.setTimeout(run, 50);
     }
 
     return () => {
