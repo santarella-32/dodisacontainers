@@ -20,6 +20,10 @@ export interface ContainerVisualizer3DProps {
   temEletrica?: boolean;
   /** When true, switches to the interior cut-away view (e.g. while picking floor/wall/paint). */
   forceInteriorView?: boolean;
+  /** One entry per selected door, positioned on the matching exterior wall. */
+  doorPanels?: { color: string; position: "front" | "back" | "left" | "right" }[];
+  /** Selected extra ids (e.g. "bancada", "armarios") — toggles simple interior furniture blocks. */
+  extras?: string[];
 }
 
 const DEFAULT_EXTERIOR = 0x374151;
@@ -35,6 +39,7 @@ function hexStringToInt(hex: string | undefined, fallback: number): number {
 export default function ContainerVisualizer3D({
   exteriorColor, interiorColor, floorColor, floorFinish, wallFinish,
   janelas = 0, temAC = false, temEletrica = false, forceInteriorView,
+  doorPanels = [], extras = [],
 }: ContainerVisualizer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
@@ -54,6 +59,8 @@ export default function ContainerVisualizer3D({
   const ledRef        = useRef<THREE.Mesh | null>(null);
   const ledLightRef   = useRef<THREE.PointLight | null>(null);
   const windowsGroupRef = useRef<THREE.Group | null>(null);
+  const doorsGroupRef = useRef<THREE.Group | null>(null);
+  const furnitureGroupRef = useRef<THREE.Group | null>(null);
 
   // Interaction refs (no re-render on change)
   const rotY        = useRef(0.4);
@@ -285,6 +292,18 @@ export default function ContainerVisualizer3D({
     windowsGroupRef.current = winGroup;
     group.add(winGroup);
 
+    // ── Doors group (populated reactively via doorPanels effect) ───────────
+    const doorsGroup = new THREE.Group();
+    doorsGroup.name = "doors";
+    doorsGroupRef.current = doorsGroup;
+    group.add(doorsGroup);
+
+    // ── Furniture/extras group (populated reactively via extras effect) ────
+    const furnitureGroup = new THREE.Group();
+    furnitureGroup.name = "furniture";
+    furnitureGroupRef.current = furnitureGroup;
+    group.add(furnitureGroup);
+
     // (no floor plane — transparent canvas, dark page background)
 
     // ── Lighting ───────────────────────────────────────────────────────────
@@ -465,6 +484,122 @@ export default function ContainerVisualizer3D({
     });
   }, [janelas]);
 
+  // ── Reactive: door panels (one mesh per selected door × wall position) ──
+  useEffect(() => {
+    const doorsGroup = doorsGroupRef.current;
+    if (!doorsGroup) return;
+    while (doorsGroup.children.length > 0) {
+      const child = doorsGroup.children[0] as THREE.Mesh;
+      doorsGroup.remove(child);
+      child.geometry?.dispose();
+      if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+      else child.material?.dispose();
+    }
+    const CW = 4.14, CH = 1.62, CD = 1.62;
+    const panelW = CW * 0.34, panelH = CH * 0.78, thickness = 0.03;
+
+    doorPanels.forEach(({ color, position }) => {
+      const isSide = position === "left" || position === "right";
+      const geo = new THREE.BoxGeometry(
+        isSide ? thickness : panelW,
+        panelH,
+        isSide ? panelW : thickness,
+      );
+      const mat = new THREE.MeshStandardMaterial({ color: hexStringToInt(color, 0x52525b), roughness: 0.45, metalness: 0.55 });
+      const mesh = new THREE.Mesh(geo, mat);
+      const y = -CH / 2 + panelH / 2 + 0.02;
+      if (position === "front") mesh.position.set(0, y, CD / 2 + thickness / 2 + 0.01);
+      else if (position === "back") mesh.position.set(0, y, -(CD / 2 + thickness / 2 + 0.01));
+      else if (position === "left") mesh.position.set(-(CW / 2 + thickness / 2 + 0.01), y, 0);
+      else mesh.position.set(CW / 2 + thickness / 2 + 0.01, y, 0);
+      mesh.castShadow = true;
+      mesh.userData.doorPosition = position;
+      // Respect whatever view is currently active — the view-switch effect only
+      // re-applies this when `view` itself changes, not when doors are rebuilt.
+      mesh.visible = !(viewRef.current === "interior" && position === "front");
+      doorsGroup.add(mesh);
+    });
+  }, [doorPanels]);
+
+  // ── Reactive: interior furniture blocks (spec section 17 — visual extras) ──
+  // Simple, honest low-poly shapes for the handful of extras that read clearly
+  // as furniture inside the cut-away view. Not every one of the 18 catalog
+  // extras gets unique geometry (e.g. "Adesivação"/"Logotipo" are decals, not
+  // physical objects) — the ones below are the interior-furniture subset the
+  // owner specifically asked to see.
+  useEffect(() => {
+    const furnitureGroup = furnitureGroupRef.current;
+    if (!furnitureGroup) return;
+    while (furnitureGroup.children.length > 0) {
+      const child = furnitureGroup.children[0] as THREE.Mesh;
+      furnitureGroup.remove(child);
+      child.geometry?.dispose();
+      if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+      else child.material?.dispose();
+    }
+    const has = (id: string) => extras.includes(id);
+    const CW = 4.14, CH = 1.62, CD = 1.62;
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8a5a34, roughness: 0.7, metalness: 0.05 });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0xb8bec7, roughness: 0.35, metalness: 0.6 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x2b2f36, roughness: 0.6, metalness: 0.2 });
+    const floorY = -CH / 2 + 0.02;
+
+    if (has("bancada")) {
+      const top = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.05, 0.45), woodMat);
+      top.position.set(-CW / 2 + 0.75, floorY + 0.42, -CD / 2 + 0.30);
+      const legGeo = new THREE.BoxGeometry(0.04, 0.40, 0.04);
+      [[-0.6, -0.18], [0.6, -0.18], [-0.6, 0.18], [0.6, 0.18]].forEach(([dx, dz]) => {
+        const leg = new THREE.Mesh(legGeo, metalMat);
+        leg.position.set(-CW / 2 + 0.75 + dx, floorY + 0.20, -CD / 2 + 0.30 + dz);
+        furnitureGroup.add(leg);
+      });
+      furnitureGroup.add(top);
+    }
+
+    if (has("armarios")) {
+      const cab = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.05, 0.35), woodMat);
+      cab.position.set(CW / 2 - 0.32, floorY + 0.525, -CD / 2 + 0.20);
+      furnitureGroup.add(cab);
+      for (let i = 1; i < 3; i++) {
+        const line = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.006, 0.02), darkMat);
+        line.position.set(CW / 2 - 0.32, floorY + i * 0.33, -CD / 2 + 0.375);
+        furnitureGroup.add(line);
+      }
+    }
+
+    if (has("prateleiras")) {
+      const shelfGeo = new THREE.BoxGeometry(0.9, 0.03, 0.25);
+      [0.35, 0.65, 0.95].forEach((h) => {
+        const shelf = new THREE.Mesh(shelfGeo, woodMat);
+        shelf.position.set(0.1, floorY + h, -CD / 2 + 0.14);
+        furnitureGroup.add(shelf);
+      });
+    }
+
+    if (has("divisorias")) {
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(0.04, CH - 0.06, CD * 0.6), new THREE.MeshStandardMaterial({ color: 0xd8dce1, roughness: 0.55, metalness: 0.1 }));
+      wall.position.set(0.35, 0, -CD * 0.15);
+      furnitureGroup.add(wall);
+    }
+
+    if (has("mobiliario-geral")) {
+      const table = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.04, 0.7), woodMat);
+      table.position.set(-0.2, floorY + 0.36, 0.25);
+      const tLegGeo = new THREE.BoxGeometry(0.04, 0.34, 0.04);
+      [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]].forEach(([dx, dz]) => {
+        const leg = new THREE.Mesh(tLegGeo, metalMat);
+        leg.position.set(-0.2 + dx, floorY + 0.17, 0.25 + dz);
+        furnitureGroup.add(leg);
+      });
+      furnitureGroup.add(table);
+      [[-0.55, 0.55], [0.15, 0.55]].forEach(([sx, sz]) => {
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.05, 0.32), darkMat);
+        seat.position.set(sx, floorY + 0.24, sz);
+        furnitureGroup.add(seat);
+      });
+    }
+  }, [extras]);
+
   // ── Reactive: auto-switch view when the caller says the interior is relevant ──
   useEffect(() => {
     if (forceInteriorView === undefined) return;
@@ -476,6 +611,12 @@ export default function ContainerVisualizer3D({
     viewRef.current = view;
     const body = bodyMeshRef.current;
     const mats = body && Array.isArray(body.material) ? (body.material as THREE.Material[]) : null;
+
+    // A solid front door panel would block the see-through cut-away — hide
+    // just that one panel while interior view is active, keep back/side doors.
+    doorsGroupRef.current?.children.forEach((child) => {
+      child.visible = !(view === "interior" && child.userData.doorPosition === "front");
+    });
 
     if (view === "exterior") {
       // Restore cut-away face

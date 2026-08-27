@@ -1,4 +1,4 @@
-import { FLOOR_MAP, PAINT_MAP, WALL_MAP } from "../../data/materials";
+import { FLOOR_MAP, PAINT_MAP, WALL_MAP, DOOR_MAP } from "../../data/materials";
 import type { ContainerConfig, StepId } from "./types";
 import type { ContainerVisualizer3DProps } from "../ContainerVisualizer3D";
 
@@ -36,6 +36,15 @@ export function resolveViewerProps(config: ContainerConfig, stepId: StepId | nul
   const hasAC = config.climate.includes("ac-installed") || config.climate.includes("ac-prep");
   const hasLed = config.electrical.includes("led");
 
+  // One panel per selected position per door type (quantity mainly drives the
+  // text summary — a door type toggled onto 2 walls renders 2 panels here).
+  const doorPanels = config.doors.flatMap((d) => {
+    const item = DOOR_MAP.get(d.typeId);
+    if (!item) return [];
+    const positions = d.positions.length > 0 ? d.positions : (["front"] as const);
+    return positions.map((position) => ({ color: item.color ?? "#52525b", position }));
+  });
+
   return {
     exteriorColor: extPaint,
     interiorColor: wall?.color ?? intPaint ?? extPaint,
@@ -46,5 +55,7 @@ export function resolveViewerProps(config: ContainerConfig, stepId: StepId | nul
     temAC: hasAC,
     temEletrica: hasLed,
     forceInteriorView: stepId ? INTERIOR_STEPS.includes(stepId) : false,
+    doorPanels,
+    extras: config.extras,
   };
 }
