@@ -2,37 +2,39 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { Loader2, RotateCcw } from "lucide-react";
 
+export interface MaterialFinish {
+  roughness: number;
+  metalness: number;
+}
+
 export interface ContainerVisualizer3DProps {
-  acabamento?: string;
-  piso?: string;
+  /** Hex colors ("#RRGGBB"), already resolved from the material library / custom picker. */
+  exteriorColor?: string;
+  interiorColor?: string;
+  floorColor?: string;
+  /** Optional roughness/metalness hints from the selected floor/internal-wall material. */
+  floorFinish?: MaterialFinish;
+  wallFinish?: MaterialFinish;
   janelas?: number;
   temAC?: boolean;
   temEletrica?: boolean;
-  step?: number; // auto-switches to interior on steps 2 (Piso) and 3 (Pintura)
+  /** When true, switches to the interior cut-away view (e.g. while picking floor/wall/paint). */
+  forceInteriorView?: boolean;
 }
 
-function getExteriorHex(acabamento?: string): number {
-  switch (acabamento) {
-    case "Amarelo Dodisa":    return 0xC89A00;
-    case "Verde Militar":     return 0x2d5a1e;
-    case "Branco Pérola":     return 0xC8CDD4;
-    case "Cor Personalizada": return 0x6D28D9;
-    default:                  return 0x374151;
-  }
-}
+const DEFAULT_EXTERIOR = 0x374151;
+const DEFAULT_FLOOR = 0x1c1c1e;
 
-function getFloorHex(piso?: string): number {
-  switch (piso) {
-    case "Madeira Compensada": return 0x7c3a10;
-    case "Epóxi Industrial":   return 0x1e3a8a;
-    case "Porcelanato":        return 0x9ca3b0;
-    case "Cimento Queimado":   return 0x52525b;
-    default:                   return 0x1c1c1e;
-  }
+function hexStringToInt(hex: string | undefined, fallback: number): number {
+  if (!hex) return fallback;
+  const clean = hex.replace("#", "");
+  const parsed = parseInt(clean, 16);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 export default function ContainerVisualizer3D({
-  acabamento, piso, janelas = 0, temAC = false, temEletrica = false, step,
+  exteriorColor, interiorColor, floorColor, floorFinish, wallFinish,
+  janelas = 0, temAC = false, temEletrica = false, forceInteriorView,
 }: ContainerVisualizer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
@@ -111,7 +113,8 @@ export default function ContainerVisualizer3D({
     bumpMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     // ── Materials ──────────────────────────────────────────────────────────
-    const extHex = getExteriorHex(acabamento);
+    const extHex = hexStringToInt(exteriorColor, DEFAULT_EXTERIOR);
+    const intHex = hexStringToInt(interiorColor ?? exteriorColor, extHex);
 
     const side = new THREE.MeshPhysicalMaterial({
       color: extHex, bumpMap, bumpScale: 0.07,
@@ -146,14 +149,14 @@ export default function ContainerVisualizer3D({
     });
 
     const interiorWallMat = new THREE.MeshStandardMaterial({
-      color: extHex, roughness: 0.65, metalness: 0.25,
+      color: intHex, roughness: wallFinish?.roughness ?? 0.65, metalness: wallFinish?.metalness ?? 0.25,
       side: THREE.BackSide,
     });
     intWallMat.current = interiorWallMat;
 
-    const floorHex = getFloorHex(piso);
+    const floorHex = hexStringToInt(floorColor, DEFAULT_FLOOR);
     const floor = new THREE.MeshStandardMaterial({
-      color: floorHex, roughness: 0.78, metalness: 0.08,
+      color: floorHex, roughness: floorFinish?.roughness ?? 0.78, metalness: floorFinish?.metalness ?? 0.08,
     });
     floorMat.current = floor;
 
@@ -396,19 +399,33 @@ export default function ContainerVisualizer3D({
     };
   }, []); // build once
 
-  // ── Reactive: exterior + interior color ─────────────────────────────────
+  // ── Reactive: exterior color ─────────────────────────────────────────────
   useEffect(() => {
-    const hex = getExteriorHex(acabamento);
+    const hex = hexStringToInt(exteriorColor, DEFAULT_EXTERIOR);
     sideMat.current?.color.setHex(hex);
     frameMat.current?.color.setHex(hex);
     roofMat.current?.color.setHex(hex);
-    intWallMat.current?.color.setHex(hex); // interior walls mirror the paint
-  }, [acabamento]);
+  }, [exteriorColor]);
 
-  // ── Reactive: floor color ────────────────────────────────────────────────
+  // ── Reactive: interior wall color + finish (internal wall covering) ─────
   useEffect(() => {
-    floorMat.current?.color.setHex(getFloorHex(piso));
-  }, [piso]);
+    const fallback = hexStringToInt(exteriorColor, DEFAULT_EXTERIOR);
+    const hex = hexStringToInt(interiorColor ?? exteriorColor, fallback);
+    intWallMat.current?.color.setHex(hex);
+    if (intWallMat.current && wallFinish) {
+      intWallMat.current.roughness = wallFinish.roughness;
+      intWallMat.current.metalness = wallFinish.metalness;
+    }
+  }, [interiorColor, exteriorColor, wallFinish]);
+
+  // ── Reactive: floor color + finish ───────────────────────────────────────
+  useEffect(() => {
+    floorMat.current?.color.setHex(hexStringToInt(floorColor, DEFAULT_FLOOR));
+    if (floorMat.current && floorFinish) {
+      floorMat.current.roughness = floorFinish.roughness;
+      floorMat.current.metalness = floorFinish.metalness;
+    }
+  }, [floorColor, floorFinish]);
 
   // ── Reactive: AC ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -448,14 +465,11 @@ export default function ContainerVisualizer3D({
     });
   }, [janelas]);
 
-  // ── Reactive: auto-switch view per wizard step ───────────────────────────
+  // ── Reactive: auto-switch view when the caller says the interior is relevant ──
   useEffect(() => {
-    if (step === 2 || step === 3) {
-      setView("interior"); // Piso or Pintura → show cut-away so user sees changes
-    } else if (step !== undefined && step < 2) {
-      setView("exterior");
-    }
-  }, [step]);
+    if (forceInteriorView === undefined) return;
+    setView(forceInteriorView ? "interior" : "exterior");
+  }, [forceInteriorView]);
 
   // ── Reactive: view switch ────────────────────────────────────────────────
   useEffect(() => {
@@ -551,7 +565,7 @@ export default function ContainerVisualizer3D({
           {view === "interior" && (
             <div className="absolute top-2.5 left-1/2 -translate-x-1/2 pointer-events-none">
               <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">
-                Corte interior — pintura + piso em tempo real
+                Corte interior — pintura, piso e revestimento em tempo real
               </span>
             </div>
           )}
