@@ -783,7 +783,7 @@ export default function AdminPanel() {
   });
   const [newProjSpecs, setNewProjSpecs] = useState("");
 
-  const [newVideo, setNewVideo] = useState({ title: "", url: "", category: "Projeto finalizado", visible: true });
+  const [newVideo, setNewVideo] = useState({ title: "", url: "", thumbnail: "", category: "Projeto finalizado", visible: true });
   const [newFaqItem, setNewFaqItem] = useState({ question: "", answer: "", visible: true });
   const [newReview, setNewReview] = useState<Omit<EditableTestimonial, "id">>({
     name: "", cityOrCompany: "", content: "", image: "", rating: 5, visible: true
@@ -1139,6 +1139,12 @@ export default function AdminPanel() {
                 className="w-full bg-[#0F1115] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-[#FFD400] outline-none"
               />
             </div>
+            <ImageUploadField
+              label="Capa do Card (Thumbnail)"
+              value={item.thumbnail || ""}
+              onChange={(url) => editVideo(item.id, { thumbnail: url })}
+              folder="videos-capas"
+            />
             <VideoUploadField
               label="YouTube Embed Link, MP4 Link, ou Upload"
               value={item.url}
@@ -2666,6 +2672,13 @@ export default function AdminPanel() {
                     </div>
                   </div>
 
+                  <ImageUploadField
+                    label="Capa do Card (Thumbnail)"
+                    value={newVideo.thumbnail}
+                    onChange={(url) => setNewVideo({ ...newVideo, thumbnail: url })}
+                    folder="videos-capas"
+                  />
+
                   <VideoUploadField
                     label="YouTube ou MP4 Direto URL"
                     value={newVideo.url}
@@ -2677,7 +2690,7 @@ export default function AdminPanel() {
                     onClick={() => {
                       if (!newVideo.title || !newVideo.url) return;
                       addVideo({ ...newVideo });
-                      setNewVideo({ title: "", url: "", category: "Projeto finalizado", visible: true });
+                      setNewVideo({ title: "", url: "", thumbnail: "", category: "Projeto finalizado", visible: true });
                       triggerNotification("Vídeo de pátio adicionado com sucesso!");
                     }}
                     className="py-2.5 px-5 bg-[#FFD400] hover:bg-[#FF8A00] text-stone-950 font-black rounded-lg text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
