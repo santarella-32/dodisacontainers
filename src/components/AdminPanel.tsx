@@ -10,6 +10,7 @@ import {
 import { useAppContext, AppContext, EditableContainer, ProntaEntregaItem, EditableProject, EditableVideo, EditableFAQ, EditableTestimonial } from "../context/AppContext";
 import { getSupabase } from "../lib/supabase";
 import ImageUploadField from "./ImageUploadField";
+import VideoUploadField from "./VideoUploadField";
 import GaleriaImagens from "./GaleriaImagens";
 import Logo from "./Logo";
 import Hero from "./Hero";
@@ -1138,15 +1139,12 @@ export default function AdminPanel() {
                 className="w-full bg-[#0F1115] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-[#FFD400] outline-none"
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-stone-400 uppercase mb-1.5">YouTube Embed Link ou MP4 Link</label>
-              <input
-                type="text"
-                value={item.url}
-                onChange={(e) => editVideo(item.id, { url: e.target.value })}
-                className="w-full bg-[#0F1115] border border-white/10 rounded-xl p-3 text-xs text-stone-300 focus:border-[#FFD400] outline-none font-mono"
-              />
-            </div>
+            <VideoUploadField
+              label="YouTube Embed Link, MP4 Link, ou Upload"
+              value={item.url}
+              onChange={(url) => editVideo(item.id, { url })}
+              folder="videos"
+            />
           </div>
         );
       }
@@ -2645,7 +2643,7 @@ export default function AdminPanel() {
                 <div className="bg-[#171A21] border border-white/5 p-6 rounded-2xl space-y-4">
                   <span className="text-xs font-black text-[#FFD400] uppercase tracking-widest block border-b border-white/5 pb-2">Cadastrar Novo Vídeo de Operações</span>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
                     <div>
                       <label className="block text-stone-400 mb-1.5 uppercase font-medium">Título Descritivo</label>
                       <input
@@ -2666,17 +2664,14 @@ export default function AdminPanel() {
                         className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white"
                       />
                     </div>
-                    <div>
-                      <label className="block text-stone-400 mb-1.5 uppercase font-medium">YouTube ou MP4 Direto URL</label>
-                      <input
-                        type="text"
-                        placeholder="https://www.youtube.com/embed/..."
-                        value={newVideo.url}
-                        onChange={(e) => setNewVideo({ ...newVideo, url: e.target.value })}
-                        className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white font-mono"
-                      />
-                    </div>
                   </div>
+
+                  <VideoUploadField
+                    label="YouTube ou MP4 Direto URL"
+                    value={newVideo.url}
+                    onChange={(url) => setNewVideo({ ...newVideo, url })}
+                    folder="videos"
+                  />
 
                   <button
                     onClick={() => {
@@ -3974,12 +3969,11 @@ export default function AdminPanel() {
                         />
                       </div>
                       <div>
-                        <label className="block text-stone-400 mb-1.5 uppercase font-medium">Vetor / Vídeo Adicional (URL)</label>
-                        <input
-                          type="text"
+                        <VideoUploadField
+                          label="Vetor / Vídeo Adicional"
                           value={hero.videoUrl || ""}
-                          onChange={(e) => saveHero({ ...hero, videoUrl: e.target.value })}
-                          className="w-full bg-[#0F1115] border border-white/5 rounded-xl p-2.5 text-stone-300 font-mono transition-colors"
+                          onChange={(url) => saveHero({ ...hero, videoUrl: url })}
+                          folder="hero"
                         />
                       </div>
                       <div>
@@ -4733,12 +4727,11 @@ export default function AdminPanel() {
                         />
                       </div>
                       <div>
-                        <label className="block text-stone-400 mb-1 uppercase font-bold text-[10px] tracking-wider">Vetor / Modelo 3D (URL)</label>
-                        <input
-                          type="text"
+                        <VideoUploadField
+                          label="Vetor / Vídeo Adicional"
                           value={hero.videoUrl || ""}
-                          onChange={(e) => saveHero({ ...hero, videoUrl: e.target.value })}
-                          className="w-full bg-[#0F1115] border border-white/5 rounded-xl p-2.5 text-stone-300 text-xs font-mono focus:border-[#FFD400] outline-none"
+                          onChange={(url) => saveHero({ ...hero, videoUrl: url })}
+                          folder="hero"
                         />
                       </div>
                     </div>
