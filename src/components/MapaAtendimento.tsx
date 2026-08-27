@@ -323,6 +323,7 @@ export default function MapaAtendimento() {
   const [simContainerType, setSimContainerType] = useState<"20_dry" | "40_dry" | "20_reefer" | "40_hc_office">("20_dry");
   const [simDistance, setSimDistance] = useState<number>(350);
   const [showSimResult, setShowSimResult] = useState<boolean>(true);
+  const [simLocalSantaRosa, setSimLocalSantaRosa] = useState<boolean>(false);
 
   // Fetch contextual values from local AppContext (fully customizable by administrators)
   const contextStates = regions?.states || ["Rio Grande do Sul", "Santa Catarina", "Paraná", "São Paulo", "Minas Gerais"];
@@ -444,7 +445,8 @@ export default function MapaAtendimento() {
                   simContainerType === "40_dry" ? "Container 40 Pés Dry" :
                   simContainerType === "20_reefer" ? "Container 20 Pés Reefer" : "Módulo Escritório 40 Pés HC";
     
-    const message = `Olá, usei o Simulador Logístico Dodisa para projetar frete. Pretendo carregar um [${cType}] a uma distância aproximada de [${simDistance} km] a partir de Santa Rosa (RS). Poderiam formalizar esta cotação para minha região?`;
+    const locationStr = simLocalSantaRosa ? "dentro de Santa Rosa (RS)" : `a uma distância aproximada de [${simDistance} km] a partir de Santa Rosa (RS)`;
+    const message = `Olá, usei o Simulador Logístico Dodisa para projetar frete. Pretendo carregar um [${cType}] ${locationStr}. Poderiam formalizar esta cotação para minha região?`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/${systemWhatsapp.number}?text=${encoded}`, "_blank");
   };
@@ -472,17 +474,39 @@ export default function MapaAtendimento() {
 
   // Compute live simulated pricing based on simple logistics rules
   const getSimulatedPricing = () => {
+    const requiredTruck = simContainerType.includes("40") ? "Carreta Prancha de 12 metros rebaixada" : "Caminhão Truck equipado com Guincho Munck Hidráulico";
+
+    // Fixed local rates: Santa Rosa/RS (sede) e regiao proxima (ate 80km) tem preco
+    // fechado, independente do tipo de container -- fora dessa faixa, mantem o
+    // calculo por km + taxa de mobilizacao que ja existia.
+    if (simLocalSantaRosa) {
+      return {
+        cost: 1500,
+        time: "Mesmo dia útil",
+        insuranceCovered: Math.round(1500 * 150),
+        requiredTruck
+      };
+    }
+    if (simDistance <= 80) {
+      return {
+        cost: 3000,
+        time: "1 dia útil",
+        insuranceCovered: Math.round(3000 * 150),
+        requiredTruck
+      };
+    }
+
     const baseFreightRate = simContainerType.includes("40") ? 6.5 : 4.8; // Per km
     const mobilizationFee = simContainerType.includes("reefer") ? 750 : 350; // Special mobilization fee
     const estimatedCost = Math.round(simDistance * baseFreightRate + mobilizationFee);
     const minDays = Math.max(1, Math.ceil(simDistance / 400));
     const maxDays = minDays + 1;
-    
+
     return {
       cost: estimatedCost,
       time: `${minDays} a ${maxDays} dias úteis`,
       insuranceCovered: Math.round(estimatedCost * 150),
-      requiredTruck: simContainerType.includes("40") ? "Carreta Prancha de 12 metros rebaixada" : "Caminhão Truck equipado com Guincho Munck Hidráulico"
+      requiredTruck
     };
   };
 
@@ -1040,8 +1064,19 @@ export default function MapaAtendimento() {
                     </select>
                   </div>
 
+                  {/* Local Santa Rosa toggle */}
+                  <label className="flex items-center gap-2.5 p-3 rounded-xl bg-[#0F1115] border border-white/10 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={simLocalSantaRosa}
+                      onChange={(e) => setSimLocalSantaRosa(e.target.checked)}
+                      className="w-4 h-4 accent-[#FFD400] cursor-pointer"
+                    />
+                    <span className="text-[11px] font-bold text-white uppercase tracking-wide">Entrega dentro de Santa Rosa/RS</span>
+                  </label>
+
                   {/* Input 2 */}
-                  <div className="space-y-1.5">
+                  <div className={`space-y-1.5 transition-opacity ${simLocalSantaRosa ? "opacity-40 pointer-events-none" : ""}`}>
                     <div className="flex justify-between text-[10px] font-bold uppercase text-stone-400">
                       <span>Distância aproximada:</span>
                       <span className="text-[#FFD400] font-mono">{simDistance} km</span>
@@ -1053,6 +1088,7 @@ export default function MapaAtendimento() {
                       step="25"
                       value={simDistance}
                       onChange={(e) => setSimDistance(Number(e.target.value))}
+                      disabled={simLocalSantaRosa}
                       className="w-full accent-[#FFD400] cursor-pointer"
                     />
                     <div className="flex justify-between text-[9px] font-mono text-stone-600">
@@ -1060,6 +1096,9 @@ export default function MapaAtendimento() {
                       <span>750 km</span>
                       <span>1500 km</span>
                     </div>
+                    {!simLocalSantaRosa && simDistance <= 80 && (
+                      <p className="text-[9px] font-mono text-[#FFD400]/80 pt-0.5">Frete fechado até 80km: R$ 3.000</p>
+                    )}
                   </div>
 
                   <div className="pt-2">
@@ -1077,6 +1116,17 @@ export default function MapaAtendimento() {
                   <span className="block text-[10px] font-mono font-bold text-stone-500 uppercase tracking-widest">
                     PROJEÇÃO ESTIMATIVA DE TRÂNSITO
                   </span>
+
+                  {(simLocalSantaRosa || simDistance <= 80) && (
+                    <div className="bg-[#FFD400]/10 border border-[#FFD400]/30 p-3.5 rounded-xl">
+                      <span className="text-[9px] font-mono text-[#FFD400] block uppercase mb-0.5">
+                        {simLocalSantaRosa ? "FRETE FECHADO — SANTA ROSA/RS" : "FRETE FECHADO — ATÉ 80KM"}
+                      </span>
+                      <p className="text-white text-xl font-black font-display">
+                        R$ {simResult.cost.toLocaleString("pt-BR")}
+                      </p>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white/[0.01] p-3.5 border border-white/[0.02] rounded-xl">
