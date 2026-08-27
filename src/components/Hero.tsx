@@ -317,6 +317,7 @@ export default function Hero() {
             alt="Pátio Industrial de Containers Dodisa"
             className="w-full h-full object-cover object-center brightness-110"
             loading="eager"
+            fetchPriority="high"
             referrerPolicy="no-referrer"
           />
         </div>

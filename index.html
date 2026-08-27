@@ -19,11 +19,27 @@
     <meta name="twitter:image" content="https://dodisacontainers.com.br/link.png" />
     <link rel="preconnect" href="https://images.unsplash.com" />
     <link rel="preconnect" href="https://ngsntvffqivigpqpyqmf.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="dns-prefetch" href="//wa.me" />
     <link rel="dns-prefetch" href="//api.whatsapp.com" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+    <!--
+      Google Fonts, loaded non-blocking: previously this was a CSS @import inside
+      index.css, which chains a fetch behind index.css's own fetch (and behind the
+      fonts.googleapis.com response referencing fonts.gstatic.com) — 2 sequential
+      round trips that block first paint of the ENTIRE page, not just text. Loading
+      it as a preloaded stylesheet here lets the browser fetch it in parallel with
+      the JS/CSS bundles from the very start of HTML parsing, and the media="print"
+      trick keeps it from blocking render at all — text renders immediately in the
+      fallback font (see the font-family fallback stack in index.css) and swaps to
+      the webfont once it arrives (font-display=swap avoids invisible text either way).
+    -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;750;800;900&family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;750;800;900&family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@500;600;700&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;750;800;900&family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@500;600;700&display=swap" /></noscript>
   </head>
   <body>
     <div id="root"></div>

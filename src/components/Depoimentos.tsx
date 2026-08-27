@@ -113,7 +113,7 @@ export default function Depoimentos() {
               <div className="flex items-center gap-4 pt-6 border-t border-white/5">
                 <div className="w-12 h-12 rounded-full overflow-hidden border border-[#FFD400]/20 flex-shrink-0">
                   {active.image ? (
-                    <img src={active.image} alt={active.name} className="w-full h-full object-cover" />
+                    <img src={active.image} alt={active.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <InitialsAvatar name={active.name} size={48} />
                   )}
@@ -149,7 +149,7 @@ export default function Depoimentos() {
                   >
                     <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
                       {t.image ? (
-                        <img src={t.image} alt={t.name} className="w-full h-full object-cover" />
+                        <img src={t.image} alt={t.name} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <InitialsAvatar name={t.name} size={28} />
                       )}

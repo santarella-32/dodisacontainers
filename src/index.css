@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;750;800;900&family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+/* Google Fonts is loaded from index.html (non-blocking preload+swap), not here —
+   a CSS @import chains a same-blocking-priority fetch behind this stylesheet's own
+   fetch (index.css -> fonts.googleapis.com -> fonts.gstatic.com, 2 sequential
+   round trips) and delays first paint of the whole page until it resolves. */
 @import "tailwindcss";
 
 @theme {

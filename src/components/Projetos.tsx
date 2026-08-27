@@ -31,7 +31,7 @@ function BeforeAfterSlider({ before, after, alt }: { before?: string; after: str
       onPointerCancel={() => { dragging.current = false; }}
     >
       <img
-        src={after} alt={alt} draggable={false}
+        src={after} alt={alt} draggable={false} loading="lazy"
         className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
       />
       <div
@@ -40,13 +40,13 @@ function BeforeAfterSlider({ before, after, alt }: { before?: string; after: str
       >
         {before ? (
           <img
-            src={before} alt={`${alt} — Antes`} draggable={false}
+            src={before} alt={`${alt} — Antes`} draggable={false} loading="lazy"
             className="absolute inset-0 w-full h-full object-cover object-center"
           />
         ) : (
           <>
             <img
-              src={after} alt={`${alt} — Antes`} draggable={false}
+              src={after} alt={`${alt} — Antes`} draggable={false} loading="lazy"
               className="absolute inset-0 w-full h-full object-cover object-center brightness-50 grayscale"
             />
             <div className="absolute inset-0 flex items-center justify-center">
@@ -89,6 +89,7 @@ function DayNightOverlay({ nightImage, afterImage, alt }: { nightImage?: string;
             src={nightImage}
             alt={`${alt} — Noturno`}
             draggable={false}
+            loading="lazy"
             className="absolute inset-0 w-full h-full object-cover object-center"
           />
         ) : (
@@ -98,6 +99,7 @@ function DayNightOverlay({ nightImage, afterImage, alt }: { nightImage?: string;
               src={afterImage}
               alt={`${alt} — Noturno`}
               draggable={false}
+              loading="lazy"
               className="absolute inset-0 w-full h-full object-cover object-center brightness-[0.55] saturate-[0.6] hue-rotate-[200deg]"
             />
             <div className="absolute inset-0 bg-indigo-950/20" />
@@ -236,7 +238,7 @@ function GalleryLightbox({
                   i === idx ? "border-brand-yellow" : "border-zinc-700 opacity-60 hover:opacity-100"
                 }`}
               >
-                <img src={src} alt={`thumb ${i + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img src={src} alt={`thumb ${i + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" />
               </button>
             ))}
           </div>
