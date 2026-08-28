@@ -129,9 +129,14 @@ export default function LeafletMap({ selectedRouteId, onCityClick, baseLocation,
       center: [-20, -50], zoom: 4,
       zoomControl: false, attributionControl: false, scrollWheelZoom: false,
     });
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd", maxZoom: 19 }).addTo(map);
+    // CartoDB's free anonymous dark_all tiles now require an API key (their
+    // basemaps.cartocdn.com endpoint started returning a watermarked "API KEY
+    // REQUIRED" placeholder instead of real tiles). Standard OpenStreetMap
+    // tiles are still free/keyless and reliable — inverted via CSS below
+    // (.leaflet-tile-pane filter) to get the same dark aesthetic.
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { subdomains: "abc", maxZoom: 19 }).addTo(map);
     L.control.attribution({ position: "bottomright", prefix: "" })
-      .addAttribution('<span style="opacity:.25;font-size:9px">© CartoDB © OSM</span>').addTo(map);
+      .addAttribution('<span style="opacity:.25;font-size:9px">© OpenStreetMap</span>').addTo(map);
     L.control.zoom({ position: "topright" }).addTo(map);
     mapRef.current = map;
     return () => { map.remove(); mapRef.current = null; };
@@ -236,6 +241,10 @@ export default function LeafletMap({ selectedRouteId, onCityClick, baseLocation,
     <>
       <style>{`
         .leaflet-container { background: #07090D !important; }
+        /* Standard OSM tiles are light by default — invert then hue-rotate
+           back to restore natural-looking colors at inverted (dark)
+           lightness, giving a free dark map without a paid tile provider. */
+        .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.7); }
         .dodisa-route-anim { animation: dodisaDash 1.8s linear infinite; }
         @keyframes dodisaDash { from { stroke-dashoffset: 28; } to { stroke-dashoffset: 0; } }
 
