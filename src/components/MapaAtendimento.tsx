@@ -28,7 +28,8 @@ import {
   Box,
   TrendingUp,
   Activity,
-  Package
+  Package,
+  ChevronDown
 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 
@@ -293,6 +294,7 @@ export default function MapaAtendimento() {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState("");
   const [customDestination, setCustomDestination] = useState<{ lat: number; lng: number; label: string } | null>(null);
+  const [showAddressForm, setShowAddressForm] = useState(false);
 
   const handleAddressSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -645,20 +647,14 @@ export default function MapaAtendimento() {
                         </div>
 
                         {inCoverage ? (
-                          <div className="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10 text-xs text-stone-300 leading-relaxed flex gap-2.5 items-start">
-                            <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                            <div>
-                              <p className="text-white font-bold mb-1">Rota Comercial Homologada</p>
-                              <p className="text-stone-400">Atendimento ativo com frete assegurado e frota com rastreamento via satélite disponível para sua região.</p>
-                            </div>
+                          <div className="px-4 py-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 flex gap-2.5 items-center">
+                            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <p className="text-white text-xs font-bold">Rota Homologada <span className="text-stone-500 font-normal">— frete e rastreamento via satélite ativos</span></p>
                           </div>
                         ) : (
-                          <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/15 text-xs text-stone-300 leading-relaxed flex gap-2.5 items-start">
-                            <span className="text-amber-400 shrink-0 mt-0.5 text-sm leading-none">⚠</span>
-                            <div>
-                              <p className="text-white font-bold mb-1">Fora da área de cobertura padrão</p>
-                              <p className="text-stone-400">Sua região não está em nossa rota regular, mas atendemos sob consulta. Entre em contato para verificarmos viabilidade logística.</p>
-                            </div>
+                          <div className="px-4 py-3 bg-amber-500/5 rounded-xl border border-amber-500/15 flex gap-2.5 items-center">
+                            <span className="text-amber-400 shrink-0 text-sm leading-none">⚠</span>
+                            <p className="text-white text-xs font-bold">Fora da rota padrão <span className="text-stone-500 font-normal">— atendimento sob consulta</span></p>
                           </div>
                         )}
 
@@ -684,16 +680,14 @@ export default function MapaAtendimento() {
                   </AnimatePresence>
 
                   {regionStatus === "manual" && (
-                    <form onSubmit={handleManualSubmit} className="mt-4 pt-4 border-t border-white/5 space-y-3">
-                      <label className="block text-[9px] font-mono font-bold text-stone-500 uppercase tracking-wider">
-                        Escreva sua cidade e estado (Ex: Joinville - SC):
-                      </label>
+                    <form onSubmit={handleManualSubmit} className="mt-4 pt-4 border-t border-white/5 space-y-2.5">
                       <div className="flex gap-2">
                         <input
                           type="text"
                           required
+                          autoFocus
                           className="flex-grow py-2.5 px-3.5 rounded-xl bg-[#0F1115] border border-white/10 text-white text-xs placeholder-stone-600 focus:outline-none focus:border-[#FFD400]/40 transition-colors"
-                          placeholder="Ex: Joinville - SC"
+                          placeholder="Cidade - UF (ex: Joinville - SC)"
                           value={manualInput}
                           onChange={(e) => setManualInput(e.target.value)}
                         />
@@ -707,61 +701,82 @@ export default function MapaAtendimento() {
                       <button
                         onClick={() => setRegionStatus("detected")}
                         type="button"
-                        className="text-[9px] font-mono text-stone-500 hover:text-stone-300 transition-colors flex items-center gap-1.5 mt-2"
+                        className="text-[9px] font-mono text-stone-500 hover:text-stone-300 transition-colors flex items-center gap-1.5"
                       >
                         <RefreshCw className="w-3 h-3" />
-                        Usar geodetecção automática por IP
+                        Usar geodetecção automática
                       </button>
                     </form>
                   )}
 
                 </div>
 
-                {/* ── Ver minha rota até a Dodisa ── */}
-                <div className="bg-[#111827]/40 border border-[#FFD400]/10 p-5 rounded-2xl backdrop-blur-md relative overflow-hidden">
+                {/* ── Ver minha rota até a Dodisa (collapsible to save vertical space) ── */}
+                <div className="bg-[#111827]/40 border border-[#FFD400]/10 rounded-2xl backdrop-blur-md relative overflow-hidden">
                   <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#FFD400] to-[#FF9A00]" />
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#FFD400] flex items-center gap-1.5 mb-3">
-                    <Navigation className="w-3.5 h-3.5" /> Calcular Rota até Nós
-                  </span>
-                  <p className="text-[11px] text-stone-400 mb-3 leading-relaxed">
-                    Digite seu endereço e veja no mapa a rota real de entrega do container até você.
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddressForm((v) => !v)}
+                    className="w-full p-5 flex items-center justify-between gap-2 cursor-pointer"
+                  >
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#FFD400] flex items-center gap-1.5">
+                      <Navigation className="w-3.5 h-3.5" /> Calcular Rota até Nós
+                    </span>
+                    {customDestination && !showAddressForm ? (
+                      <span className="text-[10px] text-stone-400 font-bold truncate max-w-[130px]">{customDestination.label}</span>
+                    ) : (
+                      <ChevronDown className={`w-4 h-4 text-stone-500 transition-transform ${showAddressForm ? "rotate-180" : ""}`} />
+                    )}
+                  </button>
 
-                  <form onSubmit={handleAddressSearch} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={addressInput}
-                      onChange={(e) => setAddressInput(e.target.value)}
-                      placeholder="Ex: Av. Paulista 1000, São Paulo..."
-                      className="flex-1 py-2.5 px-3 rounded-xl bg-[#0F1115] border border-white/10 text-white text-xs placeholder-stone-600 focus:outline-none focus:border-[#FFD400]/40 transition-colors"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isGeocoding}
-                      className="py-2.5 px-3.5 bg-[#FFD400] hover:bg-[#FFE14D] disabled:opacity-50 text-stone-950 font-black text-[10px] uppercase rounded-xl transition-all cursor-pointer shrink-0"
-                    >
-                      {isGeocoding ? "..." : "Ver"}
-                    </button>
-                  </form>
-
-                  {geocodeError && (
-                    <p className="text-red-400 text-[10px] font-mono mt-2">{geocodeError}</p>
-                  )}
-
-                  {customDestination && (
-                    <div className="mt-3 p-3 bg-emerald-500/5 border border-emerald-500/15 rounded-xl flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-emerald-400 text-[9px] font-mono uppercase font-bold mb-0.5">Rota calculada</p>
-                        <p className="text-white text-[11px] font-bold leading-tight">{customDestination.label}</p>
-                      </div>
-                      <button
-                        onClick={handleClearRoute}
-                        className="text-stone-500 hover:text-white text-[10px] font-mono mt-0.5 shrink-0 cursor-pointer"
+                  <AnimatePresence>
+                    {(showAddressForm || customDestination) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
                       >
-                        ✕ Limpar
-                      </button>
-                    </div>
-                  )}
+                        <div className="px-5 pb-5">
+                          <form onSubmit={handleAddressSearch} className="flex gap-2">
+                            <input
+                              type="text"
+                              value={addressInput}
+                              onChange={(e) => setAddressInput(e.target.value)}
+                              placeholder="Seu endereço completo..."
+                              className="flex-1 py-2.5 px-3 rounded-xl bg-[#0F1115] border border-white/10 text-white text-xs placeholder-stone-600 focus:outline-none focus:border-[#FFD400]/40 transition-colors"
+                            />
+                            <button
+                              type="submit"
+                              disabled={isGeocoding}
+                              className="py-2.5 px-3.5 bg-[#FFD400] hover:bg-[#FFE14D] disabled:opacity-50 text-stone-950 font-black text-[10px] uppercase rounded-xl transition-all cursor-pointer shrink-0"
+                            >
+                              {isGeocoding ? "..." : "Ver"}
+                            </button>
+                          </form>
+
+                          {geocodeError && (
+                            <p className="text-red-400 text-[10px] font-mono mt-2">{geocodeError}</p>
+                          )}
+
+                          {customDestination && (
+                            <div className="mt-3 p-3 bg-emerald-500/5 border border-emerald-500/15 rounded-xl flex items-start justify-between gap-2">
+                              <div>
+                                <p className="text-emerald-400 text-[9px] font-mono uppercase font-bold mb-0.5">Rota calculada</p>
+                                <p className="text-white text-[11px] font-bold leading-tight">{customDestination.label}</p>
+                              </div>
+                              <button
+                                onClick={handleClearRoute}
+                                className="text-stone-500 hover:text-white text-[10px] font-mono mt-0.5 shrink-0 cursor-pointer"
+                              >
+                                ✕ Limpar
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Interactive Route Selection List with Status Details */}
@@ -830,7 +845,7 @@ export default function MapaAtendimento() {
               <div className="lg:col-span-7 flex flex-col gap-6">
                 
                 {/* Real Leaflet Map Container */}
-                <div className="bg-[#111827]/20 border border-white/5 rounded-2xl overflow-hidden shadow-xl relative" style={{ minHeight: "440px" }}>
+                <div className="bg-[#111827]/20 border border-white/5 rounded-2xl overflow-hidden shadow-xl relative" style={{ minHeight: "500px" }}>
 
                   {/* Status overlay */}
                   <div className="absolute top-3 left-3 z-[1000] text-[9px] font-mono text-stone-400 space-y-0.5 pointer-events-none">
@@ -858,11 +873,11 @@ export default function MapaAtendimento() {
 
                   {/* Leaflet Map */}
                   <Suspense fallback={
-                    <div className="w-full h-full flex items-center justify-center bg-[#07090D]" style={{ minHeight: "440px" }}>
+                    <div className="w-full h-full flex items-center justify-center bg-[#07090D]" style={{ minHeight: "500px" }}>
                       <div className="text-[#FFD400] text-xs font-mono animate-pulse">Carregando mapa...</div>
                     </div>
                   }>
-                    <div style={{ height: "440px" }}>
+                    <div style={{ height: "500px" }}>
                       <LeafletMap
                         selectedRouteId={selectedRouteId}
                         onCityClick={(routeId) => { setSelectedRouteId(routeId); handleClearRoute(); }}
@@ -883,8 +898,8 @@ export default function MapaAtendimento() {
                 </div>
 
                 {/* Live Specifications Panel for Selected Roda */}
-                <div className="bg-[#111827]/40 border border-white/5 p-6 rounded-2xl relative shadow-xl overflow-hidden">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4 mb-4">
+                <div className="bg-[#111827]/40 border border-white/5 p-5 rounded-2xl relative shadow-xl overflow-hidden">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-3 mb-3">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-[#FFD400]/10 text-[#FFD400] rounded-xl border border-[#FFD400]/20">
                         <Building className="w-5 h-5" />
@@ -905,7 +920,7 @@ export default function MapaAtendimento() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs mb-3">
                     <div className="bg-black/30 p-3.5 rounded-xl border border-white/[0.03]">
                       <span className="text-[9px] font-mono text-stone-500 block uppercase mb-1">DISTÂNCIA TOTAL</span>
                       <p className="text-white font-extrabold text-sm">{activeRoute.distance}</p>
@@ -922,17 +937,19 @@ export default function MapaAtendimento() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-black/40 rounded-xl border border-white/5 text-xs text-stone-300 leading-relaxed mb-4">
-                    <span className="text-[9px] font-mono text-stone-500 uppercase font-black block mb-1">VISÃO GERAL DO TRAJETO</span>
+                  <div className="p-4 bg-black/40 rounded-xl border border-white/5 text-xs text-stone-300 leading-relaxed mb-3">
                     <p className="text-stone-300 font-semibold mb-1 italic text-[11px] text-[#FFD400]/90">"{activeRoute.vibe}"</p>
                     <p className="text-stone-400 font-medium leading-relaxed">{activeRoute.description}</p>
                   </div>
 
                   <div className="p-4 bg-[#FFD400]/5 border border-[#FFD400]/10 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <span className="text-[9px] font-mono text-[#FFD400] font-black uppercase tracking-wider block mb-1">Cidades Homologadas no Trajeto:</span>
+                      <span className="text-[9px] font-mono text-[#FFD400] font-black uppercase tracking-wider block mb-1">Cidades Homologadas:</span>
                       <p className="text-[11px] text-stone-300 leading-normal font-medium">
-                        {activeRoute.citiesCovered.join(" • ")}
+                        {activeRoute.citiesCovered.slice(0, 5).join(" • ")}
+                        {activeRoute.citiesCovered.length > 5 && (
+                          <span className="text-stone-500"> +{activeRoute.citiesCovered.length - 5} cidades</span>
+                        )}
                       </p>
                     </div>
                     <button
@@ -967,7 +984,7 @@ export default function MapaAtendimento() {
                 </h3>
                 
                 <p className="text-stone-400 text-xs sm:text-sm leading-relaxed mb-6 font-sans">
-                  A entrega de um contêiner exige frotas projetadas especificamente para vencer os limites de peso e manobras extremas. A Dodisa possui caminhões modernos e maquinário articulado, garantindo descarga precisa, rápida e segura em qualquer canteiro, terreno arenoso ou propriedade urbana.
+                  Caminhões e maquinário articulado próprios para peso e manobras extremas — descarga precisa e segura em qualquer canteiro ou terreno.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
