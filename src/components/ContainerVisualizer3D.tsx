@@ -15,13 +15,14 @@ export interface ContainerVisualizer3DProps {
   /** Optional roughness/metalness hints from the selected floor/internal-wall material. */
   floorFinish?: MaterialFinish;
   wallFinish?: MaterialFinish;
-  janelas?: number;
   temAC?: boolean;
   temEletrica?: boolean;
   /** When true, switches to the interior cut-away view (e.g. while picking floor/wall/paint). */
   forceInteriorView?: boolean;
   /** One entry per selected door, positioned on the matching exterior wall. */
   doorPanels?: { color: string; position: "front" | "back" | "left" | "right" }[];
+  /** One entry per selected window — typeId drives distinct size/shape (standard/sliding/panoramic/louvered). */
+  windowPanels?: { typeId: string; color: string; position: "front" | "back" | "left" | "right" }[];
   /** Selected extra ids (e.g. "bancada", "armarios") — toggles simple interior furniture blocks. */
   extras?: string[];
 }
@@ -38,8 +39,8 @@ function hexStringToInt(hex: string | undefined, fallback: number): number {
 
 export default function ContainerVisualizer3D({
   exteriorColor, interiorColor, floorColor, floorFinish, wallFinish,
-  janelas = 0, temAC = false, temEletrica = false, forceInteriorView,
-  doorPanels = [], extras = [],
+  temAC = false, temEletrica = false, forceInteriorView,
+  doorPanels = [], windowPanels = [], extras = [],
 }: ContainerVisualizer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
@@ -286,7 +287,7 @@ export default function ContainerVisualizer3D({
     group.add(ledLight);
     ledLightRef.current = ledLight;
 
-    // ── Windows group (populated reactively via janelas effect) ────────────
+    // ── Windows group (populated reactively via windowPanels effect) ───────
     const winGroup = new THREE.Group();
     winGroup.name = "windows";
     windowsGroupRef.current = winGroup;
@@ -457,32 +458,125 @@ export default function ContainerVisualizer3D({
     if (ledLightRef.current) ledLightRef.current.intensity = temEletrica ? 1.8 : 0;
   }, [temEletrica]);
 
-  // ── Reactive: windows ────────────────────────────────────────────────────
+  // ── Reactive: windows — each catalog type gets its own realistic size/shape ──
+  // instead of every window rendering as the same generic frame+pane.
   useEffect(() => {
     const winGroup = windowsGroupRef.current;
     if (!winGroup) return;
-    // Clear existing windows
+    // Windows are now built as small Groups (frame + panes + sill), not single
+    // Meshes, so disposal has to walk each subtree rather than assume Mesh.
     while (winGroup.children.length > 0) {
-      const child = winGroup.children[0] as THREE.Mesh;
+      const child = winGroup.children[0];
       winGroup.remove(child);
-      child.geometry?.dispose();
+      child.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        mesh.geometry?.dispose();
+        if (Array.isArray(mesh.material)) mesh.material.forEach((m) => m.dispose());
+        else mesh.material?.dispose();
+      });
     }
-    if (!janelas || janelas <= 0) return;
-    const CD = 1.62;
-    const wFrameG = new THREE.BoxGeometry(0.40, 0.30, 0.04);
-    const wGlassG = new THREE.BoxGeometry(0.32, 0.22, 0.02);
-    const wFrameM = new THREE.MeshStandardMaterial({ color: 0x8898aa, roughness: 0.3, metalness: 0.7 });
-    const wGlassM = new THREE.MeshStandardMaterial({ color: 0x88ccff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.45 });
-    const xPositions = [0.8, 0.0, -0.8, 1.6].slice(0, janelas);
-    xPositions.forEach(xp => {
-      const wf = new THREE.Mesh(wFrameG, wFrameM);
-      wf.position.set(xp, 0.2, CD / 2 + 0.015);
-      winGroup.add(wf);
-      const wg = new THREE.Mesh(wGlassG.clone(), wGlassM);
-      wg.position.set(xp, 0.2, CD / 2 + 0.026);
-      winGroup.add(wg);
+    if (windowPanels.length === 0) return;
+
+    const CW = 4.14, CD = 1.62;
+    const frameM = new THREE.MeshStandardMaterial({ color: 0x8898aa, roughness: 0.3, metalness: 0.7 });
+    const sillM = new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.45, metalness: 0.5 });
+
+    // Per-type footprint (width x height, meters) + divider style — sized to
+    // actually read as different window products, not the same box reused.
+    const SPECS: Record<string, { w: number; h: number; style: "cross" | "slide" | "panoramic" | "louver" }> = {
+      standard:  { w: 0.42, h: 0.32, style: "cross" },
+      sliding:   { w: 0.68, h: 0.36, style: "slide" },
+      panoramic: { w: 1.05, h: 0.50, style: "panoramic" },
+      louvered:  { w: 0.42, h: 0.28, style: "louver" },
+    };
+
+    const y = 0.18;
+
+    function buildWindow(color: string, typeId: string): THREE.Group {
+      const spec = SPECS[typeId] ?? SPECS.standard;
+      const glassM = new THREE.MeshStandardMaterial({
+        color: hexStringToInt(color, 0x88ccff), roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.42,
+      });
+      const g = new THREE.Group();
+
+      // Outer frame (slightly larger than the glass, sits proud of the wall)
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(spec.w + 0.05, spec.h + 0.05, 0.045), frameM);
+      g.add(frame);
+
+      if (spec.style === "panoramic") {
+        // Minimal frame, near-edge-to-edge glass, one thin horizontal transom.
+        const glass = new THREE.Mesh(new THREE.BoxGeometry(spec.w, spec.h, 0.02), glassM);
+        glass.position.z = 0.014;
+        g.add(glass);
+        const transom = new THREE.Mesh(new THREE.BoxGeometry(spec.w, 0.02, 0.03), frameM);
+        transom.position.set(0, 0, 0.02);
+        g.add(transom);
+      } else if (spec.style === "slide") {
+        // Two panes side by side with a slightly raised center rail (the track).
+        const paneW = spec.w / 2 - 0.02;
+        [-1, 1].forEach((side) => {
+          const glass = new THREE.Mesh(new THREE.BoxGeometry(paneW, spec.h - 0.05, 0.02), glassM);
+          glass.position.set((side * (paneW / 2 + 0.02)), 0, 0.014);
+          g.add(glass);
+        });
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.03, spec.h, 0.05), frameM);
+        rail.position.z = 0.02;
+        g.add(rail);
+      } else if (spec.style === "louver") {
+        // Horizontal glass slats (awning-style), matching the "louvered" swatch look.
+        const slats = 4;
+        const slatH = (spec.h - 0.04) / slats;
+        for (let i = 0; i < slats; i++) {
+          const slat = new THREE.Mesh(new THREE.BoxGeometry(spec.w - 0.05, slatH - 0.01, 0.02), glassM);
+          slat.position.set(0, spec.h / 2 - slatH * (i + 0.5) - 0.02, 0.014 + (i % 2) * 0.006);
+          slat.rotation.x = 0.12;
+          g.add(slat);
+        }
+      } else {
+        // "standard": single fixed pane with a cross divider.
+        const glass = new THREE.Mesh(new THREE.BoxGeometry(spec.w - 0.06, spec.h - 0.06, 0.02), glassM);
+        glass.position.z = 0.014;
+        g.add(glass);
+        const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.02, spec.h - 0.05, 0.03), frameM);
+        vBar.position.z = 0.018;
+        g.add(vBar);
+        const hBar = new THREE.Mesh(new THREE.BoxGeometry(spec.w - 0.05, 0.02, 0.03), frameM);
+        hBar.position.z = 0.018;
+        g.add(hBar);
+      }
+
+      // Sill ledge along the bottom edge.
+      const sill = new THREE.Mesh(new THREE.BoxGeometry(spec.w + 0.09, 0.025, 0.09), sillM);
+      sill.position.set(0, -spec.h / 2 - 0.02, 0.02);
+      g.add(sill);
+
+      return g;
+    }
+
+    // Group selections by wall so multiple windows on the same wall spread out
+    // along it instead of stacking at the same spot.
+    const byWall = new Map<string, typeof windowPanels>();
+    windowPanels.forEach((w) => {
+      const list = byWall.get(w.position) ?? [];
+      list.push(w);
+      byWall.set(w.position, list);
     });
-  }, [janelas]);
+
+    byWall.forEach((items, position) => {
+      const isSide = position === "left" || position === "right";
+      const wallLen = isSide ? CD : CW;
+      const spacing = Math.min(wallLen / (items.length + 1), 1.3);
+      items.forEach((item, i) => {
+        const offset = (i - (items.length - 1) / 2) * spacing;
+        const win = buildWindow(item.color, item.typeId);
+        if (position === "front") { win.position.set(offset, y, CD / 2 + 0.02); }
+        else if (position === "back") { win.position.set(offset, y, -(CD / 2 + 0.02)); win.rotation.y = Math.PI; }
+        else if (position === "left") { win.position.set(-(CW / 2 + 0.02), y, offset); win.rotation.y = -Math.PI / 2; }
+        else { win.position.set(CW / 2 + 0.02, y, offset); win.rotation.y = Math.PI / 2; }
+        winGroup.add(win);
+      });
+    });
+  }, [windowPanels]);
 
   // ── Reactive: door panels (one mesh per selected door × wall position) ──
   useEffect(() => {
