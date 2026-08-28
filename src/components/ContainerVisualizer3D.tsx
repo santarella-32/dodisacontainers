@@ -544,25 +544,29 @@ export default function ContainerVisualizer3D({
     const darkMat = new THREE.MeshStandardMaterial({ color: 0x2b2f36, roughness: 0.6, metalness: 0.2 });
     const floorY = -CH / 2 + 0.02;
 
-    if (has("bancada")) {
-      const top = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.05, 0.45), woodMat);
-      top.position.set(-CW / 2 + 0.75, floorY + 0.42, -CD / 2 + 0.30);
-      const legGeo = new THREE.BoxGeometry(0.04, 0.40, 0.04);
-      [[-0.6, -0.18], [0.6, -0.18], [-0.6, 0.18], [0.6, 0.18]].forEach(([dx, dz]) => {
-        const leg = new THREE.Mesh(legGeo, metalMat);
-        leg.position.set(-CW / 2 + 0.75 + dx, floorY + 0.20, -CD / 2 + 0.30 + dz);
-        furnitureGroup.add(leg);
-      });
-      furnitureGroup.add(top);
-    }
+    // Fixed floor-plan zones (X = width -2.07..2.07, Z = depth -0.81 back-wall
+    // .. +0.81 door-side). Each item's footprint is reserved with a clear
+    // margin from its neighbors so any combination of extras can be selected
+    // together without pieces colliding — verified by hand below, not just
+    // "looks ok in one combination".
+    //
+    //  X:  -2.07        -1.9   -1.4          -1.0    -0.1  0.7            2.0   2.07
+    //      |  ARMÁRIOS    |     |  PRATELEIRAS  |      | BANCADA           |     |
+    //      |  (back wall, z≈-0.62)              |      | (back wall, z≈-0.58)    |
+    //
+    //  MOBILIÁRIO-GERAL sits mid-room, pulled toward the door (z≈0.25) — clear
+    //  of the whole back-wall row by z, regardless of x overlap with it.
+    //  DIVISÓRIAS is a short partition near the right wall, door-side (z≈0.35)
+    //  — clear of bancada (which stays z≤-0.35) and of the table (x≤-0.25).
 
     if (has("armarios")) {
       const cab = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.05, 0.35), woodMat);
-      cab.position.set(CW / 2 - 0.32, floorY + 0.525, -CD / 2 + 0.20);
+      cab.position.set(-1.65, floorY + 0.525, -0.62);
+      cab.castShadow = true;
       furnitureGroup.add(cab);
       for (let i = 1; i < 3; i++) {
         const line = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.006, 0.02), darkMat);
-        line.position.set(CW / 2 - 0.32, floorY + i * 0.33, -CD / 2 + 0.375);
+        line.position.set(-1.65, floorY + i * 0.33, -0.62 + 0.175);
         furnitureGroup.add(line);
       }
     }
@@ -571,32 +575,52 @@ export default function ContainerVisualizer3D({
       const shelfGeo = new THREE.BoxGeometry(0.9, 0.03, 0.25);
       [0.35, 0.65, 0.95].forEach((h) => {
         const shelf = new THREE.Mesh(shelfGeo, woodMat);
-        shelf.position.set(0.1, floorY + h, -CD / 2 + 0.14);
+        shelf.position.set(-0.55, floorY + h, -0.65);
+        shelf.castShadow = true;
         furnitureGroup.add(shelf);
       });
     }
 
-    if (has("divisorias")) {
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(0.04, CH - 0.06, CD * 0.6), new THREE.MeshStandardMaterial({ color: 0xd8dce1, roughness: 0.55, metalness: 0.1 }));
-      wall.position.set(0.35, 0, -CD * 0.15);
-      furnitureGroup.add(wall);
+    if (has("bancada")) {
+      const top = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.05, 0.45), woodMat);
+      top.position.set(1.35, floorY + 0.42, -0.58);
+      top.castShadow = true;
+      const legGeo = new THREE.BoxGeometry(0.04, 0.40, 0.04);
+      [[-0.6, -0.18], [0.6, -0.18], [-0.6, 0.18], [0.6, 0.18]].forEach(([dx, dz]) => {
+        const leg = new THREE.Mesh(legGeo, metalMat);
+        leg.position.set(1.35 + dx, floorY + 0.20, -0.58 + dz);
+        furnitureGroup.add(leg);
+      });
+      furnitureGroup.add(top);
     }
 
     if (has("mobiliario-geral")) {
       const table = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.04, 0.7), woodMat);
-      table.position.set(-0.2, floorY + 0.36, 0.25);
+      table.position.set(-0.6, floorY + 0.36, 0.25);
+      table.castShadow = true;
       const tLegGeo = new THREE.BoxGeometry(0.04, 0.34, 0.04);
       [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]].forEach(([dx, dz]) => {
         const leg = new THREE.Mesh(tLegGeo, metalMat);
-        leg.position.set(-0.2 + dx, floorY + 0.17, 0.25 + dz);
+        leg.position.set(-0.6 + dx, floorY + 0.17, 0.25 + dz);
         furnitureGroup.add(leg);
       });
       furnitureGroup.add(table);
-      [[-0.55, 0.55], [0.15, 0.55]].forEach(([sx, sz]) => {
+      [[-0.95, 0.55], [-0.25, 0.55]].forEach(([sx, sz]) => {
         const seat = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.05, 0.32), darkMat);
         seat.position.set(sx, floorY + 0.24, sz);
+        seat.castShadow = true;
         furnitureGroup.add(seat);
       });
+    }
+
+    if (has("divisorias")) {
+      const wall = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, CH - 0.06, 0.5),
+        new THREE.MeshStandardMaterial({ color: 0xd8dce1, roughness: 0.55, metalness: 0.1 }),
+      );
+      wall.position.set(1.6, 0, 0.35);
+      wall.castShadow = true;
+      furnitureGroup.add(wall);
     }
   }, [extras]);
 
