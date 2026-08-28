@@ -36,14 +36,14 @@ export default function FAQInteligente() {
           className="text-center max-w-3xl mx-auto mb-16"
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-yellow/10 border border-brand-yellow/20 text-[10px] font-mono font-black text-brand-yellow uppercase tracking-widest mb-4">
-            ENGENHARIA INTEGRADA RESOLVIDA
+            ENGENHARIA INTEGRADA E PROJETOS
           </div>
           <h2 className="text-3xl sm:text-5xl font-black font-display uppercase tracking-tight text-white leading-none">
-            Central de <span className="text-brand-yellow">Inteligência</span> Técnica
+            Central de <span className="text-brand-yellow">Atendimentos</span>, tire sua dúvida
           </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
-            Transparência absoluta. Respostas diretas da nossa engenharia sobre conformidade legal, eficiência térmica e mobilização de frotas.
+            Separamos as perguntas que mais recebemos no dia a dia. Não achou a sua aqui? Chama a gente no WhatsApp que a resposta é rápida.
           </p>
         </motion.div>
 

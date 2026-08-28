@@ -535,7 +535,7 @@ export default function MapaAtendimento() {
             RASTREAMENTO & REDE DE <span className="text-[#FFD400]">COBERTURA</span>
           </h2>
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed">
-            Consulte nossas principais rotas comerciais terrestres integradas diretamente ao pátio Dodisa em Santa Rosa (RS). Despachamos containers de alta performance e projetos modulares personalizados para todo o território nacional através de frotas credenciadas e monitoramento satelital ininterrupto.
+            Veja as principais rotas que saem do nosso pátio em Santa Rosa (RS). Entregamos containers e projetos modulares em todo o Brasil, com frota própria e rastreamento em tempo real — dá pra acompanhar tudo até chegar no seu endereço.
           </p>
         </div>
 
