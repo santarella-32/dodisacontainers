@@ -4952,8 +4952,13 @@ export default function AdminPanel() {
                   </div>
                 )}
 
-                {drawerSection === "projects" && (
+                {(drawerSection === "projects" || drawerSection === "gallery") && (
                   <div className="space-y-3">
+                    <p className="text-stone-500 text-[10px] leading-relaxed -mt-1">
+                      {drawerSection === "gallery"
+                        ? "A Galeria de Projetos mostra os mesmos projetos cadastrados abaixo, só que em grade filtrável por categoria."
+                        : null}
+                    </p>
                     {projects.map((p) => (
                       <DrawerListCard key={p.id} title={p.title || "Projeto"} onDelete={() => deleteProject(p.id)}>
                         <DrawerField label="Título" value={p.title} onChange={(v) => editProject(p.id, { title: v })} />
@@ -5207,12 +5212,6 @@ export default function AdminPanel() {
                         <Plus className="w-3.5 h-3.5" /> Adicionar Categoria
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {(drawerSection === "gallery") && (
-                  <div className="-m-6">
-                    <GaleriaImagens triggerNotification={triggerNotification} />
                   </div>
                 )}
 

@@ -96,7 +96,7 @@ export default function GaleriaProjetos() {
                 {/* Photo frame with modern zoom filter */}
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-950">
                   <img
-                    src={proj.image}
+                    src={proj.imageAfter}
                     alt={proj.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     referrerPolicy="no-referrer"

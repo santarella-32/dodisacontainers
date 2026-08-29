@@ -304,7 +304,7 @@ export default function MapaAtendimento() {
     setCustomDestination(null);
     const result = await geocodeAddress(addressInput.trim());
     setIsGeocoding(false);
-    if (!result) {
+    if (!result || !Number.isFinite(result.lat) || !Number.isFinite(result.lng)) {
       setGeocodeError("Endereço não encontrado. Tente ser mais específico.");
       return;
     }

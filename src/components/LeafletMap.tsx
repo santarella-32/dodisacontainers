@@ -56,6 +56,14 @@ interface RouteResult {
   geometry: [number, number][];
 }
 
+// Falls back to the Santa Rosa hub whenever the stored base location has an
+// invalid (non-finite) lat/lng — e.g. a failed geocode saved through the admin
+// editor — so Leaflet never gets handed NaN and crashes flyToBounds/fitBounds.
+function safeBaseCoords(loc: BaseLocation): [number, number] {
+  if (Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) return [loc.lat, loc.lng];
+  return [-27.872, -54.481];
+}
+
 export interface LeafletMapProps {
   selectedRouteId: string;
   onCityClick?: (routeId: string) => void;
@@ -155,7 +163,7 @@ export default function LeafletMap({ selectedRouteId, onCityClick, baseLocation,
     setRouteInfo(null);
     setRouteError(false);
 
-    const base: [number, number] = [baseLocation.lat, baseLocation.lng];
+    const base: [number, number] = safeBaseCoords(baseLocation);
     const dest: [number, number] = [customDestination.lat, customDestination.lng];
 
     // Draw hub marker
@@ -231,7 +239,7 @@ export default function LeafletMap({ selectedRouteId, onCityClick, baseLocation,
       }
     });
 
-    const base: [number, number] = [baseLocation.lat, baseLocation.lng];
+    const base: [number, number] = safeBaseCoords(baseLocation);
     const bounds = L.latLngBounds([base, ...coords]);
     if (isFirstRender.current) { map.fitBounds(bounds, { padding: [52,52], maxZoom: 7 }); isFirstRender.current = false; }
     else map.flyToBounds(bounds, { padding: [52,52], maxZoom: 7, duration: 1.2 });
