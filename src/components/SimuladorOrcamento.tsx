@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import ContainerConfigurator from "./configurator/ContainerConfigurator";
+import MaterialsCatalog from "./MaterialsCatalog";
 
 // "Monte seu Container" — section shell. All configurator logic/state lives in
 // ./configurator (ContainerConfigurator + its steps/data), split out per the
@@ -27,6 +28,7 @@ export default function SimuladorOrcamento() {
         </p>
       </motion.div>
 
+      <MaterialsCatalog />
       <ContainerConfigurator />
     </section>
   );

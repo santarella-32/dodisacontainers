@@ -72,6 +72,22 @@ export default function ContainerConfigurator() {
     return () => window.removeEventListener("location-detected", handler);
   }, []);
 
+  // Lets the "Catálogo de Materiais" showcase (MaterialsCatalog.tsx) jump the
+  // wizard straight to a given step when a photo card is clicked — same
+  // cross-component event pattern as the GPS auto-detect above.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ev = e as CustomEvent<{ step: StepId }>;
+      const step = ev.detail?.step;
+      if (!step) return;
+      if (!config.mode) dispatch({ type: "SET_MODE", mode: "custom" });
+      setDir(1);
+      setCurrentStepId(step);
+    };
+    window.addEventListener("configurator-jump-step", handler);
+    return () => window.removeEventListener("configurator-jump-step", handler);
+  }, [config.mode]);
+
   const stepOrder = getStepOrder(config.mode);
   const stepIndex = currentStepId ? stepOrder.indexOf(currentStepId) : -1;
 
