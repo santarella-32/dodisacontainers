@@ -4,9 +4,12 @@ import { ChevronDown } from "lucide-react";
 import { EXTRA_CATEGORIES, PURPOSE_MAP } from "../../../data/materials";
 import type { ContainerConfig } from "../types";
 import type { Action } from "../reducer";
+import { useAppContext, applyMaterialImageOverrides } from "../../../context/AppContext";
 import IconCard from "../IconCard";
 
 export default function StepExtras({ config, dispatch }: { config: ContainerConfig; dispatch: (a: Action) => void }) {
+  const { materialImages } = useAppContext();
+  const categories = EXTRA_CATEGORIES.map((cat) => ({ ...cat, items: applyMaterialImageOverrides(cat.items, materialImages) }));
   const [open, setOpen] = useState<Set<string>>(new Set([EXTRA_CATEGORIES[0]?.id]));
   const recommended = config.purpose ? PURPOSE_MAP.get(config.purpose)?.recommended.extraIds ?? [] : [];
 
@@ -24,7 +27,7 @@ export default function StepExtras({ config, dispatch }: { config: ContainerConf
       <p className="text-zinc-500 text-xs mb-6">Complementos organizados por categoria — tudo opcional</p>
 
       <div className="space-y-2.5">
-        {EXTRA_CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isOpen = open.has(cat.id);
           const selectedCount = cat.items.filter((i) => config.extras.includes(i.id)).length;
           return (
@@ -59,6 +62,7 @@ export default function StepExtras({ config, dispatch }: { config: ContainerConf
                         <IconCard
                           key={item.id}
                           icon={item.icon!}
+                          thumbnail={item.thumbnail}
                           name={item.name}
                           sub={item.shortDescription}
                           selected={config.extras.includes(item.id)}

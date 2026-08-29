@@ -1,9 +1,13 @@
 import { DOOR_TYPES, WINDOW_TYPES } from "../../../data/materials";
 import type { ContainerConfig } from "../types";
 import type { Action } from "../reducer";
+import { useAppContext, applyMaterialImageOverrides } from "../../../context/AppContext";
 import OpeningCard from "../OpeningCard";
 
 export default function StepDoorsWindows({ config, dispatch }: { config: ContainerConfig; dispatch: (a: Action) => void }) {
+  const { materialImages } = useAppContext();
+  const doorTypes = applyMaterialImageOverrides(DOOR_TYPES, materialImages);
+  const windowTypes = applyMaterialImageOverrides(WINDOW_TYPES, materialImages);
   return (
     <div>
       <h3 className="text-white font-black text-xl uppercase tracking-tight mb-1">Portas e janelas</h3>
@@ -11,7 +15,7 @@ export default function StepDoorsWindows({ config, dispatch }: { config: Contain
 
       <p className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest mb-2.5">Portas</p>
       <div className="space-y-2 mb-6">
-        {DOOR_TYPES.map((item) => {
+        {doorTypes.map((item) => {
           const selection = config.doors.find((d) => d.typeId === item.id);
           return (
             <OpeningCard
@@ -28,7 +32,7 @@ export default function StepDoorsWindows({ config, dispatch }: { config: Contain
 
       <p className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest mb-2.5">Janelas</p>
       <div className="space-y-2">
-        {WINDOW_TYPES.map((item) => {
+        {windowTypes.map((item) => {
           const selection = config.windows.find((w) => w.typeId === item.id);
           return (
             <OpeningCard

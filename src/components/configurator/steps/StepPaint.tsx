@@ -3,12 +3,15 @@ import { PAINT_COLORS, PURPOSE_MAP } from "../../../data/materials";
 import type { ContainerConfig } from "../types";
 import type { Action } from "../reducer";
 import type { MaterialItem } from "../../../data/materials/types";
+import { useAppContext, applyMaterialImageOverrides } from "../../../context/AppContext";
 import MaterialGrid from "../MaterialGrid";
 import MaterialDetails from "../MaterialDetails";
 
 type Target = "external" | "internal";
 
 export default function StepPaint({ config, dispatch }: { config: ContainerConfig; dispatch: (a: Action) => void }) {
+  const { materialImages } = useAppContext();
+  const paintColors = applyMaterialImageOverrides(PAINT_COLORS, materialImages);
   const [target, setTarget] = useState<Target>("external");
   const [detailsItem, setDetailsItem] = useState<MaterialItem | null>(null);
 
@@ -52,7 +55,7 @@ export default function StepPaint({ config, dispatch }: { config: ContainerConfi
       </div>
 
       <MaterialGrid
-        items={PAINT_COLORS}
+        items={paintColors}
         selectedId={selection?.colorId ?? null}
         recommendedId={recommendedId}
         onSelect={handleSelect}

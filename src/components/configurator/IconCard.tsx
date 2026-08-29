@@ -6,7 +6,7 @@ import QuantitySelector from "./QuantitySelector";
 /** Compact icon-based card for electrical / climate / extras / purpose items
  * — section 15-17 call these "cards compactos" rather than texture swatches. */
 export default function IconCard({
-  icon: Icon, name, sub, selected, recommended, onToggle, quantity, onQuantityChange, compact, disabled,
+  icon: Icon, name, sub, selected, recommended, onToggle, quantity, onQuantityChange, compact, disabled, thumbnail,
 }: {
   icon: LucideIcon;
   name: string;
@@ -18,6 +18,8 @@ export default function IconCard({
   onQuantityChange?: (n: number) => void;
   compact?: boolean;
   disabled?: boolean;
+  /** Real photo — when set, shown instead of the icon. */
+  thumbnail?: string;
 }) {
   return (
     <div
@@ -37,10 +39,14 @@ export default function IconCard({
       }`}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center border flex-shrink-0 ${
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center border flex-shrink-0 overflow-hidden ${
           selected ? "bg-brand-yellow/10 border-brand-yellow/20 text-brand-yellow" : "bg-zinc-900 border-zinc-800 text-zinc-500"
         }`}>
-          <Icon className="w-4 h-4" />
+          {thumbnail ? (
+            <img src={thumbnail} alt="" aria-hidden="true" className="w-full h-full object-cover" loading="lazy" />
+          ) : (
+            <Icon className="w-4 h-4" />
+          )}
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
