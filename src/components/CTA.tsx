@@ -1,10 +1,11 @@
+import { Fragment } from "react";
 import { motion } from "motion/react";
 import { MessageSquare, ArrowRight, HardHat, PhoneCall } from "lucide-react";
 import { APP_INFO } from "../data";
 import { useAppContext } from "../context/AppContext";
 
 export default function CTA() {
-  const { whatsapp: systemWhatsapp } = useAppContext();
+  const { whatsapp: systemWhatsapp, cta } = useAppContext();
 
   const handleCtaClick = () => {
     const msg = encodeURIComponent("Olá! Estou no site da Dodisa Containers e gostaria de iniciar uma conversa com um especialista comercial para ver preços e disponibilidade.");
@@ -41,19 +42,24 @@ export default function CTA() {
           </div>
 
           <span className="text-[10px] sm:text-xs font-mono font-black text-brand-yellow uppercase tracking-[4px] mb-3">
-            Atendimento Rápido Nacional
+            {cta.eyebrow}
           </span>
 
           <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-3">
-            +940 empresas atendidas · Resposta em até 15 min
+            {cta.statLine}
           </p>
 
           <h2 className="text-3xl sm:text-5xl font-black font-display text-white uppercase tracking-tight max-w-3xl leading-none">
-            ESTRUTURAS MODULARES<br />PRONTAS EM ATÉ 30 DIAS ÚTEIS
+            {cta.title.split("\n").map((line, i) => (
+              <Fragment key={i}>
+                {i > 0 && <br />}
+                {line}
+              </Fragment>
+            ))}
           </h2>
 
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm max-w-2xl leading-relaxed">
-            Fale agora com um especialista e receba seu orçamento comercial detalhado.
+            {cta.subtitle}
           </p>
 
           {/* Large actionable button */}
@@ -63,7 +69,7 @@ export default function CTA() {
               className="w-full sm:w-auto group relative py-4 px-12 bg-brand-yellow hover:bg-[#ffe17d] text-brand-black font-black text-xs sm:text-sm uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-3 shadow-xl hover:shadow-brand-yellow/10 cursor-pointer font-display"
             >
               <MessageSquare className="w-5 h-5 text-brand-black group-hover:scale-105 transition-transform" />
-              Falar com um especialista
+              {cta.buttonText}
               <ArrowRight className="w-4 h-4 text-brand-black group-hover:translate-x-1.5 transition-transform stroke-[2.5]" />
             </button>
             

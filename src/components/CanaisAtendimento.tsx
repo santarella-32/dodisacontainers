@@ -5,7 +5,7 @@ import { APP_INFO } from "../data";
 import { useAppContext } from "../context/AppContext";
 
 export default function CanaisAtendimento() {
-  const { whatsapp: systemWhatsapp } = useAppContext();
+  const { whatsapp: systemWhatsapp, channels } = useAppContext();
 
   const handleWhatsapp = () => {
     const msg = encodeURIComponent("Olá! Vi as informações no site e gostaria de atendimento.");
@@ -13,11 +13,11 @@ export default function CanaisAtendimento() {
   };
 
   const handleInstagram = () => {
-    window.open(APP_INFO.instagramUrl, "_blank");
+    window.open(channels.instagramUrl, "_blank");
   };
 
   const handleMaps = () => {
-    window.open(APP_INFO.mapsUrl, "_blank");
+    window.open(channels.mapsUrl, "_blank");
   };
 
   return (
@@ -44,10 +44,10 @@ export default function CanaisAtendimento() {
             Contatos Digitais
           </div>
           <h2 className="text-3xl sm:text-5xl font-black font-sans uppercase tracking-tight text-white leading-none">
-            Nossos Canais <span className="text-[#FFD400]">Oficiais</span>
+            {channels.title} <span className="text-[#FFD400]">{channels.highlightTitle}</span>
           </h2>
           <p className="mt-4 text-stone-400 font-sans text-sm sm:text-base leading-relaxed">
-            Fale com a gente pelo WhatsApp, Instagram ou visite nosso pátio.
+            {channels.subtitle}
           </p>
         </motion.div>
 
@@ -112,7 +112,7 @@ export default function CanaisAtendimento() {
                 </h3>
 
                 <p className="text-lg sm:text-xl font-black tracking-wide mb-1 select-all">
-                  {APP_INFO.instagram}
+                  {channels.instagramHandle}
                 </p>
 
                 <p className="text-xs sm:text-sm text-zinc-500 font-sans">
@@ -146,11 +146,11 @@ export default function CanaisAtendimento() {
                 </h3>
 
                 <p className="text-xs sm:text-sm font-bold tracking-tight mb-2 leading-tight">
-                  Rua Julio Gaviragui, Santa Rosa, Rio Grande do Sul, Brazil - CEP 98790146
+                  {channels.addressLine1}
                 </p>
 
                 <p className="text-xs text-zinc-500 font-sans">
-                  Santa Rosa, Rio Grande do Sul
+                  {channels.addressLine2}
                 </p>
               </div>
 

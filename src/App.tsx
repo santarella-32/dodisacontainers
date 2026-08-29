@@ -37,6 +37,7 @@ class AdminErrorBoundary extends Component<
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import WhatsAppButton from "./components/WhatsAppButton";
+import CustomBlockSection from "./components/CustomBlockSection";
 
 // Tudo abaixo do fold carrega sob demanda — reduz o bundle inicial de 381KB para ~120KB
 const SimuladorOrcamento = lazy(() => import("./components/SimuladorOrcamento"));
@@ -168,6 +169,14 @@ function AppContent() {
     channels: <LazySection key="channels"><CanaisAtendimento /></LazySection>,
   };
 
+  // Custom blocks aren't fixed keys in SECTION_COMPONENTS — they're dynamic
+  // "custom-<id>" entries added/removed from the admin's Landing Page builder.
+  const resolveSectionComponent = (sectionKey: string): React.ReactNode => {
+    if (SECTION_COMPONENTS[sectionKey]) return SECTION_COMPONENTS[sectionKey];
+    if (sectionKey.startsWith("custom-")) return <CustomBlockSection key={sectionKey} id={sectionKey} />;
+    return null;
+  };
+
   if (isFullPreview) {
     return (
       <div id="app-root" className="min-h-screen bg-stone-950 text-stone-200 antialiased overflow-x-hidden selection:bg-orange-600 selection:text-white font-sans">
@@ -200,7 +209,7 @@ function AppContent() {
           {sectionsOrder.map((sectionKey) => {
             const isVisible = sectionsVisibility[sectionKey as keyof typeof sectionsVisibility] ?? true;
             if (!isVisible) return null;
-            return SECTION_COMPONENTS[sectionKey] || null;
+            return resolveSectionComponent(sectionKey);
           })}
         </main>
 
@@ -240,7 +249,7 @@ function AppContent() {
         {sectionsOrder.map((sectionKey) => {
           const isVisible = sectionsVisibility[sectionKey as keyof typeof sectionsVisibility] ?? true;
           if (!isVisible) return null; // Drop rendering completely if marked hidden
-          return SECTION_COMPONENTS[sectionKey] || null;
+          return resolveSectionComponent(sectionKey);
         })}
       </main>
 

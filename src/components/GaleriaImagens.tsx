@@ -109,8 +109,24 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     setLoading(true);
     try {
       if (supabase) {
+        // Discover folders that exist in Storage (created from any device) and merge them
+        // into what's cached locally — collections live in the shared bucket, not just
+        // this browser's localStorage, so a folder made on another device shows up here too.
+        let activeFolders = folders;
+        try {
+          const { data: topLevel } = await supabase.storage.from("site-assets").list("gallery", { limit: 1000 });
+          const remoteFolders = (topLevel || []).filter((entry) => entry.id === null).map((entry) => entry.name);
+          const merged = Array.from(new Set([...DEFAULT_FOLDERS, ...folders, ...remoteFolders]));
+          if (merged.length !== folders.length || merged.some((f) => !folders.includes(f))) {
+            activeFolders = merged;
+            setFolders(merged);
+          }
+        } catch {
+          // Storage listing failed — fall back to whatever folders are cached locally
+        }
+
         const allFiles: GalleryFile[] = [];
-        for (const cat of folders) {
+        for (const cat of activeFolders) {
           const { data, error } = await supabase.storage
             .from("site-assets")
             .list(`gallery/${cat}`, { limit: 1000, sortBy: { column: "created_at", order: "desc" } });
@@ -332,13 +348,22 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
   };
 
   // ── Folders ───────────────────────────────────────────────────
-  const createFolder = () => {
+  const createFolder = async () => {
     const name = newFolderName.trim();
     if (!name || folders.includes(name)) { triggerNotification("Nome inválido ou já existe."); return; }
     setFolders((prev) => [...prev, name]);
     setNewFolderName("");
     setShowNewFolder(false);
     triggerNotification(`Pasta "${name}" criada!`);
+    if (supabase) {
+      try {
+        // Empty placeholder so this folder is discoverable in Storage (and by other
+        // devices) even before any image is uploaded into it.
+        await supabase.storage.from("site-assets").upload(`gallery/${name}/.emptyFolderPlaceholder`, new Blob([""]), { upsert: true });
+      } catch {
+        // Non-fatal — folder still works locally; syncs elsewhere once a file lands in it
+      }
+    }
   };
 
   const deleteFolder = async (folder: string) => {
@@ -347,6 +372,9 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     // Move all images to Geral first
     const toMove = files.filter((f) => f.category === folder);
     for (const file of toMove) await moveFile(file, "Geral");
+    if (supabase) {
+      try { await supabase.storage.from("site-assets").remove([`gallery/${folder}/.emptyFolderPlaceholder`]); } catch { /* ignore */ }
+    }
     setFolders((prev) => prev.filter((f) => f !== folder));
     if (categoryFilter === folder) setCategoryFilter("Todas");
     setDeletingFolder(null);

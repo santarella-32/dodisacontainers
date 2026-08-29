@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { MessageSquare, FileSpreadsheet, Puzzle, Truck } from "lucide-react";
-import { STEPS_DATA } from "../data";
+import { useAppContext } from "../context/AppContext";
 
 const stepIcons = [
   MessageSquare,
@@ -11,6 +11,7 @@ const stepIcons = [
 ];
 
 export default function ComoFunciona() {
+  const { timeline } = useAppContext();
   return (
     <section id="como-funciona" className="relative py-14 sm:py-28 bg-[#0B0F14] border-t border-white/5 overflow-hidden">
 
@@ -25,22 +26,22 @@ export default function ComoFunciona() {
           className="text-center max-w-3xl mx-auto mb-12 sm:mb-20"
         >
           <h2 className="text-3xl sm:text-5xl font-black font-display text-white uppercase tracking-tight">
-            COMO FUNCIONA A <span className="text-brand-yellow">ENTREGA?</span>
+            {timeline.title} <span className="text-brand-yellow">{timeline.highlightTitle}</span>
           </h2>
           <div className="w-12 h-0.5 bg-brand-yellow mx-auto mt-4 mb-6" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
-            Do primeiro contato até a entrega no seu pátio. Sem burocracia.
+            {timeline.subtitle}
           </p>
         </motion.div>
 
         {/* Timeline Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative animate-fade-in">
-          
-          {STEPS_DATA.map((step, idx) => {
+
+          {timeline.steps.map((step, idx) => {
             const IconComponent = stepIcons[idx] || MessageSquare;
             return (
               <motion.div
-                key={step.number}
+                key={step.id}
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-80px" }}
@@ -89,7 +90,7 @@ export default function ComoFunciona() {
         {/* Highlight footer step CTA info */}
         <div className="mt-16 text-center max-w-xl mx-auto">
           <p className="text-[10px] font-mono font-bold text-stone-500 uppercase tracking-widest">
-            ★ PRODUÇÃO COMEÇA EM <span className="text-brand-yellow font-black">24 HORAS</span> APÓS O CONTRATO.
+            {timeline.footerNote}
           </p>
         </div>
 

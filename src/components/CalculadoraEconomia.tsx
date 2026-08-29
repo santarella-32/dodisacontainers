@@ -4,14 +4,11 @@ import { Calculator, AlertTriangle, ShieldCheck, HelpCircle, MessageSquare, Buil
 import { useAppContext } from "../context/AppContext";
 
 export default function CalculadoraEconomia() {
-  const { whatsapp: systemWhatsapp } = useAppContext();
-  const [projectType, setProjectType] = useState("Escritório Comercial");
-  const [size, setSize] = useState("30 m² (Padrão 40 Pés)");
-  const [timeframe, setTimeframe] = useState("Imediato");
-
-  const projectTypes = ["Escritório Comercial", "Almoxarifado de Canteiro", "Banheiro em Lote", "Frente de Loja", "Projeto Especial"];
-  const sizes = ["15 m² (Padrão 20 Pés)", "30 m² (Padrão 40 Pés)", "60 m² (Acoplado de 2 Modules)", "Sob Medida / Especial"];
-  const timeframes = ["Imediato", "Em 15 Dias", "Em 30 Dias", "Mais de 60 Dias"];
+  const { whatsapp: systemWhatsapp, economyCalculator } = useAppContext();
+  const { projectTypes, sizes, timeframes, comparisons } = economyCalculator;
+  const [projectType, setProjectType] = useState(projectTypes[0]);
+  const [size, setSize] = useState(sizes[1] ?? sizes[0]);
+  const [timeframe, setTimeframe] = useState(timeframes[0]);
 
   const handleCalculateWhatsapp = () => {
     const message = `Olá, fiz uma simulação de economia no site da Dodisa Containers:
@@ -23,50 +20,6 @@ Gostaria de calcular os valores exatos de economia e parcelas para a minha regi�
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/${systemWhatsapp.number}?text=${encoded}`, "_blank");
   };
-
-  // Technical comparisons specifications table data
-  const comparisons = [
-    {
-      attribute: "Prazo de Execução",
-      container: "Até 5x mais rápido. Entrega imediata de lotes padrão limpos e revisados nos pátios.",
-      masonry: "Lento. Requer meses de fundação pesada, preparo de cimento, reboco, secagem e cura estrutural."
-    },
-    {
-      attribute: "Mobilidade e Transporte",
-      container: "100% Móvel. Desmonte e desloque toda a estrutura no caminhão munck para outro terreno livremente.",
-      masonry: "Estático. Destruição completa da estrutura construída ou abandono total em caso de mudança de endereço."
-    },
-    {
-      attribute: "Custo-Benefício Global",
-      container: "Otimizado e previsível. Sem aditivos surpresas de ferragens, areia ou desvios de mão de obra.",
-      masonry: "Instável. Orçamentos estouram em média de 30% a 50% por perdas de insumo e mão de obra de terceiros."
-    },
-    {
-      attribute: "Sustentabilidade",
-      container: "Ecologicamente amigável. Reuso de aço corten excedente marítimo e zero desperdício de insumos ou água.",
-      masonry: "Prejudicial. Alto desgaste de entulho de tijolo, areia de leito de rio e perdas de concreto fresco."
-    },
-    {
-      attribute: "Flexibilidade & Expansão",
-      container: "Modular. Deseja expandir? Basta acoplar novos containers lateralmente ou empilhar sobrepostos.",
-      masonry: "Complexo. Requer quebra de paredes vigentes, novos pilares estruturais e cálculo manual de solo."
-    },
-    {
-      attribute: "Personalização Interna",
-      container: "Totalmente customizável. Prontamente compatível com drywall gesso, piso vinílico, cerâmica e portas pele de vidro.",
-      masonry: "Totalmente customizável, porém com alto custo adicional de quebra-quebra de encunhamento e tubulações."
-    },
-    {
-      attribute: "Reutilização & Recuperação",
-      container: "Ativo líquido. No fim do seu contrato ou uso fabril, você revende o container e recupera excelente capital de giro.",
-      masonry: "Passivo permanente. O imóvel construído em terreno alheio não pode ser liquidado nem deslocado."
-    },
-    {
-      attribute: "Manutenção Corretiva",
-      container: "Simples. Apenas aplicação preventiva de tinta esmalte industrial de retoque a cada 5 anos.",
-      masonry: "Periódica. Reparos anuais contra infiltrações de telhado, umidade ascendente e trincas de cimento."
-    }
-  ];
 
   return (
     <section id="economia-comparativo" className="relative bg-[#0B0F14] py-28 border-b border-white/5 scroll-mt-20 overflow-hidden">
@@ -86,14 +39,14 @@ Gostaria de calcular os valores exatos de economia e parcelas para a minha regi�
           className="text-center max-w-3xl mx-auto mb-20"
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-yellow/10 border border-brand-yellow/20 text-[10px] font-mono font-black text-brand-yellow uppercase tracking-widest mb-4">
-            ANÁLISE DE CUSTO-BENEFÍCIO FINANCEIRO
+            {economyCalculator.eyebrow}
           </div>
           <h2 className="text-3xl sm:text-5xl font-black font-display uppercase tracking-tight text-white leading-none">
-            Container <span className="text-brand-yellow">vs</span> Alvenaria
+            {economyCalculator.titleLine1} <span className="text-brand-yellow">{economyCalculator.titleHighlight}</span> {economyCalculator.titleLine2}
           </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-brand-yellow to-brand-orange mx-auto mt-4 rounded-full" />
           <p className="mt-4 text-stone-400 font-sans text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
-            Proteja seu capital de giro corporativo e evite custos imprevisíveis de obras civis. Saiba o quanto você economiza optando por containers de alto padrão de engenharia.
+            {economyCalculator.subtitle}
           </p>
         </motion.div>
 
@@ -313,8 +266,8 @@ Gostaria de calcular os valores exatos de economia e parcelas para a minha regi�
               </thead>
 
               <tbody className="divide-y divide-white/[0.03] font-normal">
-                {comparisons.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-[#111827]/30 transition-colors">
+                {comparisons.map((item) => (
+                  <tr key={item.id} className="hover:bg-[#111827]/30 transition-colors">
                     
                     {/* Attribute */}
                     <td className="py-4 px-6 font-black text-stone-200">

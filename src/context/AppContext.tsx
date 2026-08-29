@@ -139,6 +139,92 @@ export interface EditableTestimonial {
   visible: boolean;
 }
 
+export interface CustomBlock {
+  id: string;
+  title: string;
+  text: string;
+  image?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+}
+
+export interface AboutPillar {
+  id: string;
+  title: string;
+  description: string;
+  seal: string;
+}
+
+export interface AboutConfig {
+  title: string;
+  highlightTitle: string;
+  paragraph1: string;
+  paragraph2: string;
+  paragraph3: string;
+  stat1Value: string;
+  stat1Label: string;
+  stat2Value: string;
+  stat2Label: string;
+  stat3Value: string;
+  stat3Label: string;
+  image: string;
+  pillarsLabel: string;
+  pillars: AboutPillar[];
+}
+
+export interface TimelineStep {
+  id: string;
+  number: number;
+  title: string;
+  description: string;
+}
+
+export interface TimelineConfig {
+  title: string;
+  highlightTitle: string;
+  subtitle: string;
+  steps: TimelineStep[];
+  footerNote: string;
+}
+
+export interface CTAConfig {
+  eyebrow: string;
+  statLine: string;
+  title: string;
+  subtitle: string;
+  buttonText: string;
+}
+
+export interface ChannelsConfig {
+  title: string;
+  highlightTitle: string;
+  subtitle: string;
+  instagramHandle: string;
+  instagramUrl: string;
+  addressLine1: string;
+  addressLine2: string;
+  mapsUrl: string;
+}
+
+export interface EconomyComparisonRow {
+  id: string;
+  attribute: string;
+  container: string;
+  masonry: string;
+}
+
+export interface EconomyCalculatorConfig {
+  eyebrow: string;
+  titleLine1: string;
+  titleHighlight: string;
+  titleLine2: string;
+  subtitle: string;
+  projectTypes: string[];
+  sizes: string[];
+  timeframes: string[];
+  comparisons: EconomyComparisonRow[];
+}
+
 export interface RegionsConfig {
   states: string[];
   cities: string[];
@@ -190,6 +276,8 @@ export interface SectionsVisibility {
   testimonials: boolean;
   cta: boolean;
   channels: boolean;
+  // Custom sections use a dynamic "custom-<id>" key, so visibility isn't a fixed field
+  [key: string]: boolean;
 }
 
 export interface AdminUser {
@@ -225,6 +313,13 @@ interface AppContextType {
   simulator: SimulatorConfig;
   whatsapp: WhatsAppConfig;
   mediaLibrary: MediaItem[];
+  customBlocks: CustomBlock[];
+  materialImages: Record<string, string>;
+  about: AboutConfig;
+  timeline: TimelineConfig;
+  cta: CTAConfig;
+  channels: ChannelsConfig;
+  economyCalculator: EconomyCalculatorConfig;
   sectionsVisibility: SectionsVisibility;
   sectionsOrder: string[];
   lastUpdated: string;
@@ -278,6 +373,23 @@ interface AppContextType {
   addTestimonial: (test: Omit<EditableTestimonial, 'id'>) => void;
   editTestimonial: (id: string, test: Partial<EditableTestimonial>) => void;
   deleteTestimonial: (id: string) => void;
+
+  // Custom Section Blocks Updaters
+  saveCustomBlocks: (blocks: CustomBlock[]) => void;
+  addCustomBlock: () => string;
+  editCustomBlock: (id: string, block: Partial<CustomBlock>) => void;
+  deleteCustomBlock: (id: string) => void;
+
+  // Configurator material photo overrides
+  setMaterialImage: (id: string, url: string) => void;
+  removeMaterialImage: (id: string) => void;
+
+  // Static-turned-editable section Updaters
+  saveAbout: (about: AboutConfig) => void;
+  saveTimeline: (timeline: TimelineConfig) => void;
+  saveCTA: (cta: CTAConfig) => void;
+  saveChannels: (channels: ChannelsConfig) => void;
+  saveEconomyCalculator: (calc: EconomyCalculatorConfig) => void;
 
   // Regions Updaters
   saveRegions: (reg: RegionsConfig) => void;
@@ -541,10 +653,82 @@ const DEFAULTS = {
     "hero", "containers", "simulator", "differentials", "prontaEntrega", "projects",
     "carrosselGaleria", "gallery", "economyCalculator", "videos", "timeline", "map",
     "about", "faq", "testimonials", "cta", "channels"
-  ]
+  ],
+  customBlocks: [] as CustomBlock[],
+  materialImages: {} as Record<string, string>,
+  about: {
+    title: "A FORÇA DA ENGENHARIA MODULAR.",
+    highlightTitle: "LOGÍSTICA E EXECUÇÃO IMPLACÁVEIS.",
+    paragraph1: "Não somos apenas montadores de estruturas. Somos um grupo de engenharia e logística pesada focado em mobilização corporativa. Projetamos, fabricamos e entregamos soluções 'chave na mão' que esmagam o cronograma da alvenaria tradicional.",
+    paragraph2: "Cada módulo sai da nossa linha de produção com chassi naval, pintura em poliuretano epóxi de alta resistência e isolamento térmico avançado. O resultado? Uma estrutura blindada, rigorosamente dentro das normas NR-18 e NR-24, pronta para operar nos climas e terrenos mais extremos do Brasil.",
+    paragraph3: "A sua operação não tem margem para erros. Nós também não.",
+    stat1Value: "100%", stat1Label: "Homologado NR-18",
+    stat2Value: "Aço", stat2Label: "Corten Certificado",
+    stat3Value: "LOGÍSTICA INTEGRADA", stat3Label: "Frota Pesada e Caminhões Munck Próprios",
+    image: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=800&q=80",
+    pillarsLabel: "Fundamentos Corporativos",
+    pillars: [
+      { id: "pillar-1", title: "DIRETRIZ OPERACIONAL", description: "Erradicar o atraso, o desperdício e a burocracia do seu canteiro de obras. Entregamos estruturas modulares de alto padrão, prontas para uso imediato (Plug & Play), garantindo que a sua equipe comece a faturar no minuto em que o módulo toca o solo.", seal: "Engenharia de Resultados" },
+      { id: "pillar-2", title: "NOSSO ALVO — O PADRÃO-OURO", description: "Estabelecer o padrão absoluto em infraestrutura modular no país. Onde houver uma operação crítica exigindo conforto térmico, segurança estrutural e velocidade de implantação, haverá uma estrutura com a nossa assinatura.", seal: "Domínio de Mercado" },
+      { id: "pillar-3", title: "PILARES INEGOCIÁVEIS", description: "Rigor técnico incontestável (com laudos e ART em 100% dos projetos). Logística própria implacável, com içamento seguro e frota pesada. Prazo de embarque é lei. Nós falamos de engenheiro para engenheiro.", seal: "Operação Blindada" }
+    ]
+  } as AboutConfig,
+  timeline: {
+    title: "COMO FUNCIONA A",
+    highlightTitle: "ENTREGA?",
+    subtitle: "Do primeiro contato até a entrega no seu pátio. Sem burocracia.",
+    steps: STEPS_DATA.map((s) => ({ id: `step-${s.number}`, number: s.number, title: s.title, description: s.description })),
+    footerNote: "★ PRODUÇÃO COMEÇA EM 24 HORAS APÓS O CONTRATO."
+  } as TimelineConfig,
+  cta: {
+    eyebrow: "Atendimento Rápido Nacional",
+    statLine: "+940 empresas atendidas · Resposta em até 15 min",
+    title: "ESTRUTURAS MODULARES\nPRONTAS EM ATÉ 30 DIAS ÚTEIS",
+    subtitle: "Fale agora com um especialista e receba seu orçamento comercial detalhado.",
+    buttonText: "Falar com um especialista"
+  } as CTAConfig,
+  channels: {
+    title: "Nossos Canais",
+    highlightTitle: "Oficiais",
+    subtitle: "Fale com a gente pelo WhatsApp, Instagram ou visite nosso pátio.",
+    instagramHandle: APP_INFO.instagram,
+    instagramUrl: APP_INFO.instagramUrl,
+    addressLine1: "Rua Julio Gaviragui, Santa Rosa, Rio Grande do Sul, Brazil - CEP 98790146",
+    addressLine2: "Santa Rosa, Rio Grande do Sul",
+    mapsUrl: APP_INFO.mapsUrl
+  } as ChannelsConfig,
+  economyCalculator: {
+    eyebrow: "ANÁLISE DE CUSTO-BENEFÍCIO FINANCEIRO",
+    titleLine1: "Container",
+    titleHighlight: "vs",
+    titleLine2: "Alvenaria",
+    subtitle: "Proteja seu capital de giro corporativo e evite custos imprevisíveis de obras civis. Saiba o quanto você economiza optando por containers de alto padrão de engenharia.",
+    projectTypes: ["Escritório Comercial", "Almoxarifado de Canteiro", "Banheiro em Lote", "Frente de Loja", "Projeto Especial"],
+    sizes: ["15 m² (Padrão 20 Pés)", "30 m² (Padrão 40 Pés)", "60 m² (Acoplado de 2 Modules)", "Sob Medida / Especial"],
+    timeframes: ["Imediato", "Em 15 Dias", "Em 30 Dias", "Mais de 60 Dias"],
+    comparisons: [
+      { id: "cmp-1", attribute: "Prazo de Execução", container: "Até 5x mais rápido. Entrega imediata de lotes padrão limpos e revisados nos pátios.", masonry: "Lento. Requer meses de fundação pesada, preparo de cimento, reboco, secagem e cura estrutural." },
+      { id: "cmp-2", attribute: "Mobilidade e Transporte", container: "100% Móvel. Desmonte e desloque toda a estrutura no caminhão munck para outro terreno livremente.", masonry: "Estático. Destruição completa da estrutura construída ou abandono total em caso de mudança de endereço." },
+      { id: "cmp-3", attribute: "Custo-Benefício Global", container: "Otimizado e previsível. Sem aditivos surpresas de ferragens, areia ou desvios de mão de obra.", masonry: "Instável. Orçamentos estouram em média de 30% a 50% por perdas de insumo e mão de obra de terceiros." },
+      { id: "cmp-4", attribute: "Sustentabilidade", container: "Ecologicamente amigável. Reuso de aço corten excedente marítimo e zero desperdício de insumos ou água.", masonry: "Prejudicial. Alto desgaste de entulho de tijolo, areia de leito de rio e perdas de concreto fresco." },
+      { id: "cmp-5", attribute: "Flexibilidade & Expansão", container: "Modular. Deseja expandir? Basta acoplar novos containers lateralmente ou empilhar sobrepostos.", masonry: "Complexo. Requer quebra de paredes vigentes, novos pilares estruturais e cálculo manual de solo." },
+      { id: "cmp-6", attribute: "Personalização Interna", container: "Totalmente customizável. Prontamente compatível com drywall gesso, piso vinílico, cerâmica e portas pele de vidro.", masonry: "Totalmente customizável, porém com alto custo adicional de quebra-quebra de encunhamento e tubulações." },
+      { id: "cmp-7", attribute: "Reutilização & Recuperação", container: "Ativo líquido. No fim do seu contrato ou uso fabril, você revende o container e recupera excelente capital de giro.", masonry: "Passivo permanente. O imóvel construído em terreno alheio não pode ser liquidado nem deslocado." },
+      { id: "cmp-8", attribute: "Manutenção Corretiva", container: "Simples. Apenas aplicação preventiva de tinta esmalte industrial de retoque a cada 5 anos.", masonry: "Periódica. Reparos anuais contra infiltrações de telhado, umidade ascendente e trincas de cimento." }
+    ]
+  } as EconomyCalculatorConfig
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
+
+// Merges admin-uploaded real photos (keyed by material id) into a configurator
+// item list, overriding the procedural swatch/icon wherever a photo was set.
+export function applyMaterialImageOverrides<T extends { id: string; thumbnail?: string }>(
+  items: T[],
+  overrides: Record<string, string>
+): T[] {
+  return items.map((item) => (overrides[item.id] ? { ...item, thumbnail: overrides[item.id] } : item));
+}
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   // Authentication State
@@ -699,6 +883,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return legacy ? JSON.parse(legacy) : DEFAULTS.whatsapp;
   });
 
+  const [pubCustomBlocks, setPubCustomBlocks] = useState<CustomBlock[]>(() => {
+    const cachedPub = localStorage.getItem("dodisa_cms_pub_custom_blocks");
+    if (cachedPub) return JSON.parse(cachedPub);
+    const legacy = localStorage.getItem("dodisa_cms_custom_blocks");
+    return legacy ? JSON.parse(legacy) : DEFAULTS.customBlocks;
+  });
+
+  const [pubMaterialImages, setPubMaterialImages] = useState<Record<string, string>>(() => {
+    const cachedPub = localStorage.getItem("dodisa_cms_pub_material_images");
+    return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.materialImages;
+  });
+
+  const [pubAbout, setPubAbout] = useState<AboutConfig>(() => {
+    const cachedPub = localStorage.getItem("dodisa_cms_pub_about");
+    return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.about;
+  });
+  const [pubTimeline, setPubTimeline] = useState<TimelineConfig>(() => {
+    const cachedPub = localStorage.getItem("dodisa_cms_pub_timeline");
+    return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.timeline;
+  });
+  const [pubCTA, setPubCTA] = useState<CTAConfig>(() => {
+    const cachedPub = localStorage.getItem("dodisa_cms_pub_cta");
+    return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.cta;
+  });
+  const [pubChannels, setPubChannels] = useState<ChannelsConfig>(() => {
+    const cachedPub = localStorage.getItem("dodisa_cms_pub_channels");
+    return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.channels;
+  });
+  const [pubEconomyCalculator, setPubEconomyCalculator] = useState<EconomyCalculatorConfig>(() => {
+    const cachedPub = localStorage.getItem("dodisa_cms_pub_economy_calculator");
+    return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.economyCalculator;
+  });
+
   const [pubSectionsVisibility, setPubSectionsVisibility] = useState<SectionsVisibility>(() => {
     const cachedPub = localStorage.getItem("dodisa_cms_pub_visibility");
     if (cachedPub) return { ...JSON.parse(cachedPub), prontaEntrega: true };
@@ -803,6 +1020,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const cachedDraft = localStorage.getItem("dodisa_cms_draft_whatsapp");
     if (cachedDraft) return JSON.parse(cachedDraft);
     return pubWhatsApp;
+  });
+
+  const [customBlocks, setCustomBlocks] = useState<CustomBlock[]>(() => {
+    const cachedDraft = localStorage.getItem("dodisa_cms_draft_custom_blocks");
+    if (cachedDraft) return JSON.parse(cachedDraft);
+    return pubCustomBlocks;
+  });
+
+  const [materialImages, setMaterialImages] = useState<Record<string, string>>(() => {
+    const cachedDraft = localStorage.getItem("dodisa_cms_draft_material_images");
+    return cachedDraft ? JSON.parse(cachedDraft) : pubMaterialImages;
+  });
+
+  const [about, setAbout] = useState<AboutConfig>(() => {
+    const cachedDraft = localStorage.getItem("dodisa_cms_draft_about");
+    return cachedDraft ? JSON.parse(cachedDraft) : pubAbout;
+  });
+  const [timeline, setTimeline] = useState<TimelineConfig>(() => {
+    const cachedDraft = localStorage.getItem("dodisa_cms_draft_timeline");
+    return cachedDraft ? JSON.parse(cachedDraft) : pubTimeline;
+  });
+  const [cta, setCTA] = useState<CTAConfig>(() => {
+    const cachedDraft = localStorage.getItem("dodisa_cms_draft_cta");
+    return cachedDraft ? JSON.parse(cachedDraft) : pubCTA;
+  });
+  const [channels, setChannels] = useState<ChannelsConfig>(() => {
+    const cachedDraft = localStorage.getItem("dodisa_cms_draft_channels");
+    return cachedDraft ? JSON.parse(cachedDraft) : pubChannels;
+  });
+  const [economyCalculator, setEconomyCalculator] = useState<EconomyCalculatorConfig>(() => {
+    const cachedDraft = localStorage.getItem("dodisa_cms_draft_economy_calculator");
+    return cachedDraft ? JSON.parse(cachedDraft) : pubEconomyCalculator;
   });
 
   const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>(() => {
@@ -937,6 +1186,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setSectionsOrderState(content_data);
               localStorage.setItem("dodisa_cms_pub_sections_order", JSON.stringify(content_data));
               break;
+            case "custom_blocks":
+              setPubCustomBlocks(content_data);
+              setCustomBlocks(content_data);
+              localStorage.setItem("dodisa_cms_pub_custom_blocks", JSON.stringify(content_data));
+              break;
+            case "material_images":
+              setPubMaterialImages(content_data);
+              setMaterialImages(content_data);
+              localStorage.setItem("dodisa_cms_pub_material_images", JSON.stringify(content_data));
+              break;
+            case "about":
+              setPubAbout(content_data);
+              setAbout(content_data);
+              localStorage.setItem("dodisa_cms_pub_about", JSON.stringify(content_data));
+              break;
+            case "timeline":
+              setPubTimeline(content_data);
+              setTimeline(content_data);
+              localStorage.setItem("dodisa_cms_pub_timeline", JSON.stringify(content_data));
+              break;
+            case "cta":
+              setPubCTA(content_data);
+              setCTA(content_data);
+              localStorage.setItem("dodisa_cms_pub_cta", JSON.stringify(content_data));
+              break;
+            case "channels":
+              setPubChannels(content_data);
+              setChannels(content_data);
+              localStorage.setItem("dodisa_cms_pub_channels", JSON.stringify(content_data));
+              break;
+            case "economy_calculator":
+              setPubEconomyCalculator(content_data);
+              setEconomyCalculator(content_data);
+              localStorage.setItem("dodisa_cms_pub_economy_calculator", JSON.stringify(content_data));
+              break;
           }
         });
       } catch {
@@ -1026,6 +1310,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     localStorage.setItem("dodisa_cms_media_library", JSON.stringify(mediaLibrary));
   }, [mediaLibrary]);
+
+  useEffect(() => {
+    localStorage.setItem("dodisa_cms_draft_custom_blocks", JSON.stringify(customBlocks));
+  }, [customBlocks]);
+
+  useEffect(() => {
+    localStorage.setItem("dodisa_cms_draft_material_images", JSON.stringify(materialImages));
+  }, [materialImages]);
+
+  useEffect(() => {
+    localStorage.setItem("dodisa_cms_draft_about", JSON.stringify(about));
+  }, [about]);
+
+  useEffect(() => {
+    localStorage.setItem("dodisa_cms_draft_timeline", JSON.stringify(timeline));
+  }, [timeline]);
+
+  useEffect(() => {
+    localStorage.setItem("dodisa_cms_draft_cta", JSON.stringify(cta));
+  }, [cta]);
+
+  useEffect(() => {
+    localStorage.setItem("dodisa_cms_draft_channels", JSON.stringify(channels));
+  }, [channels]);
+
+  useEffect(() => {
+    localStorage.setItem("dodisa_cms_draft_economy_calculator", JSON.stringify(economyCalculator));
+  }, [economyCalculator]);
 
   useEffect(() => {
     localStorage.setItem("dodisa_cms_draft_visibility", JSON.stringify(sectionsVisibility));
@@ -1151,11 +1463,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           email,
           password: pass
         });
-        if (error) {
-          setLoginError(error.message);
-          return false;
-        }
-        if (data && data.user) {
+        if (!error && data && data.user) {
           const userObj: AdminUser = { email: data.user.email || email, role: "ADMIN_MASTER" };
           setIsAdminLoggedIn(true);
           setAdminUser(userObj);
@@ -1163,9 +1471,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem("dodisa_admin_user", JSON.stringify(userObj));
           return true;
         }
-      } catch (e: any) {
-        setLoginError(e.message || "Erro de conexão ao Supabase");
-        return false;
+        // Supabase error (network, wrong creds, etc.) — fall through to local auth
+      } catch {
+        // Supabase threw (network unreachable) — fall through to local auth
       }
     }
 
@@ -1174,7 +1482,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try { return JSON.parse(localStorage.getItem("dodisa_admin_custom_creds") || "null"); } catch { return null; }
     })();
     const defaultEmail = storedCreds?.email || "admin@dodisa.com.br";
-    const defaultPass = storedCreds?.password || "dodisaadmin2026";
+    const defaultPass = storedCreds?.password || "admin123";
 
     if (email.trim() === defaultEmail && pass === defaultPass) {
       const userObj: AdminUser = { email: defaultEmail, role: "ADMIN_MASTER" };
@@ -1214,7 +1522,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     // Mock Recovery response
     if (email.includes("@")) {
-      return `Link de recuperação enviado para ${email}. Senha temporária recomendada: dodisaadmin2026`;
+      return `Link de recuperação enviado para ${email}. Senha temporária recomendada: admin123`;
     }
     return "E-mail de recuperação inválido.";
   };
@@ -1249,7 +1557,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try { return JSON.parse(localStorage.getItem("dodisa_admin_custom_creds") || "null"); } catch { return null; }
     })();
     const activeEmail = storedCreds?.email || "admin@dodisa.com.br";
-    const activePass = storedCreds?.password || "dodisaadmin2026";
+    const activePass = storedCreds?.password || "admin123";
 
     if (currentPass !== activePass) {
       return { success: false, message: "Senha atual incorreta." };
@@ -1286,90 +1594,96 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     JSON.stringify(regions) !== JSON.stringify(pubRegions) ||
     JSON.stringify(simulator) !== JSON.stringify(pubSimulator) ||
     JSON.stringify(whatsapp) !== JSON.stringify(pubWhatsApp) ||
+    JSON.stringify(customBlocks) !== JSON.stringify(pubCustomBlocks) ||
+    JSON.stringify(materialImages) !== JSON.stringify(pubMaterialImages) ||
+    JSON.stringify(about) !== JSON.stringify(pubAbout) ||
+    JSON.stringify(timeline) !== JSON.stringify(pubTimeline) ||
+    JSON.stringify(cta) !== JSON.stringify(pubCTA) ||
+    JSON.stringify(channels) !== JSON.stringify(pubChannels) ||
+    JSON.stringify(economyCalculator) !== JSON.stringify(pubEconomyCalculator) ||
     JSON.stringify(sectionsVisibility) !== JSON.stringify(pubSectionsVisibility) ||
     JSON.stringify(sectionsOrder) !== JSON.stringify(pubSectionsOrder);
 
   const publishChanges = async () => {
-    // 1. Copy Draft states to Published states
-    setPubLogoSettings(logoSettings);
-    setPubSeo(seo);
-    setPubHero(hero);
-    setPubDifferentials(differentials);
-    setPubContainers(containers);
-    setPubProntaEntrega(prontaEntrega);
-    setPubProjects(projects);
-    setPubVideos(videos);
-    setPubFaq(faq);
-    setPubTestimonials(testimonials);
-    setPubRegions(regions);
-    setPubSimulator(simulator);
-    setPubWhatsApp(whatsapp);
-    setPubSectionsVisibility(sectionsVisibility);
-    setPubSectionsOrder(sectionsOrder);
+    const supabase = getSupabase();
 
-    // 2. Persist Published state to localStorage
-    localStorage.setItem("dodisa_cms_pub_logo_settings", JSON.stringify(logoSettings));
-    localStorage.setItem("dodisa_cms_pub_seo", JSON.stringify(seo));
-    localStorage.setItem("dodisa_cms_pub_hero", JSON.stringify(hero));
-    localStorage.setItem("dodisa_cms_pub_differentials", JSON.stringify(differentials));
-    localStorage.setItem("dodisa_cms_pub_containers", JSON.stringify(containers));
-    localStorage.setItem("dodisa_cms_pub_pronta_entrega", JSON.stringify(prontaEntrega));
-    localStorage.setItem("dodisa_cms_pub_projects", JSON.stringify(projects));
-    localStorage.setItem("dodisa_cms_pub_videos", JSON.stringify(videos));
-    localStorage.setItem("dodisa_cms_pub_faq", JSON.stringify(faq));
-    localStorage.setItem("dodisa_cms_pub_testimonials", JSON.stringify(testimonials));
-    localStorage.setItem("dodisa_cms_pub_regions", JSON.stringify(regions));
-    localStorage.setItem("dodisa_cms_pub_simulator", JSON.stringify(simulator));
-    localStorage.setItem("dodisa_cms_pub_whatsapp", JSON.stringify(whatsapp));
-    localStorage.setItem("dodisa_cms_pub_visibility", JSON.stringify(sectionsVisibility));
-    localStorage.setItem("dodisa_cms_pub_sections_order", JSON.stringify(sectionsOrder));
+    // Sections are defined fresh each call so `draft`/`pub` reflect current state.
+    const sectionDefs = [
+      { key: "logo_settings", ls: "logo_settings", draft: logoSettings, pub: pubLogoSettings, setDraft: setLogoSettings, setPub: setPubLogoSettings, isLogo: true },
+      { key: "seo", ls: "seo", draft: seo, pub: pubSeo, setDraft: setSeo, setPub: setPubSeo },
+      { key: "hero", ls: "hero", draft: hero, pub: pubHero, setDraft: setHero, setPub: setPubHero },
+      { key: "differentials", ls: "differentials", draft: differentials, pub: pubDifferentials, setDraft: setDifferentials, setPub: setPubDifferentials },
+      { key: "containers", ls: "containers", draft: containers, pub: pubContainers, setDraft: setContainers, setPub: setPubContainers },
+      { key: "pronta_entrega", ls: "pronta_entrega", draft: prontaEntrega, pub: pubProntaEntrega, setDraft: setProntaEntrega, setPub: setPubProntaEntrega },
+      { key: "projects", ls: "projects", draft: projects, pub: pubProjects, setDraft: setProjects, setPub: setPubProjects },
+      { key: "videos", ls: "videos", draft: videos, pub: pubVideos, setDraft: setVideos, setPub: setPubVideos },
+      { key: "faq", ls: "faq", draft: faq, pub: pubFaq, setDraft: setFaq, setPub: setPubFaq },
+      { key: "testimonials", ls: "testimonials", draft: testimonials, pub: pubTestimonials, setDraft: setTestimonials, setPub: setPubTestimonials },
+      { key: "regions", ls: "regions", draft: regions, pub: pubRegions, setDraft: setRegions, setPub: setPubRegions },
+      { key: "simulator", ls: "simulator", draft: simulator, pub: pubSimulator, setDraft: setSimulator, setPub: setPubSimulator },
+      { key: "whatsapp", ls: "whatsapp", draft: whatsapp, pub: pubWhatsApp, setDraft: setWhatsApp, setPub: setPubWhatsApp },
+      { key: "custom_blocks", ls: "custom_blocks", draft: customBlocks, pub: pubCustomBlocks, setDraft: setCustomBlocks, setPub: setPubCustomBlocks },
+      { key: "material_images", ls: "material_images", draft: materialImages, pub: pubMaterialImages, setDraft: setMaterialImages, setPub: setPubMaterialImages },
+      { key: "about", ls: "about", draft: about, pub: pubAbout, setDraft: setAbout, setPub: setPubAbout },
+      { key: "timeline", ls: "timeline", draft: timeline, pub: pubTimeline, setDraft: setTimeline, setPub: setPubTimeline },
+      { key: "cta", ls: "cta", draft: cta, pub: pubCTA, setDraft: setCTA, setPub: setPubCTA },
+      { key: "channels", ls: "channels", draft: channels, pub: pubChannels, setDraft: setChannels, setPub: setPubChannels },
+      { key: "economy_calculator", ls: "economy_calculator", draft: economyCalculator, pub: pubEconomyCalculator, setDraft: setEconomyCalculator, setPub: setPubEconomyCalculator },
+      { key: "visibility", ls: "visibility", draft: sectionsVisibility, pub: pubSectionsVisibility, setDraft: setSectionsVisibilityState, setPub: setPubSectionsVisibility },
+      { key: "sections_order", ls: "sections_order", draft: sectionsOrder, pub: pubSectionsOrder, setDraft: setSectionsOrderState, setPub: setPubSectionsOrder },
+    ];
 
-    // Also copy to legacy slots so public visitors see their contents instantly on this instance
-    localStorage.setItem("dodisa_cms_logo_settings", JSON.stringify(logoSettings));
-    localStorage.setItem("dodisa_cms_seo", JSON.stringify(seo));
-    localStorage.setItem("dodisa_cms_hero", JSON.stringify(hero));
-    localStorage.setItem("dodisa_cms_differentials", JSON.stringify(differentials));
-    localStorage.setItem("dodisa_cms_containers", JSON.stringify(containers));
-    localStorage.setItem("dodisa_cms_pronta_entrega", JSON.stringify(prontaEntrega));
-    localStorage.setItem("dodisa_cms_projects", JSON.stringify(projects));
-    localStorage.setItem("dodisa_cms_videos", JSON.stringify(videos));
-    localStorage.setItem("dodisa_cms_faq", JSON.stringify(faq));
-    localStorage.setItem("dodisa_cms_testimonials", JSON.stringify(testimonials));
-    localStorage.setItem("dodisa_cms_regions", JSON.stringify(regions));
-    localStorage.setItem("dodisa_cms_simulator", JSON.stringify(simulator));
-    localStorage.setItem("dodisa_cms_whatsapp", JSON.stringify(whatsapp));
-    localStorage.setItem("dodisa_cms_visibility", JSON.stringify(sectionsVisibility));
-    localStorage.setItem("dodisa_cms_sections_order", JSON.stringify(sectionsOrder));
+    // Only sections actually changed on THIS device should be pushed — everything else
+    // gets refreshed from Supabase first (below) instead of being blindly republished,
+    // so a stale/long-lived admin tab can't stomp on what another device already published.
+    const editedHere = sectionDefs.filter((sec) => JSON.stringify(sec.draft) !== JSON.stringify(sec.pub));
+
+    if (supabase) {
+      try {
+        const { data: remoteRows } = await supabase.from("published_content").select("section_key, content_data");
+        const remoteMap = new Map((remoteRows || []).map((r: { section_key: string; content_data: any }) => [r.section_key, r.content_data]));
+        const editedKeys = new Set(editedHere.map((s) => s.key));
+
+        for (const sec of sectionDefs) {
+          if (editedKeys.has(sec.key)) continue;
+          const remote = remoteMap.get(sec.key);
+          if (remote == null || JSON.stringify(remote) === JSON.stringify(sec.pub)) continue;
+
+          sec.setPub(remote);
+          sec.setDraft(remote);
+          localStorage.setItem(`dodisa_cms_pub_${sec.ls}`, JSON.stringify(remote));
+          localStorage.setItem(`dodisa_cms_draft_${sec.ls}`, JSON.stringify(remote));
+          localStorage.setItem(`dodisa_cms_${sec.ls}`, JSON.stringify(remote));
+        }
+      } catch (err) {
+        console.error("Publish pre-sync issue:", err);
+      }
+    }
+
+    if (editedHere.length === 0) {
+      markUpdate();
+      return;
+    }
+
+    // 1. Copy this device's edited drafts into Published state
+    for (const sec of editedHere) {
+      sec.setPub(sec.draft);
+      localStorage.setItem(`dodisa_cms_pub_${sec.ls}`, JSON.stringify(sec.draft));
+      // Legacy slot (no prefix) so public visitors see it instantly on this instance
+      localStorage.setItem(`dodisa_cms_${sec.ls}`, JSON.stringify(sec.draft));
+    }
 
     markUpdate();
 
-    // 3. Sync to Supabase tables draft_content and published_content if configured
-    const supabase = getSupabase();
+    // 2. Sync to Supabase tables draft_content and published_content if configured
     if (supabase) {
       const userEmail = adminUser?.email || "admin@dodisa.com.br";
-      const sections = [
-        { key: "logo_settings", data: logoSettings },
-        { key: "seo", data: seo },
-        { key: "hero", data: hero },
-        { key: "differentials", data: differentials },
-        { key: "containers", data: containers },
-        { key: "pronta_entrega", data: prontaEntrega },
-        { key: "projects", data: projects },
-        { key: "videos", data: videos },
-        { key: "faq", data: faq },
-        { key: "testimonials", data: testimonials },
-        { key: "regions", data: regions },
-        { key: "simulator", data: simulator },
-        { key: "whatsapp", data: whatsapp },
-        { key: "visibility", data: sectionsVisibility },
-        { key: "sections_order", data: sectionsOrder }
-      ];
 
-      for (const sec of sections) {
+      for (const sec of editedHere) {
         try {
           await supabase.from("draft_content").upsert({
             section_key: sec.key,
-            content_data: sec.data,
+            content_data: sec.draft,
             updated_at: new Date().toISOString(),
             updated_by: userEmail,
             is_published: true
@@ -1377,24 +1691,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           await supabase.from("published_content").upsert({
             section_key: sec.key,
-            content_data: sec.data,
+            content_data: sec.draft,
             updated_at: new Date().toISOString(),
             updated_by: userEmail,
             is_published: true
           }, { onConflict: "section_key" });
 
           // Also sync to a specific table site_settings if it exists
-          if (sec.key === "logo_settings") {
+          if (sec.isLogo) {
             try {
               await supabase.from("site_settings").upsert({
                 id: 1,
-                logo_url: logoSettings.logoUrl,
-                logo_dark_url: logoSettings.logoDarkUrl,
-                favicon_url: logoSettings.faviconUrl,
-                logo_alt: logoSettings.logoAlt,
-                logo_link: logoSettings.logoLink,
-                logo_width_desktop: logoSettings.logoWidthDesktop,
-                logo_width_mobile: logoSettings.logoWidthMobile,
+                logo_url: sec.draft.logoUrl,
+                logo_dark_url: sec.draft.logoDarkUrl,
+                favicon_url: sec.draft.faviconUrl,
+                logo_alt: sec.draft.logoAlt,
+                logo_link: sec.draft.logoLink,
+                logo_width_desktop: sec.draft.logoWidthDesktop,
+                logo_width_mobile: sec.draft.logoWidthMobile,
                 updated_at: new Date().toISOString(),
                 updated_by: userEmail
               }, { onConflict: "id" });
@@ -1423,6 +1737,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRegions(pubRegions);
     setSimulator(pubSimulator);
     setWhatsApp(pubWhatsApp);
+    setCustomBlocks(pubCustomBlocks);
+    setMaterialImages(pubMaterialImages);
+    setAbout(pubAbout);
+    setTimeline(pubTimeline);
+    setCTA(pubCTA);
+    setChannels(pubChannels);
+    setEconomyCalculator(pubEconomyCalculator);
     setSectionsVisibilityState(pubSectionsVisibility);
     setSectionsOrderState(pubSectionsOrder);
 
@@ -1439,6 +1760,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("dodisa_cms_draft_regions", JSON.stringify(pubRegions));
     localStorage.setItem("dodisa_cms_draft_simulator", JSON.stringify(pubSimulator));
     localStorage.setItem("dodisa_cms_draft_whatsapp", JSON.stringify(pubWhatsApp));
+    localStorage.setItem("dodisa_cms_draft_custom_blocks", JSON.stringify(pubCustomBlocks));
+    localStorage.setItem("dodisa_cms_draft_material_images", JSON.stringify(pubMaterialImages));
+    localStorage.setItem("dodisa_cms_draft_about", JSON.stringify(pubAbout));
+    localStorage.setItem("dodisa_cms_draft_timeline", JSON.stringify(pubTimeline));
+    localStorage.setItem("dodisa_cms_draft_cta", JSON.stringify(pubCTA));
+    localStorage.setItem("dodisa_cms_draft_channels", JSON.stringify(pubChannels));
+    localStorage.setItem("dodisa_cms_draft_economy_calculator", JSON.stringify(pubEconomyCalculator));
     localStorage.setItem("dodisa_cms_draft_visibility", JSON.stringify(pubSectionsVisibility));
     localStorage.setItem("dodisa_cms_draft_sections_order", JSON.stringify(pubSectionsOrder));
   };
@@ -1457,6 +1785,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRegions(DEFAULTS.regions);
     setSimulator(DEFAULTS.simulator);
     setWhatsApp(DEFAULTS.whatsapp);
+    setCustomBlocks(DEFAULTS.customBlocks);
+    setMaterialImages(DEFAULTS.materialImages);
+    setAbout(DEFAULTS.about);
+    setTimeline(DEFAULTS.timeline);
+    setCTA(DEFAULTS.cta);
+    setChannels(DEFAULTS.channels);
+    setEconomyCalculator(DEFAULTS.economyCalculator);
     setSectionsVisibilityState(DEFAULTS.sectionsVisibility);
     setSectionsOrderState(DEFAULTS.sectionsOrder);
 
@@ -1473,6 +1808,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("dodisa_cms_draft_regions", JSON.stringify(DEFAULTS.regions));
     localStorage.setItem("dodisa_cms_draft_simulator", JSON.stringify(DEFAULTS.simulator));
     localStorage.setItem("dodisa_cms_draft_whatsapp", JSON.stringify(DEFAULTS.whatsapp));
+    localStorage.setItem("dodisa_cms_draft_custom_blocks", JSON.stringify(DEFAULTS.customBlocks));
+    localStorage.setItem("dodisa_cms_draft_material_images", JSON.stringify(DEFAULTS.materialImages));
+    localStorage.setItem("dodisa_cms_draft_about", JSON.stringify(DEFAULTS.about));
+    localStorage.setItem("dodisa_cms_draft_timeline", JSON.stringify(DEFAULTS.timeline));
+    localStorage.setItem("dodisa_cms_draft_cta", JSON.stringify(DEFAULTS.cta));
+    localStorage.setItem("dodisa_cms_draft_channels", JSON.stringify(DEFAULTS.channels));
+    localStorage.setItem("dodisa_cms_draft_economy_calculator", JSON.stringify(DEFAULTS.economyCalculator));
     localStorage.setItem("dodisa_cms_draft_visibility", JSON.stringify(DEFAULTS.sectionsVisibility));
     localStorage.setItem("dodisa_cms_draft_sections_order", JSON.stringify(DEFAULTS.sectionsOrder));
   };
@@ -1674,6 +2016,63 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     markUpdate();
   };
 
+  // Custom Section Blocks — freeform sections the admin adds/removes from the Landing
+  // Page builder, unlike the fixed built-in section types.
+  const saveCustomBlocks = (blocks: CustomBlock[]) => {
+    setCustomBlocks(blocks);
+    markUpdate();
+  };
+  const addCustomBlock = (): string => {
+    const id = `custom-${Date.now()}`;
+    const newBlock: CustomBlock = { id, title: "Nova Seção", text: "Edite o texto deste bloco.", image: "", ctaText: "", ctaUrl: "" };
+    setCustomBlocks(prev => [...prev, newBlock]);
+    markUpdate();
+    return id;
+  };
+  const editCustomBlock = (id: string, partial: Partial<CustomBlock>) => {
+    setCustomBlocks(prev => prev.map(b => b.id === id ? { ...b, ...partial } : b));
+    markUpdate();
+  };
+  const deleteCustomBlock = (id: string) => {
+    setCustomBlocks(prev => prev.filter(b => b.id !== id));
+    markUpdate();
+  };
+
+  // Configurator ("Monte seu Container") material photo overrides
+  const setMaterialImage = (id: string, url: string) => {
+    setMaterialImages((prev) => ({ ...prev, [id]: url }));
+    markUpdate();
+  };
+  const removeMaterialImage = (id: string) => {
+    setMaterialImages((prev) => {
+      const { [id]: _removed, ...rest } = prev;
+      return rest;
+    });
+    markUpdate();
+  };
+
+  // Static-turned-editable sections
+  const saveAbout = (newAbout: AboutConfig) => {
+    setAbout(newAbout);
+    markUpdate();
+  };
+  const saveTimeline = (newTimeline: TimelineConfig) => {
+    setTimeline(newTimeline);
+    markUpdate();
+  };
+  const saveCTA = (newCta: CTAConfig) => {
+    setCTA(newCta);
+    markUpdate();
+  };
+  const saveChannels = (newChannels: ChannelsConfig) => {
+    setChannels(newChannels);
+    markUpdate();
+  };
+  const saveEconomyCalculator = (newCalc: EconomyCalculatorConfig) => {
+    setEconomyCalculator(newCalc);
+    markUpdate();
+  };
+
   // Logisitic regions
   const saveRegions = (reg: RegionsConfig) => {
     setRegions(reg);
@@ -1737,6 +2136,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         simulator: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubSimulator : simulator) : pubSimulator,
         whatsapp: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubWhatsApp : whatsapp) : pubWhatsApp,
         mediaLibrary,
+        customBlocks: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubCustomBlocks : customBlocks) : pubCustomBlocks,
+        materialImages: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubMaterialImages : materialImages) : pubMaterialImages,
+        about: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubAbout : about) : pubAbout,
+        timeline: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubTimeline : timeline) : pubTimeline,
+        cta: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubCTA : cta) : pubCTA,
+        channels: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubChannels : channels) : pubChannels,
+        economyCalculator: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubEconomyCalculator : economyCalculator) : pubEconomyCalculator,
         sectionsVisibility: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubSectionsVisibility : sectionsVisibility) : pubSectionsVisibility,
         sectionsOrder: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubSectionsOrder : sectionsOrder) : pubSectionsOrder,
         lastUpdated,
@@ -1782,6 +2188,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addTestimonial,
         editTestimonial,
         deleteTestimonial,
+
+        saveCustomBlocks,
+        addCustomBlock,
+        editCustomBlock,
+        deleteCustomBlock,
+
+        setMaterialImage,
+        removeMaterialImage,
+
+        saveAbout,
+        saveTimeline,
+        saveCTA,
+        saveChannels,
+        saveEconomyCalculator,
 
         saveRegions,
         saveSimulator,

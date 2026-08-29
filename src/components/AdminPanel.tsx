@@ -29,6 +29,7 @@ import FAQInteligente from "./FAQInteligente";
 import Depoimentos from "./Depoimentos";
 import CTA from "./CTA";
 import CanaisAtendimento from "./CanaisAtendimento";
+import { STRUCTURE_OPTIONS, FLOORS, INTERNAL_WALLS, PAINT_COLORS, DOOR_TYPES, WINDOW_TYPES, ALL_EXTRAS } from "../data/materials";
 import Header from "./Header";
 import Footer from "./Footer";
 import {
@@ -337,6 +338,36 @@ function ProfileTab({ adminUser, changeCredentials, triggerNotification }: {
   );
 }
 
+// Small reusable text/textarea field for the Landing Page drawer's per-section quick editors.
+function DrawerField({ label, value, onChange, rows, mono }: { label: string; value: string; onChange: (v: string) => void; rows?: number; mono?: boolean }) {
+  const base = `w-full bg-[#0F1115] border border-white/5 rounded-xl text-white text-xs focus:border-[#FFD400] outline-none ${mono ? "font-mono" : ""}`;
+  return (
+    <div>
+      <label className="block text-stone-400 mb-1.5 uppercase font-bold text-[10px] tracking-wider">{label}</label>
+      {rows ? (
+        <textarea rows={rows} value={value} onChange={(e) => onChange(e.target.value)} className={`${base} p-3 leading-relaxed resize-none`} />
+      ) : (
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className={`${base} p-2.5`} />
+      )}
+    </div>
+  );
+}
+
+// Compact card for one item inside a list-type drawer editor (Containers, FAQ, Depoimentos, etc.)
+function DrawerListCard({ title, onDelete, children }: { title: string; onDelete: () => void; children: React.ReactNode }) {
+  return (
+    <div className="bg-[#0F1115] border border-white/5 rounded-xl p-3.5 space-y-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-black text-[#FFD400] uppercase tracking-wider truncate">{title}</span>
+        <button onClick={onDelete} className="p-1.5 bg-white/5 hover:bg-red-500/10 text-stone-500 hover:text-red-400 rounded-lg transition-all cursor-pointer shrink-0" title="Excluir item">
+          <Trash2 className="w-3 h-3" />
+        </button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function AdminPanel() {
   const {
     isAdminLoggedIn,
@@ -362,6 +393,13 @@ export default function AdminPanel() {
     simulator, saveSimulator,
     whatsapp, saveWhatsApp,
     mediaLibrary, addMediaItem, deleteMediaItem,
+    customBlocks, addCustomBlock, editCustomBlock, deleteCustomBlock,
+    materialImages, setMaterialImage, removeMaterialImage,
+    about, saveAbout,
+    timeline, saveTimeline,
+    cta, saveCTA,
+    channels, saveChannels,
+    economyCalculator, saveEconomyCalculator,
     sectionsVisibility, saveSectionsVisibility,
     sectionsOrder, saveSectionsOrder,
     lastUpdated,
@@ -376,6 +414,11 @@ export default function AdminPanel() {
     previewDataScope,
     setPreviewDataScope
   } = useAppContext();
+  // Called unconditionally here (rather than inside the emulator-frame renderers
+  // below) so the Live Preview / compare-mode panels can hand a full context
+  // snapshot to their nested <AppContext.Provider> overrides without violating
+  // the Rules of Hooks by calling useAppContext() conditionally mid-render.
+  const fullAppContext = useAppContext();
 
   // Navigation tab for Admin panel - Redesigned SaaS Suite
   const VALID_TABS = ["dashboard", "landing_builder", "containers", "projects", "media", "logistic", "testimonials", "settings", "profile"] as const;
@@ -392,7 +435,7 @@ export default function AdminPanel() {
   };
 
   // Secondary sub-tabs to group collapsed panels cleanly
-  const [containersSubTab, setContainersSubTab] = useState<"catalogo" | "pronta">("catalogo");
+  const [containersSubTab, setContainersSubTab] = useState<"catalogo" | "pronta" | "materiais">("catalogo");
   const [projectsSubTab, setProjectsSubTab] = useState<"cases" | "videos" | "differentials">("cases");
   const [settingsSubTab, setSettingsSubTab] = useState<"hero" | "conversions" | "faq" | "logo" | "domain" | "base">("hero");
   const [mediaSubTab, setMediaSubTab] = useState<"gallery" | "carrossel">("gallery");
@@ -647,6 +690,10 @@ export default function AdminPanel() {
       cta: "Chamada para Ação Final",
       channels: "Canais de Atendimento"
     };
+    if (key.startsWith("custom-")) {
+      const block = customBlocks.find((b) => b.id === key);
+      return block?.title || "Seção Personalizada";
+    }
     return names[key] || key.toUpperCase();
   };
 
@@ -1844,6 +1891,20 @@ export default function AdminPanel() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
+                      const newId = addCustomBlock();
+                      const sectionKey = newId;
+                      saveSectionsOrder([...sectionsOrder, sectionKey]);
+                      setDrawerSection(sectionKey);
+                      setPreviewSectionLock(sectionKey);
+                      triggerNotification("Nova seção personalizada criada.");
+                    }}
+                    className="px-3.5 py-2 bg-[#FFD400] hover:bg-[#FFE14D] text-stone-950 rounded-xl text-xs font-black uppercase transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Nova Seção
+                  </button>
+                  <button
+                    onClick={() => {
                       if (confirm("Deseja restaurar a ordem padrão das seções?")) {
                         saveSectionsOrder(["hero", "simulator", "differentials", "containers", "prontaEntrega", "projects", "gallery", "economyCalculator", "videos", "timeline", "map", "about", "faq", "testimonials", "cta", "channels"]);
                         triggerNotification("Estrutura redefinida para o padrão.");
@@ -1948,7 +2009,18 @@ export default function AdminPanel() {
                         {/* Duplicate item button */}
                         <button
                           onClick={() => {
-                            triggerNotification(`Estrutura de seção '${friendlyName}' é global. Você pode gerenciar seus itens internos clicando em Editar.`);
+                            if (sectionKey.startsWith("custom-")) {
+                              const source = customBlocks.find((b) => b.id === sectionKey);
+                              const newId = addCustomBlock();
+                              if (source) editCustomBlock(newId, { title: `${source.title} (cópia)`, text: source.text, image: source.image, ctaText: source.ctaText, ctaUrl: source.ctaUrl });
+                              const idx = sectionsOrder.indexOf(sectionKey);
+                              const newOrder = [...sectionsOrder];
+                              newOrder.splice(idx + 1, 0, newId);
+                              saveSectionsOrder(newOrder);
+                              triggerNotification(`Seção '${friendlyName}' duplicada.`);
+                            } else {
+                              triggerNotification(`Estrutura de seção '${friendlyName}' é global. Você pode gerenciar seus itens internos clicando em Editar.`);
+                            }
                           }}
                           className="p-2 bg-white/5 hover:bg-white/10 text-stone-500 hover:text-stone-300 rounded-xl transition-all cursor-pointer"
                           title="Duplicar"
@@ -1956,16 +2028,22 @@ export default function AdminPanel() {
                           <Copy className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Delete button (hides section with notification) */}
+                        {/* Delete button — real delete for custom sections, hide for built-in ones */}
                         <button
                           onClick={() => {
-                            if (confirm(`Deseja ocultar definitivamente a seção ${friendlyName} da Landing Page?`)) {
+                            if (sectionKey.startsWith("custom-")) {
+                              if (confirm(`Excluir permanentemente a seção "${friendlyName}"? Essa ação não pode ser desfeita.`)) {
+                                deleteCustomBlock(sectionKey);
+                                saveSectionsOrder(sectionsOrder.filter((k) => k !== sectionKey));
+                                triggerNotification(`Seção "${friendlyName}" excluída.`);
+                              }
+                            } else if (confirm(`Deseja ocultar definitivamente a seção ${friendlyName} da Landing Page?`)) {
                               if (isVisible) toggleSectionVis(sectionKey);
                               triggerNotification(`Seção ${friendlyName} removida de exibição.`);
                             }
                           }}
                           className="p-2 bg-white/5 hover:bg-red-500/10 text-stone-500 hover:text-red-400 rounded-xl transition-all cursor-pointer"
-                          title="Ocultar/Excluir"
+                          title={sectionKey.startsWith("custom-") ? "Excluir Permanentemente" : "Ocultar/Excluir"}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -2000,6 +2078,7 @@ export default function AdminPanel() {
               {[
                 { id: "catalogo", label: "Catálogo de Modelos", count: containers.length },
                 { id: "pronta", label: "Estoque Pronta Entrega", count: prontaEntrega.length },
+                { id: "materiais", label: "Monte seu Container — Fotos", count: Object.keys(materialImages).length },
               ].map((st) => (
                 <button
                   key={st.id}
@@ -2384,6 +2463,53 @@ export default function AdminPanel() {
                   </button>
                 </div>
 
+              </div>
+            )}
+
+            {/* Monte seu Container — real photos for the configurator's material catalog */}
+            {containersSubTab === "materiais" && (
+              <div className="space-y-8">
+                <div className="bg-[#171A21] border border-white/5 p-5 rounded-2xl">
+                  <p className="text-white text-xs font-bold uppercase tracking-wider mb-1">Fotos reais do configurador</p>
+                  <p className="text-stone-400 text-[11px] leading-relaxed">
+                    Cada item abaixo usa hoje uma textura genérica (ou só um ícone, no caso dos acessórios). Envie uma foto real para qualquer item — ela substitui a textura/ícone automaticamente no "Monte seu Container".
+                  </p>
+                </div>
+
+                {[
+                  { label: "Estrutura", items: STRUCTURE_OPTIONS },
+                  { label: "Pisos", items: FLOORS },
+                  { label: "Paredes Internas", items: INTERNAL_WALLS },
+                  { label: "Pintura", items: PAINT_COLORS },
+                  { label: "Portas", items: DOOR_TYPES },
+                  { label: "Janelas", items: WINDOW_TYPES },
+                  { label: "Acessórios", items: ALL_EXTRAS },
+                ].map((group) => (
+                  <div key={group.label}>
+                    <p className="text-[10px] font-mono font-black text-[#FFD400] uppercase tracking-widest mb-3">{group.label}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {group.items.map((item) => {
+                        const currentUrl = materialImages[item.id] || "";
+                        return (
+                          <div key={item.id} className="bg-[#0F1115] border border-white/5 rounded-xl p-3.5 space-y-2.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-black text-white uppercase tracking-wide truncate">{item.name}</span>
+                              {currentUrl && (
+                                <button
+                                  onClick={() => { removeMaterialImage(item.id); triggerNotification(`Foto de "${item.name}" removida — voltou ao padrão.`); }}
+                                  className="text-[9px] font-bold text-stone-500 hover:text-red-400 uppercase transition-colors cursor-pointer shrink-0"
+                                >
+                                  Remover
+                                </button>
+                              )}
+                            </div>
+                            <ImageUploadField label="Foto real" value={currentUrl} onChange={(url) => setMaterialImage(item.id, url)} folder="configurador" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -4430,7 +4556,7 @@ export default function AdminPanel() {
 
               const renderEmulatorFrame = (label: string, borderClass: string, forcedScope?: "draft" | "published") => {
                 const innerElement = forcedScope ? (
-                  <AppContext.Provider value={{ ...useAppContext(), previewDataScope: forcedScope, isPagePreviewMode: true, isAdminViewActive: true }}>
+                  <AppContext.Provider value={{ ...fullAppContext, previewDataScope: forcedScope, isPagePreviewMode: true, isAdminViewActive: true }}>
                     {renderSectionElement(targetSection)}
                   </AppContext.Provider>
                 ) : (
@@ -4625,7 +4751,7 @@ export default function AdminPanel() {
               {/* RIGHT: Live Preview */}
               <div className="flex-1 overflow-y-auto bg-[#171A21] p-4 sm:p-6 flex flex-col gap-4 font-sans">
                 {(() => {
-                  const appCtx = useAppContext();
+                  const appCtx = fullAppContext;
                   const getAutoSection = (): string => {
                     if (activeTab === "containers") return containersSubTab === "catalogo" ? "containers" : "prontaEntrega";
                     if (activeTab === "projects") { if (projectsSubTab === "cases") return "projects"; if (projectsSubTab === "videos") return "videos"; return "differentials"; }
@@ -4773,35 +4899,342 @@ export default function AdminPanel() {
                 )}
 
                 {/* Include other custom sections dynamically if needed, otherwise fallback */}
-                {drawerSection !== "hero" && (
+                {drawerSection === "differentials" && (
+                  <div className="space-y-3">
+                    {differentials.map((d) => (
+                      <DrawerListCard key={d.id} title={d.title || "Diferencial"} onDelete={() => deleteDifferential(d.id)}>
+                        <DrawerField label="Título" value={d.title} onChange={(v) => editDifferential(d.id, { title: v })} />
+                        <DrawerField label="Descrição" value={d.description} onChange={(v) => editDifferential(d.id, { description: v })} rows={3} />
+                        <DrawerField label="Ícone (nome Lucide)" value={d.icon} onChange={(v) => editDifferential(d.id, { icon: v })} mono />
+                      </DrawerListCard>
+                    ))}
+                    <button onClick={() => addDifferential({ title: "Novo Diferencial", description: "", icon: "Star", visible: true })} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                      <Plus className="w-3.5 h-3.5" /> Adicionar Diferencial
+                    </button>
+                  </div>
+                )}
+
+                {drawerSection === "containers" && (
+                  <div className="space-y-3">
+                    {containers.map((c) => (
+                      <DrawerListCard key={c.id} title={c.title || "Container"} onDelete={() => deleteContainer(c.id)}>
+                        <DrawerField label="Título" value={c.title} onChange={(v) => editContainer(c.id, { title: v })} />
+                        <DrawerField label="Categoria" value={c.category} onChange={(v) => editContainer(c.id, { category: v })} />
+                        <DrawerField label="Descrição" value={c.description} onChange={(v) => editContainer(c.id, { description: v })} rows={3} />
+                        <ImageUploadField label="Imagem" value={c.image} onChange={(url) => editContainer(c.id, { image: url })} folder="containers" />
+                        <DrawerField label="Fichas Técnicas (separadas por ;)" value={c.specs.join("; ")} onChange={(v) => editContainer(c.id, { specs: v.split(";").map((s) => s.trim()).filter(Boolean) })} rows={2} mono />
+                      </DrawerListCard>
+                    ))}
+                    <button onClick={() => addContainer({ title: "Novo Container", category: "Escritório", description: "", specs: [], image: "", whatsappMsg: "", status: "Disponível", visible: true, destacado: false })} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                      <Plus className="w-3.5 h-3.5" /> Adicionar Container
+                    </button>
+                  </div>
+                )}
+
+                {drawerSection === "prontaEntrega" && (
+                  <div className="space-y-3">
+                    {prontaEntrega.map((p) => (
+                      <DrawerListCard key={p.id} title={p.title || "Item em estoque"} onDelete={() => deleteProntaEntrega(p.id)}>
+                        <DrawerField label="Título" value={p.title} onChange={(v) => editProntaEntrega(p.id, { title: v })} />
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <DrawerField label="Cidade" value={p.city} onChange={(v) => editProntaEntrega(p.id, { city: v })} />
+                          <DrawerField label="Estado" value={p.state} onChange={(v) => editProntaEntrega(p.id, { state: v })} />
+                        </div>
+                        <DrawerField label="Medidas" value={p.measurements} onChange={(v) => editProntaEntrega(p.id, { measurements: v })} />
+                        <DrawerField label="Condição" value={p.condition} onChange={(v) => editProntaEntrega(p.id, { condition: v })} />
+                        <ImageUploadField label="Adicionar Imagem" value="" onChange={(url) => url && editProntaEntrega(p.id, { images: [...p.images, url] })} folder="pronta-entrega" />
+                        <DrawerField label="Imagens (uma URL por linha)" value={p.images.join("\n")} onChange={(v) => editProntaEntrega(p.id, { images: v.split("\n").map((s) => s.trim()).filter(Boolean) })} rows={2} mono />
+                      </DrawerListCard>
+                    ))}
+                    <button onClick={() => addProntaEntrega({ title: "Novo Item", city: "Santa Rosa", state: "RS", measurements: "", condition: "", type: "Depósito", availableForSale: true, availableForRent: true, active: true })} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                      <Plus className="w-3.5 h-3.5" /> Adicionar Item
+                    </button>
+                  </div>
+                )}
+
+                {drawerSection === "projects" && (
+                  <div className="space-y-3">
+                    {projects.map((p) => (
+                      <DrawerListCard key={p.id} title={p.title || "Projeto"} onDelete={() => deleteProject(p.id)}>
+                        <DrawerField label="Título" value={p.title} onChange={(v) => editProject(p.id, { title: v })} />
+                        <DrawerField label="Categoria" value={p.category} onChange={(v) => editProject(p.id, { category: v })} />
+                        <DrawerField label="Descrição" value={p.description} onChange={(v) => editProject(p.id, { description: v })} rows={3} />
+                        <ImageUploadField label="Foto (Antes)" value={p.imageBefore || ""} onChange={(url) => editProject(p.id, { imageBefore: url })} folder="projetos" />
+                        <ImageUploadField label="Foto (Depois)" value={p.imageAfter} onChange={(url) => editProject(p.id, { imageAfter: url })} folder="projetos" />
+                        <DrawerField label="Especificações (separadas por ;)" value={p.specs.join("; ")} onChange={(v) => editProject(p.id, { specs: v.split(";").map((s) => s.trim()).filter(Boolean) })} rows={2} mono />
+                      </DrawerListCard>
+                    ))}
+                    <button onClick={() => addProject({ title: "Novo Projeto", category: "Projetos Personalizados", imageAfter: "", description: "", specs: [], visible: true, destacado: true })} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                      <Plus className="w-3.5 h-3.5" /> Adicionar Projeto
+                    </button>
+                  </div>
+                )}
+
+                {drawerSection === "videos" && (
+                  <div className="space-y-3">
+                    {videos.map((v) => (
+                      <DrawerListCard key={v.id} title={v.title || "Vídeo"} onDelete={() => deleteVideo(v.id)}>
+                        <DrawerField label="Título" value={v.title} onChange={(val) => editVideo(v.id, { title: val })} />
+                        <DrawerField label="Categoria" value={v.category} onChange={(val) => editVideo(v.id, { category: val as EditableVideo["category"] })} />
+                        <ImageUploadField label="Capa (Thumbnail)" value={v.thumbnail || ""} onChange={(url) => editVideo(v.id, { thumbnail: url })} folder="videos-capas" />
+                        <VideoUploadField label="Vídeo (YouTube, MP4 ou Upload)" value={v.url} onChange={(url) => editVideo(v.id, { url })} folder="videos" />
+                      </DrawerListCard>
+                    ))}
+                    <button onClick={() => addVideo({ title: "Novo Vídeo", url: "", category: "Projeto finalizado", visible: true })} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                      <Plus className="w-3.5 h-3.5" /> Adicionar Vídeo
+                    </button>
+                  </div>
+                )}
+
+                {drawerSection === "faq" && (
+                  <div className="space-y-3">
+                    {faq.map((f) => (
+                      <DrawerListCard key={f.id} title={f.question || "Pergunta"} onDelete={() => deleteFAQ(f.id)}>
+                        <DrawerField label="Pergunta" value={f.question} onChange={(v) => editFAQ(f.id, { question: v })} rows={2} />
+                        <DrawerField label="Resposta" value={f.answer} onChange={(v) => editFAQ(f.id, { answer: v })} rows={4} />
+                      </DrawerListCard>
+                    ))}
+                    <button onClick={() => addFAQ({ question: "Nova pergunta?", answer: "", visible: true, orderIndex: faq.length })} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                      <Plus className="w-3.5 h-3.5" /> Adicionar Pergunta
+                    </button>
+                  </div>
+                )}
+
+                {drawerSection === "testimonials" && (
+                  <div className="space-y-3">
+                    {testimonials.map((t) => (
+                      <DrawerListCard key={t.id} title={t.name || "Depoimento"} onDelete={() => deleteTestimonial(t.id)}>
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <DrawerField label="Nome" value={t.name} onChange={(v) => editTestimonial(t.id, { name: v })} />
+                          <DrawerField label="Cidade / Empresa" value={t.cityOrCompany} onChange={(v) => editTestimonial(t.id, { cityOrCompany: v })} />
+                        </div>
+                        <DrawerField label="Depoimento" value={t.content} onChange={(v) => editTestimonial(t.id, { content: v })} rows={3} />
+                        <ImageUploadField label="Foto" value={t.image || ""} onChange={(url) => editTestimonial(t.id, { image: url })} folder="depoimentos" />
+                        <DrawerField label="Nota (1 a 5)" value={String(t.rating)} onChange={(v) => editTestimonial(t.id, { rating: Math.min(5, Math.max(1, Number(v) || 5)) })} />
+                      </DrawerListCard>
+                    ))}
+                    <button onClick={() => addTestimonial({ name: "Novo Cliente", cityOrCompany: "", content: "", rating: 5, visible: true })} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                      <Plus className="w-3.5 h-3.5" /> Adicionar Depoimento
+                    </button>
+                  </div>
+                )}
+
+                {drawerSection === "map" && (
                   <div className="space-y-4">
-                    <div className="bg-[#171A21] border border-white/5 p-5 rounded-2xl text-center">
-                      <Sliders className="w-8 h-8 text-[#FFD400] mx-auto mb-2.5" />
-                      <p className="text-xs text-white font-bold uppercase tracking-wider">Edição em Tempo Real</p>
-                      <p className="text-stone-400 text-[11px] mt-1.5 leading-normal">
-                        Este elemento utiliza sincronização automática. Você pode configurá-lo detalhadamente na aba respectiva do menu lateral ou editar seus itens com salvamento imediato no preview.
-                      </p>
+                    <DrawerField label="Estados atendidos (separados por ;)" value={regions.states.join("; ")} onChange={(v) => saveRegions({ ...regions, states: v.split(";").map((s) => s.trim()).filter(Boolean) })} rows={2} />
+                    <DrawerField label="Cidades atendidas (separadas por ;)" value={regions.cities.join("; ")} onChange={(v) => saveRegions({ ...regions, cities: v.split(";").map((s) => s.trim()).filter(Boolean) })} rows={3} />
+                    <DrawerField label="Regiões (separadas por ;)" value={regions.regions.join("; ")} onChange={(v) => saveRegions({ ...regions, regions: v.split(";").map((s) => s.trim()).filter(Boolean) })} rows={2} />
+                    <div>
+                      <label className="block text-stone-400 mb-1.5 uppercase font-bold text-[10px] tracking-wider">Regiões visíveis no mapa</label>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(regions.visibleRegions).map(([key, val]) => (
+                          <button
+                            key={key}
+                            onClick={() => saveRegions({ ...regions, visibleRegions: { ...regions.visibleRegions, [key]: !val } })}
+                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all cursor-pointer ${val ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-stone-500 border-white/5"}`}
+                          >
+                            {key}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {drawerSection === "simulator" && (
+                  <div className="space-y-4">
+                    <DrawerField label="Mensagem final do WhatsApp (use {answers})" value={simulator.whatsappTemplate} onChange={(v) => saveSimulator({ ...simulator, whatsappTemplate: v })} rows={3} mono />
+                    <div className="space-y-3">
+                      {simulator.questions.map((q, idx) => (
+                        <DrawerListCard
+                          key={q.id}
+                          title={q.questionText || "Pergunta"}
+                          onDelete={() => saveSimulator({ ...simulator, questions: simulator.questions.filter((x) => x.id !== q.id) })}
+                        >
+                          <DrawerField label="Pergunta" value={q.questionText} onChange={(v) => {
+                            const questions = [...simulator.questions]; questions[idx] = { ...q, questionText: v }; saveSimulator({ ...simulator, questions });
+                          }} />
+                          <DrawerField label="Opções (separadas por ;)" value={q.options.join("; ")} onChange={(v) => {
+                            const questions = [...simulator.questions]; questions[idx] = { ...q, options: v.split(";").map((s) => s.trim()).filter(Boolean) }; saveSimulator({ ...simulator, questions });
+                          }} rows={2} />
+                        </DrawerListCard>
+                      ))}
                       <button
-                        onClick={() => {
-                          const mappedTab = 
-                            drawerSection === "containers" ? "containers" :
-                            drawerSection === "prontaEntrega" ? "containers" :
-                            drawerSection === "projects" ? "projects" :
-                            drawerSection === "testimonials" ? "testimonials" :
-                            drawerSection === "map" ? "logistic" :
-                            drawerSection === "faq" ? "settings" : "settings";
-                          setActiveTab(mappedTab as any);
-                          if (drawerSection === "prontaEntrega") setContainersSubTab("pronta");
-                          if (drawerSection === "faq") setSettingsSubTab("faq");
-                          setDrawerSection(null);
-                        }}
-                        className="mt-4 px-4 py-2 bg-[#FFD400] hover:bg-[#FFE14D] text-stone-950 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                        onClick={() => saveSimulator({ ...simulator, questions: [...simulator.questions, { id: `q-${Date.now()}`, questionText: "Nova pergunta?", options: ["Opção 1", "Opção 2"], whatsappTemplate: "{val}" }] })}
+                        className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
                       >
-                        Ir para Painel de Gerenciamento
+                        <Plus className="w-3.5 h-3.5" /> Adicionar Pergunta
                       </button>
                     </div>
                   </div>
                 )}
+
+                {drawerSection === "about" && (
+                  <div className="space-y-4">
+                    <DrawerField label="Título" value={about.title} onChange={(v) => saveAbout({ ...about, title: v })} />
+                    <DrawerField label="Título em Destaque (amarelo)" value={about.highlightTitle} onChange={(v) => saveAbout({ ...about, highlightTitle: v })} />
+                    <DrawerField label="Parágrafo 1" value={about.paragraph1} onChange={(v) => saveAbout({ ...about, paragraph1: v })} rows={3} />
+                    <DrawerField label="Parágrafo 2" value={about.paragraph2} onChange={(v) => saveAbout({ ...about, paragraph2: v })} rows={3} />
+                    <DrawerField label="Parágrafo 3 (destaque final)" value={about.paragraph3} onChange={(v) => saveAbout({ ...about, paragraph3: v })} rows={2} />
+                    <div className="grid grid-cols-3 gap-2.5">
+                      <DrawerField label="Estat. 1 Valor" value={about.stat1Value} onChange={(v) => saveAbout({ ...about, stat1Value: v })} />
+                      <DrawerField label="Estat. 2 Valor" value={about.stat2Value} onChange={(v) => saveAbout({ ...about, stat2Value: v })} />
+                      <DrawerField label="Estat. 3 Valor" value={about.stat3Value} onChange={(v) => saveAbout({ ...about, stat3Value: v })} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      <DrawerField label="Estat. 1 Rótulo" value={about.stat1Label} onChange={(v) => saveAbout({ ...about, stat1Label: v })} />
+                      <DrawerField label="Estat. 2 Rótulo" value={about.stat2Label} onChange={(v) => saveAbout({ ...about, stat2Label: v })} />
+                      <DrawerField label="Estat. 3 Rótulo" value={about.stat3Label} onChange={(v) => saveAbout({ ...about, stat3Label: v })} />
+                    </div>
+                    <ImageUploadField label="Imagem" value={about.image} onChange={(url) => saveAbout({ ...about, image: url })} folder="sobre" />
+                    <DrawerField label="Rótulo da lista de pilares" value={about.pillarsLabel} onChange={(v) => saveAbout({ ...about, pillarsLabel: v })} />
+                    <div className="space-y-3">
+                      {about.pillars.map((p, idx) => (
+                        <DrawerListCard key={p.id} title={p.title || "Pilar"} onDelete={() => saveAbout({ ...about, pillars: about.pillars.filter((x) => x.id !== p.id) })}>
+                          <DrawerField label="Título" value={p.title} onChange={(v) => { const pillars = [...about.pillars]; pillars[idx] = { ...p, title: v }; saveAbout({ ...about, pillars }); }} />
+                          <DrawerField label="Descrição" value={p.description} onChange={(v) => { const pillars = [...about.pillars]; pillars[idx] = { ...p, description: v }; saveAbout({ ...about, pillars }); }} rows={3} />
+                          <DrawerField label="Selo" value={p.seal} onChange={(v) => { const pillars = [...about.pillars]; pillars[idx] = { ...p, seal: v }; saveAbout({ ...about, pillars }); }} />
+                        </DrawerListCard>
+                      ))}
+                      <button onClick={() => saveAbout({ ...about, pillars: [...about.pillars, { id: `pillar-${Date.now()}`, title: "Novo Pilar", description: "", seal: "" }] })} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                        <Plus className="w-3.5 h-3.5" /> Adicionar Pilar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {drawerSection === "timeline" && (
+                  <div className="space-y-4">
+                    <DrawerField label="Título" value={timeline.title} onChange={(v) => saveTimeline({ ...timeline, title: v })} />
+                    <DrawerField label="Título em Destaque (amarelo)" value={timeline.highlightTitle} onChange={(v) => saveTimeline({ ...timeline, highlightTitle: v })} />
+                    <DrawerField label="Subtítulo" value={timeline.subtitle} onChange={(v) => saveTimeline({ ...timeline, subtitle: v })} rows={2} />
+                    <div className="space-y-3">
+                      {timeline.steps.map((s, idx) => (
+                        <DrawerListCard key={s.id} title={`${s.number}. ${s.title || "Passo"}`} onDelete={() => saveTimeline({ ...timeline, steps: timeline.steps.filter((x) => x.id !== s.id) })}>
+                          <DrawerField label="Título" value={s.title} onChange={(v) => { const steps = [...timeline.steps]; steps[idx] = { ...s, title: v }; saveTimeline({ ...timeline, steps }); }} />
+                          <DrawerField label="Descrição" value={s.description} onChange={(v) => { const steps = [...timeline.steps]; steps[idx] = { ...s, description: v }; saveTimeline({ ...timeline, steps }); }} rows={3} />
+                        </DrawerListCard>
+                      ))}
+                      <button onClick={() => saveTimeline({ ...timeline, steps: [...timeline.steps, { id: `step-${Date.now()}`, number: timeline.steps.length + 1, title: "Novo Passo", description: "" }] })} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                        <Plus className="w-3.5 h-3.5" /> Adicionar Passo
+                      </button>
+                    </div>
+                    <DrawerField label="Nota do rodapé" value={timeline.footerNote} onChange={(v) => saveTimeline({ ...timeline, footerNote: v })} />
+                  </div>
+                )}
+
+                {drawerSection === "cta" && (
+                  <div className="space-y-4">
+                    <DrawerField label="Selo superior" value={cta.eyebrow} onChange={(v) => saveCTA({ ...cta, eyebrow: v })} />
+                    <DrawerField label="Linha de estatística" value={cta.statLine} onChange={(v) => saveCTA({ ...cta, statLine: v })} />
+                    <DrawerField label="Título (Enter = quebra de linha)" value={cta.title} onChange={(v) => saveCTA({ ...cta, title: v })} rows={2} />
+                    <DrawerField label="Subtítulo" value={cta.subtitle} onChange={(v) => saveCTA({ ...cta, subtitle: v })} rows={2} />
+                    <DrawerField label="Texto do botão" value={cta.buttonText} onChange={(v) => saveCTA({ ...cta, buttonText: v })} />
+                  </div>
+                )}
+
+                {drawerSection === "channels" && (
+                  <div className="space-y-4">
+                    <DrawerField label="Título" value={channels.title} onChange={(v) => saveChannels({ ...channels, title: v })} />
+                    <DrawerField label="Título em Destaque (amarelo)" value={channels.highlightTitle} onChange={(v) => saveChannels({ ...channels, highlightTitle: v })} />
+                    <DrawerField label="Subtítulo" value={channels.subtitle} onChange={(v) => saveChannels({ ...channels, subtitle: v })} rows={2} />
+                    <DrawerField label="Instagram (usuário)" value={channels.instagramHandle} onChange={(v) => saveChannels({ ...channels, instagramHandle: v })} />
+                    <DrawerField label="Instagram (URL)" value={channels.instagramUrl} onChange={(v) => saveChannels({ ...channels, instagramUrl: v })} mono />
+                    <DrawerField label="Endereço (linha 1)" value={channels.addressLine1} onChange={(v) => saveChannels({ ...channels, addressLine1: v })} />
+                    <DrawerField label="Endereço (linha 2)" value={channels.addressLine2} onChange={(v) => saveChannels({ ...channels, addressLine2: v })} />
+                    <DrawerField label="Link do Google Maps" value={channels.mapsUrl} onChange={(v) => saveChannels({ ...channels, mapsUrl: v })} mono />
+                  </div>
+                )}
+
+                {drawerSection === "economyCalculator" && (
+                  <div className="space-y-4">
+                    <DrawerField label="Selo superior" value={economyCalculator.eyebrow} onChange={(v) => saveEconomyCalculator({ ...economyCalculator, eyebrow: v })} />
+                    <div className="grid grid-cols-3 gap-2.5">
+                      <DrawerField label="Título (início)" value={economyCalculator.titleLine1} onChange={(v) => saveEconomyCalculator({ ...economyCalculator, titleLine1: v })} />
+                      <DrawerField label="Destaque (amarelo)" value={economyCalculator.titleHighlight} onChange={(v) => saveEconomyCalculator({ ...economyCalculator, titleHighlight: v })} />
+                      <DrawerField label="Título (fim)" value={economyCalculator.titleLine2} onChange={(v) => saveEconomyCalculator({ ...economyCalculator, titleLine2: v })} />
+                    </div>
+                    <DrawerField label="Subtítulo" value={economyCalculator.subtitle} onChange={(v) => saveEconomyCalculator({ ...economyCalculator, subtitle: v })} rows={2} />
+                    <DrawerField label="Tipos de projeto (separados por ;)" value={economyCalculator.projectTypes.join("; ")} onChange={(v) => saveEconomyCalculator({ ...economyCalculator, projectTypes: v.split(";").map((s) => s.trim()).filter(Boolean) })} rows={2} />
+                    <DrawerField label="Tamanhos (separados por ;)" value={economyCalculator.sizes.join("; ")} onChange={(v) => saveEconomyCalculator({ ...economyCalculator, sizes: v.split(";").map((s) => s.trim()).filter(Boolean) })} rows={2} />
+                    <DrawerField label="Prazos (separados por ;)" value={economyCalculator.timeframes.join("; ")} onChange={(v) => saveEconomyCalculator({ ...economyCalculator, timeframes: v.split(";").map((s) => s.trim()).filter(Boolean) })} rows={2} />
+                    <div className="space-y-3">
+                      <label className="block text-stone-400 uppercase font-bold text-[10px] tracking-wider">Tabela comparativa</label>
+                      {economyCalculator.comparisons.map((row, idx) => (
+                        <DrawerListCard key={row.id} title={row.attribute || "Critério"} onDelete={() => saveEconomyCalculator({ ...economyCalculator, comparisons: economyCalculator.comparisons.filter((x) => x.id !== row.id) })}>
+                          <DrawerField label="Critério" value={row.attribute} onChange={(v) => { const comparisons = [...economyCalculator.comparisons]; comparisons[idx] = { ...row, attribute: v }; saveEconomyCalculator({ ...economyCalculator, comparisons }); }} />
+                          <DrawerField label="Solução Dodisa (Container)" value={row.container} onChange={(v) => { const comparisons = [...economyCalculator.comparisons]; comparisons[idx] = { ...row, container: v }; saveEconomyCalculator({ ...economyCalculator, comparisons }); }} rows={2} />
+                          <DrawerField label="Construção em Alvenaria" value={row.masonry} onChange={(v) => { const comparisons = [...economyCalculator.comparisons]; comparisons[idx] = { ...row, masonry: v }; saveEconomyCalculator({ ...economyCalculator, comparisons }); }} rows={2} />
+                        </DrawerListCard>
+                      ))}
+                      <button onClick={() => saveEconomyCalculator({ ...economyCalculator, comparisons: [...economyCalculator.comparisons, { id: `cmp-${Date.now()}`, attribute: "Novo Critério", container: "", masonry: "" }] })} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                        <Plus className="w-3.5 h-3.5" /> Adicionar Linha
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {drawerSection === "whatsapp" && (
+                  <div className="space-y-4">
+                    <DrawerField label="Número do WhatsApp (só dígitos, com DDI+DDD)" value={whatsapp.number} onChange={(v) => saveWhatsApp({ ...whatsapp, number: v })} mono />
+                    <DrawerField label="Mensagem automática geral" value={whatsapp.autoMsgGeneral} onChange={(v) => saveWhatsApp({ ...whatsapp, autoMsgGeneral: v })} rows={3} />
+                    <div className="space-y-3">
+                      <label className="block text-stone-400 uppercase font-bold text-[10px] tracking-wider">Mensagens por categoria</label>
+                      {Object.entries(whatsapp.categoryMessages).map(([category, msg]) => (
+                        <DrawerListCard
+                          key={category}
+                          title={category}
+                          onDelete={() => {
+                            const { [category]: _removed, ...rest } = whatsapp.categoryMessages;
+                            saveWhatsApp({ ...whatsapp, categoryMessages: rest });
+                          }}
+                        >
+                          <DrawerField
+                            label="Mensagem"
+                            value={msg as string}
+                            onChange={(v) => saveWhatsApp({ ...whatsapp, categoryMessages: { ...whatsapp.categoryMessages, [category]: v } })}
+                            rows={2}
+                          />
+                        </DrawerListCard>
+                      ))}
+                      <button
+                        onClick={() => {
+                          const name = prompt("Nome da nova categoria:");
+                          if (name && name.trim()) saveWhatsApp({ ...whatsapp, categoryMessages: { ...whatsapp.categoryMessages, [name.trim()]: "" } });
+                        }}
+                        className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Adicionar Categoria
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {(drawerSection === "gallery") && (
+                  <div className="-m-6">
+                    <GaleriaImagens triggerNotification={triggerNotification} />
+                  </div>
+                )}
+
+                {drawerSection === "carrosselGaleria" && (
+                  <div className="-m-6">
+                    <CarrosselAdminPanel triggerNotification={triggerNotification} />
+                  </div>
+                )}
+
+                {drawerSection && drawerSection.startsWith("custom-") && (() => {
+                  const block = customBlocks.find((b) => b.id === drawerSection);
+                  if (!block) return <p className="text-stone-500 text-xs">Seção não encontrada.</p>;
+                  return (
+                    <div className="space-y-4">
+                      <DrawerField label="Título" value={block.title} onChange={(v) => editCustomBlock(block.id, { title: v })} />
+                      <DrawerField label="Texto" value={block.text} onChange={(v) => editCustomBlock(block.id, { text: v })} rows={4} />
+                      <ImageUploadField label="Imagem (opcional)" value={block.image || ""} onChange={(url) => editCustomBlock(block.id, { image: url })} folder="custom-blocks" />
+                      <DrawerField label="Texto do botão (opcional)" value={block.ctaText || ""} onChange={(v) => editCustomBlock(block.id, { ctaText: v })} />
+                      <DrawerField label="Link do botão" value={block.ctaUrl || ""} onChange={(v) => editCustomBlock(block.id, { ctaUrl: v })} mono />
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Drawer Footer */}

@@ -1,28 +1,9 @@
 import { motion } from "motion/react";
 import { Truck } from "lucide-react";
-
-const PILLARS = [
-  {
-    num: "01",
-    title: "DIRETRIZ OPERACIONAL",
-    description: "Erradicar o atraso, o desperdício e a burocracia do seu canteiro de obras. Entregamos estruturas modulares de alto padrão, prontas para uso imediato (Plug & Play), garantindo que a sua equipe comece a faturar no minuto em que o módulo toca o solo.",
-    seal: "Engenharia de Resultados",
-  },
-  {
-    num: "02",
-    title: "NOSSO ALVO — O PADRÃO-OURO",
-    description: "Estabelecer o padrão absoluto em infraestrutura modular no país. Onde houver uma operação crítica exigindo conforto térmico, segurança estrutural e velocidade de implantação, haverá uma estrutura com a nossa assinatura.",
-    seal: "Domínio de Mercado",
-  },
-  {
-    num: "03",
-    title: "PILARES INEGOCIÁVEIS",
-    description: "Rigor técnico incontestável (com laudos e ART em 100% dos projetos). Logística própria implacável, com içamento seguro e frota pesada. Prazo de embarque é lei. Nós falamos de engenheiro para engenheiro.",
-    seal: "Operação Blindada",
-  },
-];
+import { useAppContext } from "../context/AppContext";
 
 export default function Sobre() {
+  const { about } = useAppContext();
 
   return (
     <section id="sobre" className="relative py-14 sm:py-28 bg-[#0B0F14] border-t border-white/5 overflow-hidden">
@@ -41,37 +22,31 @@ export default function Sobre() {
             className="lg:col-span-6 text-left"
           >
             <h2 className="text-3xl sm:text-5xl font-black font-display text-white uppercase tracking-tight leading-tight">
-              A FORÇA DA ENGENHARIA MODULAR.<br />
-              <span className="text-brand-yellow">LOGÍSTICA E EXECUÇÃO IMPLACÁVEIS.</span>
+              {about.title}<br />
+              <span className="text-brand-yellow">{about.highlightTitle}</span>
             </h2>
 
             <div className="w-12 h-0.5 bg-brand-yellow my-6" />
 
             <div className="space-y-5 text-stone-300 font-sans text-xs sm:text-sm leading-relaxed">
-              <p>
-                Não somos apenas montadores de estruturas. Somos um grupo de engenharia e logística pesada focado em mobilização corporativa. Projetamos, fabricamos e entregamos soluções <span className="font-extrabold text-white">'chave na mão'</span> que esmagam o cronograma da alvenaria tradicional.
-              </p>
-              <p>
-                Cada módulo sai da nossa linha de produção com chassi naval, pintura em poliuretano epóxi de alta resistência e isolamento térmico avançado. O resultado? Uma estrutura blindada, rigorosamente dentro das normas <span className="text-brand-yellow font-semibold">NR-18 e NR-24</span>, pronta para operar nos climas e terrenos mais extremos do Brasil.
-              </p>
-              <p className="font-extrabold text-white">
-                A sua operação não tem margem para erros. Nós também não.
-              </p>
+              <p>{about.paragraph1}</p>
+              <p>{about.paragraph2}</p>
+              <p className="font-extrabold text-white">{about.paragraph3}</p>
             </div>
 
             {/* Quick credentials columns */}
             <div className="grid grid-cols-3 gap-4 mt-10 pt-8 border-t border-white/5">
               <div className="flex flex-col">
-                <span className="text-xl sm:text-3xl font-black font-display text-white">100%</span>
-                <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-wider mt-1">Homologado NR-18</span>
+                <span className="text-xl sm:text-3xl font-black font-display text-white">{about.stat1Value}</span>
+                <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-wider mt-1">{about.stat1Label}</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl sm:text-3xl font-black font-display text-white">Aço</span>
-                <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-wider mt-1">Corten Certificado</span>
+                <span className="text-xl sm:text-3xl font-black font-display text-white">{about.stat2Value}</span>
+                <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-wider mt-1">{about.stat2Label}</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-base sm:text-xl font-black font-display text-white leading-tight">LOGÍSTICA INTEGRADA</span>
-                <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-wider mt-1">Frota Pesada e Caminhões Munck Próprios</span>
+                <span className="text-base sm:text-xl font-black font-display text-white leading-tight">{about.stat3Value}</span>
+                <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-wider mt-1">{about.stat3Label}</span>
               </div>
             </div>
           </motion.div>
@@ -87,7 +62,7 @@ export default function Sobre() {
             <div className="relative rounded-xl overflow-hidden border border-zinc-800 aspect-[4/3] bg-brand-dark">
               {/* PLACEHOLDER — substituir por foto aérea/drone de containers montados ou içamento de módulo */}
               <img
-                src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=800&q=80"
+                src={about.image}
                 alt="Operação de logística e içamento de container Dodisa"
                 className="w-full h-full object-cover object-center scale-102 hover:scale-100 transition-transform duration-[800ms] brightness-90"
                 loading="lazy"
@@ -119,14 +94,14 @@ export default function Sobre() {
         <div className="mt-20 max-w-5xl mx-auto">
           {/* Section label */}
           <div className="flex items-center gap-4 mb-12">
-            <span className="text-[9px] font-mono font-black text-zinc-600 uppercase tracking-[0.3em]">Fundamentos Corporativos</span>
+            <span className="text-[9px] font-mono font-black text-zinc-600 uppercase tracking-[0.3em]">{about.pillarsLabel}</span>
             <div className="h-px flex-1 bg-white/5" />
           </div>
 
           <div className="flex flex-col">
-            {PILLARS.map((p, idx) => (
+            {about.pillars.map((p, idx) => (
               <motion.div
-                key={p.num}
+                key={p.id}
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
@@ -136,7 +111,7 @@ export default function Sobre() {
                 {/* Large number */}
                 <div className="lg:col-span-2 flex items-start">
                   <span className="text-6xl sm:text-7xl font-black text-white/5 group-hover:text-brand-yellow/20 transition-colors duration-500 leading-none font-display select-none">
-                    {p.num}
+                    {String(idx + 1).padStart(2, "0")}
                   </span>
                 </div>
 
