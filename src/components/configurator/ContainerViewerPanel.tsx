@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Box } from "lucide-react";
 import type { ContainerConfig, StepId } from "./types";
 import { resolveViewerProps } from "./resolveViewerProps";
 import ConfigurationSummary from "./ConfigurationSummary";
+import { lazyWithReload } from "../../lib/lazyWithReload";
 
-const ContainerVisualizer3D = lazy(() => import("../ContainerVisualizer3D"));
+const ContainerVisualizer3D = lazyWithReload(() => import("../ContainerVisualizer3D"));
 
 /** Wraps the real 3D viewer + a tiny "Atualizando visualização" pulse (never a
  * full reload/flash — the viewer itself only patches materials, see spec

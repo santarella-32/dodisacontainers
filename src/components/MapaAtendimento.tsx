@@ -1,5 +1,6 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
-const LeafletMap = lazy(() => import("./LeafletMap"));
+import React, { useState, useEffect, Suspense } from "react";
+import { lazyWithReload } from "../lib/lazyWithReload";
+const LeafletMap = lazyWithReload(() => import("./LeafletMap"));
 import { geocodeAddress } from "./LeafletMap";
 import { motion, AnimatePresence } from "motion/react";
 import { 

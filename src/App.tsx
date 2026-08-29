@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, Component } from "react";
+import React, { Suspense, Component } from "react";
 import { AppProvider, useAppContext } from "./context/AppContext";
 
 class AdminErrorBoundary extends Component<
@@ -38,28 +38,29 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import WhatsAppButton from "./components/WhatsAppButton";
 import CustomBlockSection from "./components/CustomBlockSection";
+import { lazyWithReload } from "./lib/lazyWithReload";
 
 // Tudo abaixo do fold carrega sob demanda — reduz o bundle inicial de 381KB para ~120KB
-const SimuladorOrcamento = lazy(() => import("./components/SimuladorOrcamento"));
-const Diferenciais = lazy(() => import("./components/Diferenciais"));
-const ContainersGrid = lazy(() => import("./components/ContainersGrid"));
-const ProntaEntrega = lazy(() => import("./components/ProntaEntrega"));
-const Projetos = lazy(() => import("./components/Projetos"));
-const ComoFunciona = lazy(() => import("./components/ComoFunciona"));
-const Sobre = lazy(() => import("./components/Sobre"));
-const Depoimentos = lazy(() => import("./components/Depoimentos"));
-const CTA = lazy(() => import("./components/CTA"));
-const CanaisAtendimento = lazy(() => import("./components/CanaisAtendimento"));
-const Footer = lazy(() => import("./components/Footer"));
-const OrcamentoPopup = lazy(() => import("./components/OrcamentoPopup"));
-const OrcamentoPage = lazy(() => import("./components/OrcamentoPage"));
-const AdminPanel = lazy(() => import("./components/AdminPanel"));
-const GaleriaProjetos = lazy(() => import("./components/GaleriaProjetos"));
-const CalculadoraEconomia = lazy(() => import("./components/CalculadoraEconomia"));
-const VideosReais = lazy(() => import("./components/VideosReais"));
-const MapaAtendimento = lazy(() => import("./components/MapaAtendimento"));
-const FAQInteligente = lazy(() => import("./components/FAQInteligente"));
-const CarrosselGaleria = lazy(() => import("./components/CarrosselGaleria"));
+const SimuladorOrcamento = lazyWithReload(() => import("./components/SimuladorOrcamento"));
+const Diferenciais = lazyWithReload(() => import("./components/Diferenciais"));
+const ContainersGrid = lazyWithReload(() => import("./components/ContainersGrid"));
+const ProntaEntrega = lazyWithReload(() => import("./components/ProntaEntrega"));
+const Projetos = lazyWithReload(() => import("./components/Projetos"));
+const ComoFunciona = lazyWithReload(() => import("./components/ComoFunciona"));
+const Sobre = lazyWithReload(() => import("./components/Sobre"));
+const Depoimentos = lazyWithReload(() => import("./components/Depoimentos"));
+const CTA = lazyWithReload(() => import("./components/CTA"));
+const CanaisAtendimento = lazyWithReload(() => import("./components/CanaisAtendimento"));
+const Footer = lazyWithReload(() => import("./components/Footer"));
+const OrcamentoPopup = lazyWithReload(() => import("./components/OrcamentoPopup"));
+const OrcamentoPage = lazyWithReload(() => import("./components/OrcamentoPage"));
+const AdminPanel = lazyWithReload(() => import("./components/AdminPanel"));
+const GaleriaProjetos = lazyWithReload(() => import("./components/GaleriaProjetos"));
+const CalculadoraEconomia = lazyWithReload(() => import("./components/CalculadoraEconomia"));
+const VideosReais = lazyWithReload(() => import("./components/VideosReais"));
+const MapaAtendimento = lazyWithReload(() => import("./components/MapaAtendimento"));
+const FAQInteligente = lazyWithReload(() => import("./components/FAQInteligente"));
+const CarrosselGaleria = lazyWithReload(() => import("./components/CarrosselGaleria"));
 
 // Only mounts (and therefore only triggers the lazy import() for) a section once it
 // scrolls near the viewport. Previously every section in sectionsOrder was rendered

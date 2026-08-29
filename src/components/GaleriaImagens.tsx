@@ -9,7 +9,7 @@ import {
 import { getSupabase } from "../lib/supabase";
 import { useAppContext } from "../context/AppContext";
 
-const DEFAULT_FOLDERS = ["Geral", "Containers", "Projetos", "Depoimentos", "Fachada", "Pátio", "Logística", "Equipe"];
+const DEFAULT_FOLDERS = ["Geral", "Containers", "Projetos", "Depoimentos", "Fachada", "Pátio", "Logística", "Equipe", "Configurador"];
 const CATEGORIES = DEFAULT_FOLDERS; // alias for upload compatibility
 const FOLDERS_KEY = "dodisa_gallery_folders";
 const PAGE_SIZE = 40;

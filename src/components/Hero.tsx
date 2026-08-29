@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, CheckCircle2, ShieldAlert, Award, Sparkles, Play, X, Zap, Cpu, Settings, MapPin, Tag, MessageCircle, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAppContext } from "../context/AppContext";
 import type { ProntaEntregaItem } from "../context/AppContext";
+import { lazyWithReload } from "../lib/lazyWithReload";
 
-const ThreeContainerVisualizer = lazy(() => import("./ThreeContainerVisualizer"));
+const ThreeContainerVisualizer = lazyWithReload(() => import("./ThreeContainerVisualizer"));
 
 // Count-down-to-lock: starts high, rapidly drops, snaps into final value (easeOutQuart)
 // Drives all three Hero metrics (Projetos/Clientes/Experiência) from ONE shared rAF loop

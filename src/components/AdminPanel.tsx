@@ -2503,7 +2503,7 @@ export default function AdminPanel() {
                                 </button>
                               )}
                             </div>
-                            <ImageUploadField label="Foto real" value={currentUrl} onChange={(url) => setMaterialImage(item.id, url)} folder="configurador" />
+                            <ImageUploadField label="Foto real" value={currentUrl} onChange={(url) => setMaterialImage(item.id, url)} folder="gallery/Configurador" />
                           </div>
                         );
                       })}
