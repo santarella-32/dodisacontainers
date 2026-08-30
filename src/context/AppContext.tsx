@@ -949,9 +949,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [pubSectionsVisibility, setPubSectionsVisibility] = useState<SectionsVisibility>(() => {
     const cachedPub = localStorage.getItem("dodisa_cms_pub_visibility");
-    if (cachedPub) return { ...JSON.parse(cachedPub), prontaEntrega: true };
+    if (cachedPub) return JSON.parse(cachedPub);
     const legacy = localStorage.getItem("dodisa_cms_visibility");
-    return legacy ? { ...JSON.parse(legacy), prontaEntrega: true } : DEFAULTS.sectionsVisibility;
+    return legacy ? JSON.parse(legacy) : DEFAULTS.sectionsVisibility;
   });
 
   const [pubSectionsOrder, setPubSectionsOrder] = useState<string[]>(() => {
@@ -1101,7 +1101,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [sectionsVisibility, setSectionsVisibilityState] = useState<SectionsVisibility>(() => {
     const cachedDraft = localStorage.getItem("dodisa_cms_draft_visibility");
-    if (cachedDraft) return { ...JSON.parse(cachedDraft), prontaEntrega: true };
+    if (cachedDraft) return JSON.parse(cachedDraft);
     return pubSectionsVisibility;
   });
 
@@ -1211,7 +1211,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               localStorage.setItem("dodisa_cms_pub_whatsapp", JSON.stringify(content_data));
               break;
             case "visibility": {
-              const visData = { ...content_data, prontaEntrega: false };
+              const visData = content_data;
               setPubSectionsVisibility(visData);
               setSectionsVisibilityState(visData);
               localStorage.setItem("dodisa_cms_pub_visibility", JSON.stringify(visData));
@@ -1387,37 +1387,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     localStorage.setItem("dodisa_cms_draft_visibility", JSON.stringify(sectionsVisibility));
   }, [sectionsVisibility]);
-
-  // One-time migration: apply new section visibility defaults to existing users
-  useEffect(() => {
-    if (localStorage.getItem("dodisa_visibility_v3")) return;
-    const hidden = ["differentials", "gallery", "economyCalculator", "timeline"];
-    const applyHidden = (vis: SectionsVisibility): SectionsVisibility =>
-      Object.fromEntries(Object.entries(vis).map(([k, v]) => [k, hidden.includes(k) ? false : v])) as SectionsVisibility;
-    const newVis = applyHidden(DEFAULTS.sectionsVisibility);
-    setPubSectionsVisibility(newVis);
-    setSectionsVisibilityState(newVis);
-    ["dodisa_cms_pub_visibility", "dodisa_cms_draft_visibility", "dodisa_cms_visibility"].forEach(
-      (key) => localStorage.setItem(key, JSON.stringify(newVis))
-    );
-    localStorage.setItem("dodisa_visibility_v3", "true");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Migration v4: enable "about" section (previously hidden by v3)
-  useEffect(() => {
-    if (localStorage.getItem("dodisa_visibility_v4")) return;
-    setSectionsVisibilityState((prev) => ({ ...prev, about: true }));
-    setPubSectionsVisibility((prev: SectionsVisibility) => ({ ...prev, about: true }));
-    ["dodisa_cms_pub_visibility", "dodisa_cms_draft_visibility", "dodisa_cms_visibility"].forEach((key) => {
-      try {
-        const stored = JSON.parse(localStorage.getItem(key) || "{}");
-        localStorage.setItem(key, JSON.stringify({ ...stored, about: true }));
-      } catch { /* ignore */ }
-    });
-    localStorage.setItem("dodisa_visibility_v4", "true");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // One-time migration: inject carrosselGaleria into existing stored sectionsOrder arrays
   useEffect(() => {

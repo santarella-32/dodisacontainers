@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  Lock, Eye, EyeOff, LogOut, Layout, Settings, FileText, HelpCircle, 
-  Plus, Trash2, Edit2, Check, RefreshCw, FileImage, Layers, Shield, 
+  Lock, Eye, EyeOff, LogOut, Layout, Settings, FileText, HelpCircle,
+  Plus, Trash2, Edit2, Check, RefreshCw, FileImage, Layers, Shield,
   MapPin, Sliders, Play, PlusCircle, Copy, AlertCircle, Save, ArrowUp, ArrowDown,
   Server, MessageSquare, Phone, Info, Star, ChevronRight, X, ExternalLink,
-  Menu, Grid, Video, Smartphone, CheckCircle2, Image, ChevronLeft, Globe, TrendingUp
+  Menu, Grid, Video, Smartphone, CheckCircle2, Image, ChevronLeft, Globe, TrendingUp, Upload
 } from "lucide-react";
 import { useAppContext, AppContext, EditableContainer, ProntaEntregaItem, EditableProject, EditableVideo, EditableFAQ, EditableTestimonial } from "../context/AppContext";
 import { getSupabase } from "../lib/supabase";
@@ -47,40 +47,72 @@ function CarrosselAdminPanel({ triggerNotification }: { triggerNotification: (ms
   const [loadingFolders, setLoadingFolders] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [rawUrls, setRawUrls] = React.useState<string>(config.selectedUrls.join("\n"));
+  const [newFolderName, setNewFolderName] = React.useState("");
+  const [uploading, setUploading] = React.useState(false);
+  const uploadInputRef = React.useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    const load = async () => {
-      setLoadingFolders(true);
-      const supabase = getSupabase();
-      if (!supabase) { setLoadingFolders(false); return; }
-      try {
-        const { data } = await supabase.storage.from("site-assets").list("gallery", { limit: 100 });
-        if (data) {
-          const folderNames = data.filter((f) => !f.metadata).map((f) => f.name);
-          setFolders(folderNames);
-        }
-      } catch {}
-      setLoadingFolders(false);
-    };
-    load();
+  const refreshFolderCount = React.useCallback(async (folder: string) => {
+    if (!folder) { setPreviewCount(null); return; }
+    const supabase = getSupabase();
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.storage
+        .from("site-assets")
+        .list(`gallery/${folder}`, { limit: 200 });
+      if (data) {
+        setPreviewCount(data.filter((f) => f.name !== ".emptyFolderPlaceholder").length);
+      }
+    } catch {}
   }, []);
 
-  React.useEffect(() => {
-    if (!config.folder) { setPreviewCount(null); return; }
-    const load = async () => {
-      const supabase = getSupabase();
-      if (!supabase) return;
+  const loadFolders = React.useCallback(async () => {
+    setLoadingFolders(true);
+    const supabase = getSupabase();
+    if (!supabase) { setLoadingFolders(false); return; }
+    try {
+      const { data } = await supabase.storage.from("site-assets").list("gallery", { limit: 100 });
+      if (data) {
+        const folderNames = data.filter((f) => !f.metadata).map((f) => f.name);
+        setFolders(folderNames);
+      }
+    } catch {}
+    setLoadingFolders(false);
+  }, []);
+
+  React.useEffect(() => { loadFolders(); }, [loadFolders]);
+
+  React.useEffect(() => { refreshFolderCount(config.folder); }, [config.folder, refreshFolderCount]);
+
+  const handleCreateFolder = () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    setConfig((c) => ({ ...c, folder: name }));
+    setFolders((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    setNewFolderName("");
+  };
+
+  const handleUploadFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    if (!config.folder) { triggerNotification("Selecione ou crie uma pasta antes de enviar imagens."); return; }
+    const supabase = getSupabase();
+    if (!supabase) { triggerNotification("Supabase não configurado — upload indisponível."); return; }
+    setUploading(true);
+    let okCount = 0;
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) continue;
       try {
-        const { data } = await supabase.storage
-          .from("site-assets")
-          .list(`gallery/${config.folder}`, { limit: 200 });
-        if (data) {
-          setPreviewCount(data.filter((f) => f.name !== ".emptyFolderPlaceholder").length);
-        }
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `gallery/${config.folder}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+        const { error } = await supabase.storage.from("site-assets").upload(path, file, { cacheControl: "31536000", upsert: false });
+        if (!error) okCount++;
       } catch {}
-    };
-    load();
-  }, [config.folder]);
+    }
+    setUploading(false);
+    if (uploadInputRef.current) uploadInputRef.current.value = "";
+    triggerNotification(`${okCount} imagem(ns) enviada(s) para "${config.folder}".`);
+    refreshFolderCount(config.folder);
+    loadFolders();
+  };
 
   const handleSave = () => {
     setSaving(true);
@@ -143,6 +175,24 @@ function CarrosselAdminPanel({ triggerNotification }: { triggerNotification: (ms
                 <option key={f} value={f}>{f}</option>
               ))}
             </select>
+            <div className="flex gap-1.5 mt-1.5">
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCreateFolder(); } }}
+                placeholder="Ou crie uma pasta nova..."
+                className="flex-1 bg-[#0F1115] border border-white/5 rounded-lg px-2.5 py-1.5 text-white text-[11px] outline-none focus:border-orange-500 font-mono"
+              />
+              <button
+                type="button"
+                onClick={handleCreateFolder}
+                disabled={!newFolderName.trim()}
+                className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-stone-300 rounded-lg text-[10px] font-bold uppercase cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Criar
+              </button>
+            </div>
             {config.folder && previewCount !== null && (
               <p className="text-stone-500 mt-1.5">
                 {previewCount} {previewCount === 1 ? "imagem" : "imagens"} encontradas em <span className="text-orange-400">{config.folder}</span>
@@ -165,6 +215,32 @@ function CarrosselAdminPanel({ triggerNotification }: { triggerNotification: (ms
               className={inputCls}
             />
             <p className="text-stone-500 mt-1.5">{config.autoplaySpeed / 1000}s por slide</p>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className={labelCls}>Upload de Imagens</label>
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => handleUploadFiles(e.target.files)}
+            />
+            <button
+              type="button"
+              onClick={() => uploadInputRef.current?.click()}
+              disabled={uploading || !config.folder}
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-stone-200 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              {uploading ? "Enviando..." : "Selecionar Imagens"}
+            </button>
+            <p className="text-stone-500 mt-1.5">
+              {config.folder
+                ? `Envia direto para a pasta "${config.folder}" — aparece no carrossel automaticamente.`
+                : "Selecione ou crie uma pasta acima antes de enviar imagens."}
+            </p>
           </div>
 
           <div className="md:col-span-2">
