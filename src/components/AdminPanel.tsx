@@ -395,6 +395,7 @@ export default function AdminPanel() {
     mediaLibrary, addMediaItem, deleteMediaItem,
     customBlocks, addCustomBlock, editCustomBlock, deleteCustomBlock,
     materialImages, setMaterialImage, removeMaterialImage,
+    ongoingProjects, addOngoingProject, editOngoingProject, deleteOngoingProject,
     about, saveAbout,
     timeline, saveTimeline,
     cta, saveCTA,
@@ -688,7 +689,8 @@ export default function AdminPanel() {
       faq: "Perguntas Frequentes (FAQ)",
       testimonials: "Depoimentos de Clientes",
       cta: "Chamada para Ação Final",
-      channels: "Canais de Atendimento"
+      channels: "Canais de Atendimento",
+      obrasAndamento: "Obras em Andamento"
     };
     if (key.startsWith("custom-")) {
       const block = customBlocks.find((b) => b.id === key);
@@ -1906,7 +1908,7 @@ export default function AdminPanel() {
                   <button
                     onClick={() => {
                       if (confirm("Deseja restaurar a ordem padrão das seções?")) {
-                        saveSectionsOrder(["hero", "simulator", "differentials", "containers", "prontaEntrega", "projects", "gallery", "economyCalculator", "videos", "timeline", "map", "about", "faq", "testimonials", "cta", "channels"]);
+                        saveSectionsOrder(["hero", "simulator", "differentials", "containers", "prontaEntrega", "projects", "obrasAndamento", "gallery", "economyCalculator", "videos", "timeline", "map", "about", "faq", "testimonials", "cta", "channels"]);
                         triggerNotification("Estrutura redefinida para o padrão.");
                       }
                     }}
@@ -5212,6 +5214,70 @@ export default function AdminPanel() {
                         <Plus className="w-3.5 h-3.5" /> Adicionar Categoria
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {drawerSection === "obrasAndamento" && (
+                  <div className="space-y-4">
+                    {ongoingProjects.map((project) => (
+                      <DrawerListCard key={project.id} title={project.title || "Obra"} onDelete={() => deleteOngoingProject(project.id)}>
+                        <DrawerField label="Título" value={project.title} onChange={(v) => editOngoingProject(project.id, { title: v })} />
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <DrawerField label="Local" value={project.location} onChange={(v) => editOngoingProject(project.id, { location: v })} />
+                          <DrawerField label="Status" value={project.status} onChange={(v) => editOngoingProject(project.id, { status: v })} />
+                        </div>
+
+                        <div className="space-y-2.5 pt-1">
+                          <label className="block text-stone-400 uppercase font-bold text-[10px] tracking-wider">
+                            Linha do tempo ({project.photos.length} foto{project.photos.length === 1 ? "" : "s"})
+                          </label>
+                          {project.photos.map((photo, idx) => (
+                            <div key={photo.id} className="bg-[#171A21] border border-white/5 rounded-lg p-2.5 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[9px] font-black text-stone-500 uppercase">Foto {idx + 1}</span>
+                                <button
+                                  onClick={() => editOngoingProject(project.id, { photos: project.photos.filter((p) => p.id !== photo.id) })}
+                                  className="p-1 bg-white/5 hover:bg-red-500/10 text-stone-500 hover:text-red-400 rounded transition-all cursor-pointer"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <ImageUploadField
+                                label="Foto"
+                                value={photo.url}
+                                onChange={(url) => editOngoingProject(project.id, { photos: project.photos.map((p) => p.id === photo.id ? { ...p, url } : p) })}
+                                folder="gallery/Obras"
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                <input
+                                  type="text"
+                                  value={photo.date || ""}
+                                  onChange={(e) => editOngoingProject(project.id, { photos: project.photos.map((p) => p.id === photo.id ? { ...p, date: e.target.value } : p) })}
+                                  placeholder="Data (ex: 12/08)"
+                                  className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2 text-white text-[11px] focus:border-[#FFD400] outline-none"
+                                />
+                                <input
+                                  type="text"
+                                  value={photo.caption}
+                                  onChange={(e) => editOngoingProject(project.id, { photos: project.photos.map((p) => p.id === photo.id ? { ...p, caption: e.target.value } : p) })}
+                                  placeholder="Legenda"
+                                  className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2 text-white text-[11px] focus:border-[#FFD400] outline-none"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => editOngoingProject(project.id, { photos: [...project.photos, { id: `photo-${Date.now()}`, url: "", caption: "", date: "" }] })}
+                            className="w-full py-2 bg-white/5 hover:bg-white/10 text-stone-300 text-[10px] font-bold uppercase rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <Plus className="w-3 h-3" /> Adicionar Foto à Linha do Tempo
+                          </button>
+                        </div>
+                      </DrawerListCard>
+                    ))}
+                    <button onClick={() => addOngoingProject()} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                      <Plus className="w-3.5 h-3.5" /> Adicionar Obra
+                    </button>
                   </div>
                 )}
 

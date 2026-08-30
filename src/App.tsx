@@ -46,6 +46,7 @@ const Diferenciais = lazyWithReload(() => import("./components/Diferenciais"));
 const ContainersGrid = lazyWithReload(() => import("./components/ContainersGrid"));
 const ProntaEntrega = lazyWithReload(() => import("./components/ProntaEntrega"));
 const Projetos = lazyWithReload(() => import("./components/Projetos"));
+const ObrasAndamento = lazyWithReload(() => import("./components/ObrasAndamento"));
 const ComoFunciona = lazyWithReload(() => import("./components/ComoFunciona"));
 const Sobre = lazyWithReload(() => import("./components/Sobre"));
 const Depoimentos = lazyWithReload(() => import("./components/Depoimentos"));
@@ -157,6 +158,7 @@ function AppContent() {
     containers: <LazySection key="containers"><ContainersGrid /></LazySection>,
     prontaEntrega: <LazySection key="prontaEntrega"><ProntaEntrega /></LazySection>,
     projects: <LazySection key="projects"><Projetos /></LazySection>,
+    obrasAndamento: <LazySection key="obrasAndamento"><ObrasAndamento /></LazySection>,
     carrosselGaleria: <LazySection key="carrosselGaleria"><CarrosselGaleria /></LazySection>,
     gallery: <LazySection key="gallery"><GaleriaProjetos /></LazySection>,
     economyCalculator: <LazySection key="economyCalculator"><CalculadoraEconomia /></LazySection>,

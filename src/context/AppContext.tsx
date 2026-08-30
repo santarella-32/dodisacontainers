@@ -148,6 +148,22 @@ export interface CustomBlock {
   ctaUrl?: string;
 }
 
+export interface OngoingProjectPhoto {
+  id: string;
+  url: string;
+  caption: string;
+  date?: string;
+}
+
+export interface OngoingProject {
+  id: string;
+  title: string;
+  location: string;
+  status: string;
+  photos: OngoingProjectPhoto[];
+  visible: boolean;
+}
+
 export interface AboutPillar {
   id: string;
   title: string;
@@ -276,6 +292,7 @@ export interface SectionsVisibility {
   testimonials: boolean;
   cta: boolean;
   channels: boolean;
+  obrasAndamento: boolean;
   // Custom sections use a dynamic "custom-<id>" key, so visibility isn't a fixed field
   [key: string]: boolean;
 }
@@ -315,6 +332,7 @@ interface AppContextType {
   mediaLibrary: MediaItem[];
   customBlocks: CustomBlock[];
   materialImages: Record<string, string>;
+  ongoingProjects: OngoingProject[];
   about: AboutConfig;
   timeline: TimelineConfig;
   cta: CTAConfig;
@@ -383,6 +401,12 @@ interface AppContextType {
   // Configurator material photo overrides
   setMaterialImage: (id: string, url: string) => void;
   removeMaterialImage: (id: string) => void;
+
+  // Ongoing Projects (Obras em Andamento) Updaters
+  saveOngoingProjects: (projects: OngoingProject[]) => void;
+  addOngoingProject: () => string;
+  editOngoingProject: (id: string, project: Partial<OngoingProject>) => void;
+  deleteOngoingProject: (id: string) => void;
 
   // Static-turned-editable section Updaters
   saveAbout: (about: AboutConfig) => void;
@@ -647,15 +671,17 @@ const DEFAULTS = {
     faq: true,
     testimonials: true,
     cta: true,
-    channels: true
+    channels: true,
+    obrasAndamento: true
   },
   sectionsOrder: [
     "hero", "containers", "simulator", "differentials", "prontaEntrega", "projects",
-    "carrosselGaleria", "gallery", "economyCalculator", "videos", "timeline", "map",
+    "obrasAndamento", "carrosselGaleria", "gallery", "economyCalculator", "videos", "timeline", "map",
     "about", "faq", "testimonials", "cta", "channels"
   ],
   customBlocks: [] as CustomBlock[],
   materialImages: {} as Record<string, string>,
+  ongoingProjects: [] as OngoingProject[],
   about: {
     title: "A FORÇA DA ENGENHARIA MODULAR.",
     highlightTitle: "LOGÍSTICA E EXECUÇÃO IMPLACÁVEIS.",
@@ -895,6 +921,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.materialImages;
   });
 
+  const [pubOngoingProjects, setPubOngoingProjects] = useState<OngoingProject[]>(() => {
+    const cachedPub = localStorage.getItem("dodisa_cms_pub_ongoing_projects");
+    return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.ongoingProjects;
+  });
+
   const [pubAbout, setPubAbout] = useState<AboutConfig>(() => {
     const cachedPub = localStorage.getItem("dodisa_cms_pub_about");
     return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.about;
@@ -1031,6 +1062,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [materialImages, setMaterialImages] = useState<Record<string, string>>(() => {
     const cachedDraft = localStorage.getItem("dodisa_cms_draft_material_images");
     return cachedDraft ? JSON.parse(cachedDraft) : pubMaterialImages;
+  });
+
+  const [ongoingProjects, setOngoingProjects] = useState<OngoingProject[]>(() => {
+    const cachedDraft = localStorage.getItem("dodisa_cms_draft_ongoing_projects");
+    return cachedDraft ? JSON.parse(cachedDraft) : pubOngoingProjects;
   });
 
   const [about, setAbout] = useState<AboutConfig>(() => {
@@ -1196,6 +1232,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setMaterialImages(content_data);
               localStorage.setItem("dodisa_cms_pub_material_images", JSON.stringify(content_data));
               break;
+            case "ongoing_projects":
+              setPubOngoingProjects(content_data);
+              setOngoingProjects(content_data);
+              localStorage.setItem("dodisa_cms_pub_ongoing_projects", JSON.stringify(content_data));
+              break;
             case "about":
               setPubAbout(content_data);
               setAbout(content_data);
@@ -1318,6 +1359,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     localStorage.setItem("dodisa_cms_draft_material_images", JSON.stringify(materialImages));
   }, [materialImages]);
+
+  useEffect(() => {
+    localStorage.setItem("dodisa_cms_draft_ongoing_projects", JSON.stringify(ongoingProjects));
+  }, [ongoingProjects]);
 
   useEffect(() => {
     localStorage.setItem("dodisa_cms_draft_about", JSON.stringify(about));
@@ -1558,6 +1603,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     JSON.stringify(whatsapp) !== JSON.stringify(pubWhatsApp) ||
     JSON.stringify(customBlocks) !== JSON.stringify(pubCustomBlocks) ||
     JSON.stringify(materialImages) !== JSON.stringify(pubMaterialImages) ||
+    JSON.stringify(ongoingProjects) !== JSON.stringify(pubOngoingProjects) ||
     JSON.stringify(about) !== JSON.stringify(pubAbout) ||
     JSON.stringify(timeline) !== JSON.stringify(pubTimeline) ||
     JSON.stringify(cta) !== JSON.stringify(pubCTA) ||
@@ -1586,6 +1632,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { key: "whatsapp", ls: "whatsapp", draft: whatsapp, pub: pubWhatsApp, setDraft: setWhatsApp, setPub: setPubWhatsApp },
       { key: "custom_blocks", ls: "custom_blocks", draft: customBlocks, pub: pubCustomBlocks, setDraft: setCustomBlocks, setPub: setPubCustomBlocks },
       { key: "material_images", ls: "material_images", draft: materialImages, pub: pubMaterialImages, setDraft: setMaterialImages, setPub: setPubMaterialImages },
+      { key: "ongoing_projects", ls: "ongoing_projects", draft: ongoingProjects, pub: pubOngoingProjects, setDraft: setOngoingProjects, setPub: setPubOngoingProjects },
       { key: "about", ls: "about", draft: about, pub: pubAbout, setDraft: setAbout, setPub: setPubAbout },
       { key: "timeline", ls: "timeline", draft: timeline, pub: pubTimeline, setDraft: setTimeline, setPub: setPubTimeline },
       { key: "cta", ls: "cta", draft: cta, pub: pubCTA, setDraft: setCTA, setPub: setPubCTA },
@@ -1701,6 +1748,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setWhatsApp(pubWhatsApp);
     setCustomBlocks(pubCustomBlocks);
     setMaterialImages(pubMaterialImages);
+    setOngoingProjects(pubOngoingProjects);
     setAbout(pubAbout);
     setTimeline(pubTimeline);
     setCTA(pubCTA);
@@ -1724,6 +1772,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("dodisa_cms_draft_whatsapp", JSON.stringify(pubWhatsApp));
     localStorage.setItem("dodisa_cms_draft_custom_blocks", JSON.stringify(pubCustomBlocks));
     localStorage.setItem("dodisa_cms_draft_material_images", JSON.stringify(pubMaterialImages));
+    localStorage.setItem("dodisa_cms_draft_ongoing_projects", JSON.stringify(pubOngoingProjects));
     localStorage.setItem("dodisa_cms_draft_about", JSON.stringify(pubAbout));
     localStorage.setItem("dodisa_cms_draft_timeline", JSON.stringify(pubTimeline));
     localStorage.setItem("dodisa_cms_draft_cta", JSON.stringify(pubCTA));
@@ -1749,6 +1798,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setWhatsApp(DEFAULTS.whatsapp);
     setCustomBlocks(DEFAULTS.customBlocks);
     setMaterialImages(DEFAULTS.materialImages);
+    setOngoingProjects(DEFAULTS.ongoingProjects);
     setAbout(DEFAULTS.about);
     setTimeline(DEFAULTS.timeline);
     setCTA(DEFAULTS.cta);
@@ -1772,6 +1822,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("dodisa_cms_draft_whatsapp", JSON.stringify(DEFAULTS.whatsapp));
     localStorage.setItem("dodisa_cms_draft_custom_blocks", JSON.stringify(DEFAULTS.customBlocks));
     localStorage.setItem("dodisa_cms_draft_material_images", JSON.stringify(DEFAULTS.materialImages));
+    localStorage.setItem("dodisa_cms_draft_ongoing_projects", JSON.stringify(DEFAULTS.ongoingProjects));
     localStorage.setItem("dodisa_cms_draft_about", JSON.stringify(DEFAULTS.about));
     localStorage.setItem("dodisa_cms_draft_timeline", JSON.stringify(DEFAULTS.timeline));
     localStorage.setItem("dodisa_cms_draft_cta", JSON.stringify(DEFAULTS.cta));
@@ -2013,6 +2064,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     markUpdate();
   };
 
+  // Ongoing Projects (Obras em Andamento) — each has a photo timeline built up over time
+  const saveOngoingProjects = (projects: OngoingProject[]) => {
+    setOngoingProjects(projects);
+    markUpdate();
+  };
+  const addOngoingProject = (): string => {
+    const id = `obra-${Date.now()}`;
+    const newProject: OngoingProject = { id, title: "Nova Obra", location: "", status: "Em andamento", photos: [], visible: true };
+    setOngoingProjects((prev) => [...prev, newProject]);
+    markUpdate();
+    return id;
+  };
+  const editOngoingProject = (id: string, partial: Partial<OngoingProject>) => {
+    setOngoingProjects((prev) => prev.map((p) => p.id === id ? { ...p, ...partial } : p));
+    markUpdate();
+  };
+  const deleteOngoingProject = (id: string) => {
+    setOngoingProjects((prev) => prev.filter((p) => p.id !== id));
+    markUpdate();
+  };
+
   // Static-turned-editable sections
   const saveAbout = (newAbout: AboutConfig) => {
     setAbout(newAbout);
@@ -2100,6 +2172,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         mediaLibrary,
         customBlocks: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubCustomBlocks : customBlocks) : pubCustomBlocks,
         materialImages: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubMaterialImages : materialImages) : pubMaterialImages,
+        ongoingProjects: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubOngoingProjects : ongoingProjects) : pubOngoingProjects,
         about: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubAbout : about) : pubAbout,
         timeline: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubTimeline : timeline) : pubTimeline,
         cta: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubCTA : cta) : pubCTA,
@@ -2158,6 +2231,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         setMaterialImage,
         removeMaterialImage,
+
+        saveOngoingProjects,
+        addOngoingProject,
+        editOngoingProject,
+        deleteOngoingProject,
 
         saveAbout,
         saveTimeline,
