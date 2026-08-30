@@ -1452,47 +1452,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // AUTHENTICATION INTERACTIVE LOGIC
+  // Admin login is authenticated exclusively via Supabase — there is no client-side
+  // fallback. A pure SPA has no way to keep a "local" credential check secure: any
+  // string compared in this bundle is readable in DevTools, and the comparison
+  // itself can be bypassed by driving React state directly from the console. If
+  // Supabase can't be reached, we surface a clear error instead of granting access.
   const login = async (email: string, pass: string): Promise<boolean> => {
     setLoginError(null);
 
-    // If Supabase is connected, trigger real Supabase sign-in
     const supabase = getSupabase();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password: pass
-        });
-        if (!error && data && data.user) {
-          const userObj: AdminUser = { email: data.user.email || email, role: "ADMIN_MASTER" };
-          setIsAdminLoggedIn(true);
-          setAdminUser(userObj);
-          localStorage.setItem("dodisa_admin_logged", "true");
-          localStorage.setItem("dodisa_admin_user", JSON.stringify(userObj));
-          return true;
-        }
-        // Supabase error (network, wrong creds, etc.) — fall through to local auth
-      } catch {
-        // Supabase threw (network unreachable) — fall through to local auth
-      }
+    if (!supabase) {
+      setLoginError("Serviço de autenticação indisponível no momento. Verifique sua conexão e tente novamente.");
+      return false;
     }
 
-    // Default High-Fidelity Local Authentication for ADMIN MASTER
-    const storedCreds = (() => {
-      try { return JSON.parse(localStorage.getItem("dodisa_admin_custom_creds") || "null"); } catch { return null; }
-    })();
-    const defaultEmail = storedCreds?.email || "admin@dodisa.com.br";
-    const defaultPass = storedCreds?.password || "admin123";
-
-    if (email.trim() === defaultEmail && pass === defaultPass) {
-      const userObj: AdminUser = { email: defaultEmail, role: "ADMIN_MASTER" };
-      setIsAdminLoggedIn(true);
-      setAdminUser(userObj);
-      localStorage.setItem("dodisa_admin_logged", "true");
-      localStorage.setItem("dodisa_admin_user", JSON.stringify(userObj));
-      return true;
-    } else {
-      setLoginError("Credenciais inválidas. Use os dados padrão do Admin Master.");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: pass
+      });
+      if (!error && data && data.user) {
+        const userObj: AdminUser = { email: data.user.email || email, role: "ADMIN_MASTER" };
+        setIsAdminLoggedIn(true);
+        setAdminUser(userObj);
+        localStorage.setItem("dodisa_admin_logged", "true");
+        localStorage.setItem("dodisa_admin_user", JSON.stringify(userObj));
+        return true;
+      }
+      setLoginError("Credenciais inválidas. Verifique seu e-mail e senha.");
+      return false;
+    } catch {
+      setLoginError("Não foi possível conectar ao serviço de autenticação. Tente novamente em instantes.");
       return false;
     }
   };
@@ -1511,20 +1501,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const recoverPassword = async (email: string): Promise<string> => {
     const supabase = getSupabase();
-    if (supabase) {
-      try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email);
-        if (error) throw error;
-        return "E-mail de recuperação enviado via Supabase!";
-      } catch (e: any) {
-        return `Erro: ${e.message}`;
-      }
+    if (!supabase) {
+      return "Serviço de recuperação de senha indisponível no momento. Tente novamente em instantes.";
     }
-    // Mock Recovery response
-    if (email.includes("@")) {
-      return `Link de recuperação enviado para ${email}. Senha temporária recomendada: admin123`;
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      return "E-mail de recuperação enviado via Supabase!";
+    } catch (e: any) {
+      return `Erro: ${e.message}`;
     }
-    return "E-mail de recuperação inválido.";
   };
 
   const changePassword = (newPass: string) => {
@@ -1532,49 +1518,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const changeCredentials = async (newEmail: string, currentPass: string, newPass: string): Promise<{ success: boolean; message: string }> => {
-    // If Supabase, delegate to it
     const supabase = getSupabase();
-    if (supabase) {
-      try {
-        const updates: any = {};
-        if (newEmail) updates.email = newEmail;
-        if (newPass) updates.password = newPass;
-        const { error } = await supabase.auth.updateUser(updates);
-        if (error) return { success: false, message: error.message };
-        if (newEmail) {
-          const updatedUser: AdminUser = { email: newEmail, role: "ADMIN_MASTER" };
-          setAdminUser(updatedUser);
-          localStorage.setItem("dodisa_admin_user", JSON.stringify(updatedUser));
-        }
-        return { success: true, message: "Credenciais atualizadas via Supabase!" };
-      } catch (e: any) {
-        return { success: false, message: e.message };
+    if (!supabase) {
+      return { success: false, message: "Serviço de autenticação indisponível no momento. Tente novamente em instantes." };
+    }
+    try {
+      const updates: any = {};
+      if (newEmail) updates.email = newEmail;
+      if (newPass) updates.password = newPass;
+      const { error } = await supabase.auth.updateUser(updates);
+      if (error) return { success: false, message: error.message };
+      if (newEmail) {
+        const updatedUser: AdminUser = { email: newEmail, role: "ADMIN_MASTER" };
+        setAdminUser(updatedUser);
+        localStorage.setItem("dodisa_admin_user", JSON.stringify(updatedUser));
       }
+      return { success: true, message: "Credenciais atualizadas via Supabase!" };
+    } catch (e: any) {
+      return { success: false, message: e.message };
     }
-
-    // Local auth: verify current password first
-    const storedCreds = (() => {
-      try { return JSON.parse(localStorage.getItem("dodisa_admin_custom_creds") || "null"); } catch { return null; }
-    })();
-    const activeEmail = storedCreds?.email || "admin@dodisa.com.br";
-    const activePass = storedCreds?.password || "admin123";
-
-    if (currentPass !== activePass) {
-      return { success: false, message: "Senha atual incorreta." };
-    }
-
-    const updatedCreds = {
-      email: newEmail || activeEmail,
-      password: newPass || activePass,
-    };
-    localStorage.setItem("dodisa_admin_custom_creds", JSON.stringify(updatedCreds));
-
-    const updatedUser: AdminUser = { email: updatedCreds.email, role: "ADMIN_MASTER" };
-    setAdminUser(updatedUser);
-    localStorage.setItem("dodisa_admin_user", JSON.stringify(updatedUser));
-
-    markUpdate();
-    return { success: true, message: "Credenciais atualizadas com sucesso!" };
   };
 
   // ----------------------------------------------------
