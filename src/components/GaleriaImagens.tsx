@@ -935,7 +935,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
                   <img
                     src={file.url} alt={file.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                    loading="lazy"
+                    loading={fileIdx < 12 ? "eager" : "lazy"}
                   />
 
                   {/* Select mode overlay */}
