@@ -29,15 +29,54 @@ import FAQInteligente from "./FAQInteligente";
 import Depoimentos from "./Depoimentos";
 import CTA from "./CTA";
 import CanaisAtendimento from "./CanaisAtendimento";
+import ObrasAndamento from "./ObrasAndamento";
+import CustomBlockSection from "./CustomBlockSection";
 import { STRUCTURE_OPTIONS, FLOORS, INTERNAL_WALLS, PAINT_COLORS, DOOR_TYPES, WINDOW_TYPES, ALL_EXTRAS } from "../data/materials";
 import Header from "./Header";
 import Footer from "./Footer";
-import {
+import CarrosselGaleria, {
   CarrosselConfig,
   DEFAULT_CARROSSEL_CONFIG,
   getCarrosselConfig,
   saveCarrosselConfigToStorage,
 } from "./CarrosselGaleria";
+
+// Maps a real section key (as used in sectionsOrder/drawerSection — NOT the
+// legacy shorthand some older call sites used) to its live component, for the
+// Landing Page builder's preview panels (main "Live Preview" column and the
+// editor drawer's embedded preview). Single source of truth so both stay in
+// sync with whatever sections actually exist.
+function renderSectionElement(sec: string): React.ReactNode {
+  if (sec.startsWith("custom-")) return <CustomBlockSection id={sec} />;
+  switch (sec) {
+    case "logo": return (
+      <div className="space-y-0 bg-[#0A0C0E] min-h-screen flex flex-col justify-between">
+        <Header />
+        <div className="flex-1 opacity-70"><Hero /></div>
+        <Footer />
+      </div>
+    );
+    case "hero": return <Hero />;
+    case "simulator": return <SimuladorOrcamento />;
+    case "differentials": return <Diferenciais />;
+    case "containers": return <ContainersGrid />;
+    case "prontaEntrega": return <ProntaEntrega />;
+    case "projects": return <Projetos />;
+    case "obrasAndamento": return <ObrasAndamento />;
+    case "carrosselGaleria": return <CarrosselGaleria />;
+    case "gallery": return <GaleriaProjetos />;
+    case "economyCalculator": return <CalculadoraEconomia />;
+    case "videos": return <VideosReais />;
+    case "timeline": return <ComoFunciona />;
+    case "map": return <MapaAtendimento />;
+    case "about": return <Sobre />;
+    case "faq": return <FAQInteligente />;
+    case "testimonials": return <Depoimentos />;
+    case "cta": return <CTA />;
+    case "channels": return <CanaisAtendimento />;
+    default: return <Hero />;
+  }
+}
 
 // ─── Carrossel Landing Page Admin Panel ──────────────────────────────────────
 function CarrosselAdminPanel({ triggerNotification }: { triggerNotification: (msg: string) => void }) {
@@ -2718,7 +2757,7 @@ export default function AdminPanel() {
                 <div className="bg-[#171A21] border border-white/5 p-6 rounded-2xl space-y-4">
                   <span className="text-xs font-black text-[#FFD400] uppercase tracking-widest block border-b border-white/5 pb-2">Cadastrar Novo Case de Portfólio</span>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-sans">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
                     <div>
                       <label className="block text-stone-400 mb-1.5 uppercase font-medium">Nome do Case</label>
                       <input
@@ -2752,10 +2791,10 @@ export default function AdminPanel() {
                         label="Foto Depois"
                         value={newProj.imageAfter}
                         onChange={(url) => setNewProj({ ...newProj, imageAfter: url })}
-                        className="w-full bg-[#0F1115] border border-white/5 rounded-lg p-2.5 text-white"
+                        folder="projetos"
                       />
                     </div>
-                    <div className="md:col-span-4">
+                    <div className="md:col-span-2">
                       <label className="block text-stone-400 mb-1.5 uppercase font-medium">Descrição Técnica Executada</label>
                       <textarea
                         rows={2}
@@ -4601,37 +4640,6 @@ export default function AdminPanel() {
 
               const targetSection = previewSectionLock === "auto" ? getAutoDetectedSection() : previewSectionLock;
 
-              const renderSectionElement = (sec: string) => {
-                switch(sec) {
-                  case "logo": return (
-                    <div className="space-y-0 bg-[#0A0C0E] min-h-screen flex flex-col justify-between">
-                      <Header />
-                      <div className="flex-1 opacity-70">
-                        <Hero />
-                      </div>
-                      <Footer />
-                    </div>
-                  );
-                  case "hero": return <Hero />;
-                  case "simulator": return <SimuladorOrcamento />;
-                  case "differentials": return <Diferenciais />;
-                  case "containers": return <ContainersGrid />;
-                  case "prontaEntrega": return <ProntaEntrega />;
-                  case "projects": return <Projetos />;
-                  case "gallery": return <GaleriaProjetos />;
-                  case "economy": return <CalculadoraEconomia />;
-                  case "videos": return <VideosReais />;
-                  case "how_it_works": return <ComoFunciona />;
-                  case "map": return <MapaAtendimento />;
-                  case "about": return <Sobre />;
-                  case "faq": return <FAQInteligente />;
-                  case "testimonials": return <Depoimentos />;
-                  case "cta": return <CTA />;
-                  case "channels": return <CanaisAtendimento />;
-                  default: return <Hero />;
-                }
-              };
-
               const renderEmulatorFrame = (label: string, borderClass: string, forcedScope?: "draft" | "published") => {
                 const innerElement = forcedScope ? (
                   <AppContext.Provider value={{ ...fullAppContext, previewDataScope: forcedScope, isPagePreviewMode: true, isAdminViewActive: true }}>
@@ -4839,7 +4847,7 @@ export default function AdminPanel() {
                     return "hero";
                   };
                   const targetSec = previewSectionLock === "auto" ? getAutoSection() : previewSectionLock;
-                  const renderSec = (sec: string) => { switch(sec) { case "hero": return <Hero />; case "simulator": return <SimuladorOrcamento />; case "differentials": return <Diferenciais />; case "containers": return <ContainersGrid />; case "prontaEntrega": return <ProntaEntrega />; case "projects": return <Projetos />; case "gallery": return <GaleriaProjetos />; case "economy": return <CalculadoraEconomia />; case "videos": return <VideosReais />; case "how_it_works": return <ComoFunciona />; case "map": return <MapaAtendimento />; case "about": return <Sobre />; case "faq": return <FAQInteligente />; case "testimonials": return <Depoimentos />; case "cta": return <CTA />; case "channels": return <CanaisAtendimento />; default: return <Hero />; } };
+                  const renderSec = renderSectionElement;
                   const renderFrame = (label: string, scope: "draft" | "published") => (
                     <div className="bg-[#0F1115] border border-white/5 rounded-2xl overflow-hidden shadow-inner flex flex-col">
                       <div className="bg-[#0A0C0E] px-4 py-2 border-b border-white/5 flex items-center justify-between text-stone-500 font-mono text-[9px]">

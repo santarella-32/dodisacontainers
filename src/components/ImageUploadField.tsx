@@ -127,9 +127,10 @@ export default function ImageUploadField({
         </div>
       )}
 
-      {/* URL Input + Upload Button */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      {/* URL Input + Upload Button — wraps instead of overlapping when the
+          parent gives this field a narrow column (e.g. a 3-4 col admin grid). */}
+      <div className="flex flex-wrap gap-2">
+        <div className="relative flex-1 min-w-[140px]">
           <Link size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-500" />
           <input
             type="text"

@@ -86,8 +86,8 @@ export default function VideoUploadField({
         </div>
       )}
 
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap gap-2">
+        <div className="relative flex-1 min-w-[140px]">
           <Link size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-500" />
           <input
             type="text"
