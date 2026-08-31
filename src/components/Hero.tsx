@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { createPortal } from "react-dom";
-import { ArrowRight, CheckCircle2, ShieldAlert, Award, Sparkles, Play, X, Zap, Cpu, Settings, MapPin, Tag, MessageCircle, ChevronRight } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldAlert, Award, Sparkles, Play, X, Zap, Cpu, Settings, MapPin, Tag, MessageCircle, ChevronRight, Maximize } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAppContext } from "../context/AppContext";
 import type { ProntaEntregaItem } from "../context/AppContext";
 import { lazyWithReload } from "../lib/lazyWithReload";
 
 const ThreeContainerVisualizer = lazyWithReload(() => import("./ThreeContainerVisualizer"));
+const ContainerVisualizer3D = lazyWithReload(() => import("./ContainerVisualizer3D"));
 
 // Count-down-to-lock: starts high, rapidly drops, snaps into final value (easeOutQuart)
 // Drives all three Hero metrics (Projetos/Clientes/Experiência) from ONE shared rAF loop
@@ -222,10 +223,79 @@ function StockModal({ items, whatsappNumber, onClose }: { items: ProntaEntregaIt
   );
 }
 
+/** Fullscreen "look before you configure" showcase — same ContainerVisualizer3D the
+ * configurator uses (drag-rotate + scroll/pinch-zoom + exterior/interior toggle already
+ * built in), just handed a nice-looking default instead of an in-progress config, so
+ * curious visitors get an immersive look before committing to "Monte seu Container". */
+function Tour3DModal({ onClose, onConfigureClick }: { onClose: () => void; onConfigureClick: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [onClose]);
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-0 sm:p-4"
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
+        <div className="absolute inset-0 bg-brand-black/95 backdrop-blur-xl" />
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="relative w-full h-full sm:h-[88vh] sm:max-w-6xl flex flex-col bg-[#0B0F14] sm:border sm:border-zinc-800 sm:rounded-2xl overflow-hidden shadow-2xl"
+        >
+          <div className="flex items-center justify-between px-5 sm:px-6 py-4 sm:py-5 border-b border-zinc-800 flex-shrink-0 z-10">
+            <div>
+              <h2 className="text-white font-black text-base sm:text-lg uppercase tracking-widest font-display">Tour 3D Imersivo</h2>
+              <p className="text-zinc-500 text-[10px] font-mono mt-0.5">Arraste para girar, role para dar zoom</p>
+            </div>
+            <button onClick={onClose} className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 flex items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer flex-shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="relative flex-1 min-h-0">
+            <Suspense fallback={<div className="w-full h-full bg-stone-900 animate-pulse" />}>
+              <ContainerVisualizer3D
+                exteriorColor="#FFD400"
+                doorPanels={[{ color: "#3f3f46", position: "front" }]}
+                windowPanels={[{ typeId: "panoramic", color: "#93c5fd", position: "left" }]}
+                temAC
+                temEletrica
+              />
+            </Suspense>
+          </div>
+
+          <div className="flex-shrink-0 px-5 sm:px-6 py-4 border-t border-zinc-800 bg-zinc-950/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-zinc-500 text-[10px] font-mono text-center sm:text-left">Gostou do que viu? Monte o seu, do seu jeito.</p>
+            <button
+              onClick={onConfigureClick}
+              className="flex-shrink-0 w-full sm:w-auto px-6 py-3 rounded-lg bg-brand-yellow hover:bg-brand-orange text-brand-black font-black text-[11px] uppercase tracking-widest transition-colors cursor-pointer flex items-center justify-center gap-2"
+            >
+              Monte o Seu Container
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export default function Hero() {
   const { hero, whatsapp, prontaEntrega } = useAppContext();
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
   const { values: metricValues, cardRef: metricsCardRef } = useHeroMetricsCountUp([65, 27, 3], [2340, 200, 200]);
   const [projetosCount, clientesCount, experienciaCount] = metricValues;
 
@@ -260,6 +330,11 @@ export default function Hero() {
     }
     const msg = encodeURIComponent("Olá! Quero solicitar um orçamento imediato para containers.");
     window.open(`https://wa.me/${whatsapp.number}?text=${msg}`, "_blank");
+  };
+
+  const handleTourConfigureClick = () => {
+    setIsTourOpen(false);
+    document.getElementById("simulador-orcamento")?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleScrollToProjects = (e: React.MouseEvent) => {
@@ -399,6 +474,14 @@ export default function Hero() {
                   Assistir Tour
                 </button>
               )}
+
+              <button
+                onClick={() => setIsTourOpen(true)}
+                className="w-full sm:w-auto px-5 py-4 min-h-[44px] bg-transparent border border-white/30 text-white/80 hover:border-white hover:text-white hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 font-black text-[10px] uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer font-mono"
+              >
+                <Maximize className="w-3.5 h-3.5" />
+                Tour 3D Imersivo
+              </button>
             </motion.div>
 
             {/* Regulatory and Authority stamp highlights */}
@@ -575,6 +658,14 @@ export default function Hero() {
           items={prontaEntrega || []}
           whatsappNumber={whatsapp.number}
           onClose={() => setIsStockModalOpen(false)}
+        />,
+        document.body
+      )}
+
+      {isTourOpen && createPortal(
+        <Tour3DModal
+          onClose={() => setIsTourOpen(false)}
+          onConfigureClick={handleTourConfigureClick}
         />,
         document.body
       )}

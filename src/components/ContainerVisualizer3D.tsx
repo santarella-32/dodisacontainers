@@ -75,6 +75,14 @@ export default function ContainerVisualizer3D({
   const ptrDown     = useRef(false);
   const lastPtr     = useRef({ x: 0, y: 0 });
   const viewRef     = useRef<"exterior" | "interior">("exterior");
+  // Zoom: a radial multiplier applied to the camera's offset from tgtLook (1 = default
+  // distance). Wheel (desktop) and two-finger pinch (touch) both drive this; the drag
+  // handlers below track a second simultaneous pointer purely to compute pinch distance.
+  const zoom        = useRef(1);
+  const ZOOM_MIN = 0.5, ZOOM_MAX = 2.2;
+  const activePointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinchStartDist = useRef(0);
+  const pinchStartZoom = useRef(1);
   const tgtCam      = useRef(new THREE.Vector3(0, 1.3, 6.2));
   const tgtLook     = useRef(new THREE.Vector3(0, 0.15, 0));
   const curLook     = useRef(new THREE.Vector3(0, 0.15, 0));
@@ -338,16 +346,45 @@ export default function ContainerVisualizer3D({
     const canvas = canvasRef.current!;
     canvas.style.cursor = "grab";
 
+    const pinchDist = () => {
+      const pts: { x: number; y: number }[] = Array.from(activePointers.current.values());
+      if (pts.length < 2) return 0;
+      return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    };
+
     const onDown = (e: PointerEvent) => {
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      canvas.setPointerCapture(e.pointerId);
+
+      if (activePointers.current.size === 2) {
+        // Second finger landed — switch to pinch-zoom, stop any in-flight drag.
+        ptrDown.current = false;
+        pinchStartDist.current = pinchDist();
+        pinchStartZoom.current = zoom.current;
+        return;
+      }
+
       if (viewRef.current === "interior") return;
       ptrDown.current = true;
       lastPtr.current = { x: e.clientX, y: e.clientY };
       if (autoTimer.current) clearTimeout(autoTimer.current);
       autoRotate.current = false;
       canvas.style.cursor = "grabbing";
-      canvas.setPointerCapture(e.pointerId);
     };
     const onMove = (e: PointerEvent) => {
+      if (activePointers.current.has(e.pointerId)) {
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
+
+      if (activePointers.current.size === 2) {
+        const dist = pinchDist();
+        if (pinchStartDist.current > 0 && dist > 0) {
+          const ratio = pinchStartDist.current / dist;
+          zoom.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchStartZoom.current * ratio));
+        }
+        return;
+      }
+
       if (!ptrDown.current) return;
       const dx = e.clientX - lastPtr.current.x;
       const dy = e.clientY - lastPtr.current.y;
@@ -355,15 +392,23 @@ export default function ContainerVisualizer3D({
       rotX.current = Math.max(-0.40, Math.min(0.40, rotX.current + dy * 0.005));
       lastPtr.current = { x: e.clientX, y: e.clientY };
     };
-    const onUp = () => {
+    const onUp = (e: PointerEvent) => {
+      activePointers.current.delete(e.pointerId);
+      if (activePointers.current.size < 2) pinchStartDist.current = 0;
       ptrDown.current = false;
       canvas.style.cursor = "grab";
       autoTimer.current = setTimeout(() => { autoRotate.current = true; }, 2800);
+    };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const dir = e.deltaY > 0 ? 1 : -1;
+      zoom.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom.current + dir * 0.09));
     };
     canvas.addEventListener("pointerdown", onDown);
     canvas.addEventListener("pointermove", onMove);
     canvas.addEventListener("pointerup", onUp);
     canvas.addEventListener("pointercancel", onUp);
+    canvas.addEventListener("wheel", onWheel, { passive: false });
 
     // ── Animation loop ────────────────────────────────────────────────────
     const clock = new THREE.Clock();
@@ -386,9 +431,12 @@ export default function ContainerVisualizer3D({
         group.position.y = 0;
       }
 
-      // Camera lerp
-      camera.position.lerp(tgtCam.current, 0.07);
+      // Camera lerp — zoom is applied as a radial scale of the camera's offset
+      // from the look-at point, so it composes cleanly with the exterior/interior
+      // target positions above without needing its own set of camera presets.
       curLook.current.lerp(tgtLook.current, 0.07);
+      const zoomedTarget = tgtCam.current.clone().sub(tgtLook.current).multiplyScalar(zoom.current).add(tgtLook.current);
+      camera.position.lerp(zoomedTarget, 0.07);
       camera.lookAt(curLook.current);
 
       renderer.render(scene, camera);
@@ -413,6 +461,7 @@ export default function ContainerVisualizer3D({
       canvas.removeEventListener("pointermove", onMove);
       canvas.removeEventListener("pointerup", onUp);
       canvas.removeEventListener("pointercancel", onUp);
+      canvas.removeEventListener("wheel", onWheel);
       window.removeEventListener("resize", onResize);
       renderer.dispose();
       bumpMap.dispose();
@@ -768,6 +817,7 @@ export default function ContainerVisualizer3D({
   const reset = useCallback(() => {
     rotY.current = 0.4;
     rotX.current = 0.08;
+    zoom.current = 1;
     autoRotate.current = true;
     setView("exterior");
   }, []);
@@ -811,11 +861,11 @@ export default function ContainerVisualizer3D({
             </button>
           </div>
 
-          {/* Drag hint */}
+          {/* Drag/zoom hint */}
           {view === "exterior" && (
             <div className="absolute top-2.5 left-1/2 -translate-x-1/2 pointer-events-none">
               <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">
-                Arraste para girar
+                Arraste para girar · Role para zoom
               </span>
             </div>
           )}
