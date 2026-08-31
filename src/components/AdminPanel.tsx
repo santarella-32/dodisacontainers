@@ -2056,9 +2056,10 @@ export default function AdminPanel() {
                           triggerNotification(`Ordem alterada: ${friendlyName} movido.`);
                         }
                       }}
+                      onClick={() => setDrawerSection(sectionKey)}
                       className={`bg-[#0F1115] border ${
                         isVisible ? "border-white/5" : "border-white/5 opacity-50 bg-stone-950/20"
-                      } hover:border-[#FFD400]/25 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-200 group relative min-w-0`}
+                      } hover:border-[#FFD400]/25 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-200 group relative min-w-0 cursor-pointer`}
                     >
                       <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
                         {/* Drag Handle icon */}
@@ -2072,7 +2073,7 @@ export default function AdminPanel() {
                               {sectionKey}
                             </span>
                           </div>
-                          <p className="text-stone-500 text-[10px] mt-0.5 truncate">Clique em editar para abrir o painel de personalização rápida.</p>
+                          <p className="text-stone-500 text-[10px] mt-0.5 truncate">Clique na seção para abrir editor + preview ao vivo.</p>
                         </div>
                       </div>
 
@@ -2080,7 +2081,8 @@ export default function AdminPanel() {
                       <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 flex-wrap sm:flex-nowrap">
                         {/* Highlight button */}
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setPreviewSectionLock(sectionKey);
                             triggerNotification(`Visualizador travado na seção: ${friendlyName}`);
                           }}
@@ -2096,7 +2098,8 @@ export default function AdminPanel() {
 
                         {/* Visibility eye toggle */}
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             toggleSectionVis(sectionKey);
                             triggerNotification(`Status de visibilidade alterado para: ${friendlyName}`);
                           }}
@@ -2112,9 +2115,9 @@ export default function AdminPanel() {
 
                         {/* Edit Pencil icon opens Drawer */}
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setDrawerSection(sectionKey);
-                            setPreviewSectionLock(sectionKey);
                           }}
                           className="p-2 bg-white/5 hover:bg-[#FFD400]/20 text-stone-400 hover:text-[#FFD400] rounded-xl border border-white/5 hover:border-[#FFD400]/20 transition-all cursor-pointer flex items-center gap-1.5"
                           title="Personalizar Seção"
@@ -2125,7 +2128,8 @@ export default function AdminPanel() {
 
                         {/* Duplicate item button */}
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (sectionKey.startsWith("custom-")) {
                               const source = customBlocks.find((b) => b.id === sectionKey);
                               const newId = addCustomBlock();
@@ -2147,7 +2151,8 @@ export default function AdminPanel() {
 
                         {/* Delete button — real delete for custom sections, hide for built-in ones */}
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (sectionKey.startsWith("custom-")) {
                               if (confirm(`Excluir permanentemente a seção "${friendlyName}"? Essa ação não pode ser desfeita.`)) {
                                 deleteCustomBlock(sectionKey);
@@ -4893,16 +4898,20 @@ export default function AdminPanel() {
               className="fixed inset-0 bg-black/80 z-50"
             />
 
-            {/* Slideout Side Panel */}
+            {/* Editor + Live Preview split modal */}
             <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 280 }}
-              className="fixed inset-y-0 right-0 z-50 w-full sm:w-[500px] md:w-[600px] bg-[#111827] border-l border-white/5 shadow-2xl flex flex-col h-full text-stone-200"
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4"
             >
+              <div className="w-full h-full sm:h-[92vh] sm:max-w-[1400px] bg-[#111827] sm:border sm:border-white/10 shadow-2xl flex flex-col lg:flex-row overflow-hidden text-stone-200 sm:rounded-2xl">
+
+              {/* LEFT: Editor column */}
+              <div className="w-full lg:w-[440px] xl:w-[480px] flex-shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-white/5 max-h-[48vh] lg:max-h-none min-h-0">
               {/* Drawer Header */}
-              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-[#171A21]">
+              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-[#171A21] flex-shrink-0">
                 <div>
                   <span className="text-[9px] font-mono font-bold text-[#FFD400] uppercase tracking-widest block mb-0.5">Editor Rápido</span>
                   <h3 className="text-white text-base font-black uppercase tracking-tight">
@@ -5387,7 +5396,7 @@ export default function AdminPanel() {
               </div>
 
               {/* Drawer Footer */}
-              <div className="p-6 border-t border-white/5 flex gap-3 bg-[#171A21]">
+              <div className="p-6 border-t border-white/5 flex gap-3 bg-[#171A21] flex-shrink-0">
                 <button
                   onClick={() => {
                     setDrawerSection(null);
@@ -5397,6 +5406,29 @@ export default function AdminPanel() {
                 >
                   <Check className="w-4 h-4 stroke-[2.5]" /> Concluir Edição
                 </button>
+              </div>
+              </div>
+              {/* END LEFT: Editor column */}
+
+              {/* RIGHT: Live preview column — shows the draft exactly as the visitor will see it, updating as you type */}
+              <div className="flex-1 min-h-0 flex flex-col bg-[#0A0C0E]">
+                <div className="px-4 py-2.5 border-b border-white/5 flex items-center justify-between text-stone-500 font-mono text-[9px] flex-shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-500/30" />
+                    <span className="w-2 h-2 rounded-full bg-yellow-500/30" />
+                    <span className="w-2 h-2 rounded-full bg-green-500/30" />
+                  </div>
+                  <span className="text-stone-400 truncate max-w-[180px]">dodisa.com.br/{drawerSection}</span>
+                  <span className="text-[#FFD400] font-bold uppercase tracking-wider">Rascunho • Ao vivo</span>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <AppContext.Provider value={{ ...fullAppContext, previewDataScope: "draft", isPagePreviewMode: true, isAdminViewActive: true }}>
+                    {renderSectionElement(drawerSection)}
+                  </AppContext.Provider>
+                </div>
+              </div>
+              {/* END RIGHT: Live preview column */}
+
               </div>
             </motion.div>
           </>
