@@ -445,21 +445,21 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.3 }}
-              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto pt-2"
+              className="grid grid-cols-1 sm:grid-flow-col sm:auto-cols-fr gap-4 w-full pt-2"
             >
               <button
                 onClick={handleBudgetClick}
-                className="group w-full sm:w-auto px-8 py-4 min-h-[44px] bg-brand-yellow hover:bg-brand-orange text-brand-black font-black text-xs uppercase tracking-widest rounded-lg transition-colors flex items-center justify-center gap-3 cursor-pointer font-display"
+                className="group px-8 py-4 min-h-[44px] bg-brand-yellow hover:bg-brand-orange text-brand-black font-black text-xs uppercase tracking-widest rounded-lg transition-colors flex items-center justify-center gap-3 cursor-pointer font-display"
               >
                 {hero.primaryBtnText}
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform stroke-[3]" />
               </button>
 
-              <div className="relative w-full sm:w-auto">
+              <div className="relative">
                 <span className="absolute inset-0 rounded-lg border border-white/40 animate-ping opacity-50 pointer-events-none" />
                 <button
                   onClick={() => setIsStockModalOpen(true)}
-                  className="relative w-full px-8 py-4 min-h-[44px] bg-transparent border border-white/40 text-white hover:border-brand-yellow hover:text-brand-yellow hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 font-bold text-xs uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer font-mono"
+                  className="relative w-full h-full px-8 py-4 min-h-[44px] bg-transparent border border-white/40 text-white hover:border-brand-yellow hover:text-brand-yellow hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 font-bold text-xs uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer font-mono"
                 >
                   {hero.secondaryBtnText}
                 </button>
@@ -468,7 +468,7 @@ export default function Hero() {
               {hero.videoUrl && (
                 <button
                   onClick={() => setIsVideoModalOpen(true)}
-                  className="w-full sm:w-auto px-5 py-4 min-h-[44px] bg-transparent border border-white/30 text-white/80 hover:border-white hover:text-white hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 font-black text-[10px] uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer font-mono"
+                  className="px-5 py-4 min-h-[44px] bg-transparent border border-white/30 text-white/80 hover:border-white hover:text-white hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 font-black text-xs uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer font-mono"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   Assistir Tour
@@ -477,7 +477,7 @@ export default function Hero() {
 
               <button
                 onClick={() => setIsTourOpen(true)}
-                className="w-full sm:w-auto px-5 py-4 min-h-[44px] bg-transparent border border-white/30 text-white/80 hover:border-white hover:text-white hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 font-black text-[10px] uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer font-mono"
+                className="px-5 py-4 min-h-[44px] bg-transparent border border-white/30 text-white/80 hover:border-white hover:text-white hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 font-black text-xs uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer font-mono"
               >
                 <Maximize className="w-3.5 h-3.5" />
                 Tour 3D Imersivo
