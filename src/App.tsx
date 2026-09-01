@@ -271,8 +271,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <AdminErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </AdminErrorBoundary>
   );
 }

@@ -10,6 +10,20 @@ import {
   STEPS_DATA 
 } from "../data";
 
+// Envolve localStorage.setItem para que uma falha de escrita (ex: QuotaExceededError
+// quando uma imagem em base64 estoura o payload de um rascunho do CMS) nunca lance
+// dentro do render/efeitos do AppProvider. O AppProvider não tem error boundary acima
+// dele na árvore, então um throw aqui desmonta o app inteiro e deixa a #root vazia
+// (que renderiza preto, por causa do html { background-color: var(--color-stone-950) }
+// em index.css).
+function safeSetItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch (err) {
+    console.warn(`localStorage.setItem falhou para "${key}":`, err);
+  }
+}
+
 // Type declarations for editable sections
 export interface LogoSettings {
   logoUrl: string;       // Empty or "default" means vector SVG
@@ -774,7 +788,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Persist admin view state so reload returns to same page
   React.useEffect(() => {
-    try { localStorage.setItem("dodisa_admin_active", isAdminViewActive ? "true" : "false"); } catch { /* ignore */ }
+    try { safeSetItem("dodisa_admin_active", isAdminViewActive ? "true" : "false"); } catch { /* ignore */ }
   }, [isAdminViewActive]);
 
   // LAST UPDATED METRIC
@@ -811,7 +825,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const clean = parsed.title.replace(/\s/g, "").toUpperCase();
           if (!clean.includes("ASOLUCAOMAISRAPIDA")) {
             parsed.title = "A Solução Mais Rápida e Segura em Containers para sua Empresa ou Obra.";
-            localStorage.setItem("dodisa_cms_pub_hero", JSON.stringify(parsed));
+            safeSetItem("dodisa_cms_pub_hero", JSON.stringify(parsed));
           }
         }
         return parsed;
@@ -827,7 +841,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const clean = parsed.title.replace(/\s/g, "").toUpperCase();
           if (!clean.includes("ASOLUCAOMAISRAPIDA")) {
             parsed.title = "A Solução Mais Rápida e Segura em Containers para sua Empresa ou Obra.";
-            localStorage.setItem("dodisa_cms_hero", JSON.stringify(parsed));
+            safeSetItem("dodisa_cms_hero", JSON.stringify(parsed));
           }
         }
         return parsed;
@@ -983,7 +997,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(cachedDraft);
         if (parsed && parsed.title && (parsed.title.includes("ENGENHARIA") || parsed.title.includes("ESTRUTURAS MODULARES") || parsed.title.includes("PRONTOS") || parsed.title.includes("PRONTO PARA\nSUA EMPRESA"))) {
           parsed.title = "CONTAINERS PRONTO PARA SUA EMPRESA,\nOBRA OU PROJETO.";
-          localStorage.setItem("dodisa_cms_draft_hero", JSON.stringify(parsed));
+          safeSetItem("dodisa_cms_draft_hero", JSON.stringify(parsed));
         }
         return parsed;
       } catch (e) {
@@ -1117,7 +1131,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const saveBaseLocation = (loc: BaseLocation) => {
     setBaseLocationState(loc);
-    localStorage.setItem("dodisa_base_location", JSON.stringify(loc));
+    safeSetItem("dodisa_base_location", JSON.stringify(loc));
     markUpdate();
   };
 
@@ -1138,12 +1152,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             case "logo_settings":
               setPubLogoSettings(content_data);
               setLogoSettings(content_data);
-              localStorage.setItem("dodisa_cms_pub_logo_settings", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_logo_settings", JSON.stringify(content_data));
               break;
             case "seo":
               setPubSeo(content_data);
               setSeo(content_data);
-              localStorage.setItem("dodisa_cms_pub_seo", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_seo", JSON.stringify(content_data));
               break;
             case "hero": {
               const heroData = { ...content_data };
@@ -1155,112 +1169,112 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               }
               setPubHero(heroData);
               setHero(heroData);
-              localStorage.setItem("dodisa_cms_pub_hero", JSON.stringify(heroData));
+              safeSetItem("dodisa_cms_pub_hero", JSON.stringify(heroData));
               break;
             }
             case "differentials":
               setPubDifferentials(content_data);
               setDifferentials(content_data);
-              localStorage.setItem("dodisa_cms_pub_differentials", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_differentials", JSON.stringify(content_data));
               break;
             case "containers":
               setPubContainers(content_data);
               setContainers(content_data);
-              localStorage.setItem("dodisa_cms_pub_containers", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_containers", JSON.stringify(content_data));
               break;
             case "pronta_entrega":
               setPubProntaEntrega(content_data);
               setProntaEntrega(content_data);
-              localStorage.setItem("dodisa_cms_pub_pronta_entrega", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_pronta_entrega", JSON.stringify(content_data));
               break;
             case "projects":
               setPubProjects(content_data);
               setProjects(content_data);
-              localStorage.setItem("dodisa_cms_pub_projects", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_projects", JSON.stringify(content_data));
               break;
             case "videos":
               setPubVideos(content_data);
               setVideos(content_data);
-              localStorage.setItem("dodisa_cms_pub_videos", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_videos", JSON.stringify(content_data));
               break;
             case "faq": {
               const faqData = isLegacyFaq(content_data) ? DEFAULTS.faq : content_data;
               setPubFaq(faqData);
               setFaq(faqData);
-              localStorage.setItem("dodisa_cms_pub_faq", JSON.stringify(faqData));
+              safeSetItem("dodisa_cms_pub_faq", JSON.stringify(faqData));
               break;
             }
             case "testimonials":
               setPubTestimonials(content_data);
               setTestimonials(content_data);
-              localStorage.setItem("dodisa_cms_pub_testimonials", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_testimonials", JSON.stringify(content_data));
               break;
             case "regions":
               setPubRegions(content_data);
               setRegions(content_data);
-              localStorage.setItem("dodisa_cms_pub_regions", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_regions", JSON.stringify(content_data));
               break;
             case "simulator":
               setPubSimulator(content_data);
               setSimulator(content_data);
-              localStorage.setItem("dodisa_cms_pub_simulator", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_simulator", JSON.stringify(content_data));
               break;
             case "whatsapp":
               setPubWhatsApp(content_data);
               setWhatsApp(content_data);
-              localStorage.setItem("dodisa_cms_pub_whatsapp", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_whatsapp", JSON.stringify(content_data));
               break;
             case "visibility": {
               const visData = content_data;
               setPubSectionsVisibility(visData);
               setSectionsVisibilityState(visData);
-              localStorage.setItem("dodisa_cms_pub_visibility", JSON.stringify(visData));
+              safeSetItem("dodisa_cms_pub_visibility", JSON.stringify(visData));
               break;
             }
             case "sections_order":
               setPubSectionsOrder(content_data);
               setSectionsOrderState(content_data);
-              localStorage.setItem("dodisa_cms_pub_sections_order", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_sections_order", JSON.stringify(content_data));
               break;
             case "custom_blocks":
               setPubCustomBlocks(content_data);
               setCustomBlocks(content_data);
-              localStorage.setItem("dodisa_cms_pub_custom_blocks", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_custom_blocks", JSON.stringify(content_data));
               break;
             case "material_images":
               setPubMaterialImages(content_data);
               setMaterialImages(content_data);
-              localStorage.setItem("dodisa_cms_pub_material_images", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_material_images", JSON.stringify(content_data));
               break;
             case "ongoing_projects":
               setPubOngoingProjects(content_data);
               setOngoingProjects(content_data);
-              localStorage.setItem("dodisa_cms_pub_ongoing_projects", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_ongoing_projects", JSON.stringify(content_data));
               break;
             case "about":
               setPubAbout(content_data);
               setAbout(content_data);
-              localStorage.setItem("dodisa_cms_pub_about", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_about", JSON.stringify(content_data));
               break;
             case "timeline":
               setPubTimeline(content_data);
               setTimeline(content_data);
-              localStorage.setItem("dodisa_cms_pub_timeline", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_timeline", JSON.stringify(content_data));
               break;
             case "cta":
               setPubCTA(content_data);
               setCTA(content_data);
-              localStorage.setItem("dodisa_cms_pub_cta", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_cta", JSON.stringify(content_data));
               break;
             case "channels":
               setPubChannels(content_data);
               setChannels(content_data);
-              localStorage.setItem("dodisa_cms_pub_channels", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_channels", JSON.stringify(content_data));
               break;
             case "economy_calculator":
               setPubEconomyCalculator(content_data);
               setEconomyCalculator(content_data);
-              localStorage.setItem("dodisa_cms_pub_economy_calculator", JSON.stringify(content_data));
+              safeSetItem("dodisa_cms_pub_economy_calculator", JSON.stringify(content_data));
               break;
           }
         });
@@ -1277,12 +1291,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const now = new Date();
     const formatted = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     setLastUpdated(formatted);
-    localStorage.setItem("dodisa_last_updated", formatted);
+    safeSetItem("dodisa_last_updated", formatted);
   };
 
   // Synchronizers of local state to localStorage
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_seo", JSON.stringify(seo));
+    safeSetItem("dodisa_cms_draft_seo", JSON.stringify(seo));
     // Apply changes dynamically to title and description tags for real SEO!
     if (isPagePreviewMode || isAdminViewActive) {
       document.title = seo.title;
@@ -1305,87 +1319,87 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [seo, pubSeo, isPagePreviewMode, isAdminViewActive]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_hero", JSON.stringify(hero));
+    safeSetItem("dodisa_cms_draft_hero", JSON.stringify(hero));
   }, [hero]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_differentials", JSON.stringify(differentials));
+    safeSetItem("dodisa_cms_draft_differentials", JSON.stringify(differentials));
   }, [differentials]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_containers", JSON.stringify(containers));
+    safeSetItem("dodisa_cms_draft_containers", JSON.stringify(containers));
   }, [containers]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_pronta_entrega", JSON.stringify(prontaEntrega));
+    safeSetItem("dodisa_cms_draft_pronta_entrega", JSON.stringify(prontaEntrega));
   }, [prontaEntrega]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_projects", JSON.stringify(projects));
+    safeSetItem("dodisa_cms_draft_projects", JSON.stringify(projects));
   }, [projects]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_videos", JSON.stringify(videos));
+    safeSetItem("dodisa_cms_draft_videos", JSON.stringify(videos));
   }, [videos]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_faq", JSON.stringify(faq));
+    safeSetItem("dodisa_cms_draft_faq", JSON.stringify(faq));
   }, [faq]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_testimonials", JSON.stringify(testimonials));
+    safeSetItem("dodisa_cms_draft_testimonials", JSON.stringify(testimonials));
   }, [testimonials]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_regions", JSON.stringify(regions));
+    safeSetItem("dodisa_cms_draft_regions", JSON.stringify(regions));
   }, [regions]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_simulator", JSON.stringify(simulator));
+    safeSetItem("dodisa_cms_draft_simulator", JSON.stringify(simulator));
   }, [simulator]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_whatsapp", JSON.stringify(whatsapp));
+    safeSetItem("dodisa_cms_draft_whatsapp", JSON.stringify(whatsapp));
   }, [whatsapp]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_media_library", JSON.stringify(mediaLibrary));
+    safeSetItem("dodisa_cms_media_library", JSON.stringify(mediaLibrary));
   }, [mediaLibrary]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_custom_blocks", JSON.stringify(customBlocks));
+    safeSetItem("dodisa_cms_draft_custom_blocks", JSON.stringify(customBlocks));
   }, [customBlocks]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_material_images", JSON.stringify(materialImages));
+    safeSetItem("dodisa_cms_draft_material_images", JSON.stringify(materialImages));
   }, [materialImages]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_ongoing_projects", JSON.stringify(ongoingProjects));
+    safeSetItem("dodisa_cms_draft_ongoing_projects", JSON.stringify(ongoingProjects));
   }, [ongoingProjects]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_about", JSON.stringify(about));
+    safeSetItem("dodisa_cms_draft_about", JSON.stringify(about));
   }, [about]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_timeline", JSON.stringify(timeline));
+    safeSetItem("dodisa_cms_draft_timeline", JSON.stringify(timeline));
   }, [timeline]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_cta", JSON.stringify(cta));
+    safeSetItem("dodisa_cms_draft_cta", JSON.stringify(cta));
   }, [cta]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_channels", JSON.stringify(channels));
+    safeSetItem("dodisa_cms_draft_channels", JSON.stringify(channels));
   }, [channels]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_economy_calculator", JSON.stringify(economyCalculator));
+    safeSetItem("dodisa_cms_draft_economy_calculator", JSON.stringify(economyCalculator));
   }, [economyCalculator]);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_visibility", JSON.stringify(sectionsVisibility));
+    safeSetItem("dodisa_cms_draft_visibility", JSON.stringify(sectionsVisibility));
   }, [sectionsVisibility]);
 
   // One-time migration: inject carrosselGaleria into existing stored sectionsOrder arrays
@@ -1409,7 +1423,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const raw = localStorage.getItem(key);
         if (raw) {
           const updated = injectKey(JSON.parse(raw));
-          localStorage.setItem(key, JSON.stringify(updated));
+          safeSetItem(key, JSON.stringify(updated));
         }
       } catch {}
     });
@@ -1417,7 +1431,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newDraftOrder = injectKey(sectionsOrder);
     setPubSectionsOrder(newPubOrder);
     setSectionsOrderState(newDraftOrder);
-    localStorage.setItem("dodisa_sections_order_v1", "true");
+    safeSetItem("dodisa_sections_order_v1", "true");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1438,17 +1452,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     orderKeys.forEach((key) => {
       try {
         const raw = localStorage.getItem(key);
-        if (raw) localStorage.setItem(key, JSON.stringify(reorder(JSON.parse(raw))));
+        if (raw) safeSetItem(key, JSON.stringify(reorder(JSON.parse(raw))));
       } catch {}
     });
     setPubSectionsOrder((prev) => reorder(prev));
     setSectionsOrderState((prev) => reorder(prev));
-    localStorage.setItem("dodisa_sections_order_v2", "true");
+    safeSetItem("dodisa_sections_order_v2", "true");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("dodisa_cms_draft_sections_order", JSON.stringify(sectionsOrder));
+    safeSetItem("dodisa_cms_draft_sections_order", JSON.stringify(sectionsOrder));
   }, [sectionsOrder]);
 
   // Sync state modifications to Supabase database if credentials are valid
@@ -1489,8 +1503,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const userObj: AdminUser = { email: data.user.email || email, role: "ADMIN_MASTER" };
         setIsAdminLoggedIn(true);
         setAdminUser(userObj);
-        localStorage.setItem("dodisa_admin_logged", "true");
-        localStorage.setItem("dodisa_admin_user", JSON.stringify(userObj));
+        safeSetItem("dodisa_admin_logged", "true");
+        safeSetItem("dodisa_admin_user", JSON.stringify(userObj));
         return true;
       }
       setLoginError("Credenciais inválidas. Verifique seu e-mail e senha.");
@@ -1545,7 +1559,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (newEmail) {
         const updatedUser: AdminUser = { email: newEmail, role: "ADMIN_MASTER" };
         setAdminUser(updatedUser);
-        localStorage.setItem("dodisa_admin_user", JSON.stringify(updatedUser));
+        safeSetItem("dodisa_admin_user", JSON.stringify(updatedUser));
       }
       return { success: true, message: "Credenciais atualizadas via Supabase!" };
     } catch (e: any) {
@@ -1629,9 +1643,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           sec.setPub(remote);
           sec.setDraft(remote);
-          localStorage.setItem(`dodisa_cms_pub_${sec.ls}`, JSON.stringify(remote));
-          localStorage.setItem(`dodisa_cms_draft_${sec.ls}`, JSON.stringify(remote));
-          localStorage.setItem(`dodisa_cms_${sec.ls}`, JSON.stringify(remote));
+          safeSetItem(`dodisa_cms_pub_${sec.ls}`, JSON.stringify(remote));
+          safeSetItem(`dodisa_cms_draft_${sec.ls}`, JSON.stringify(remote));
+          safeSetItem(`dodisa_cms_${sec.ls}`, JSON.stringify(remote));
         }
       } catch (err) {
         console.error("Publish pre-sync issue:", err);
@@ -1646,9 +1660,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // 1. Copy this device's edited drafts into Published state
     for (const sec of editedHere) {
       sec.setPub(sec.draft);
-      localStorage.setItem(`dodisa_cms_pub_${sec.ls}`, JSON.stringify(sec.draft));
+      safeSetItem(`dodisa_cms_pub_${sec.ls}`, JSON.stringify(sec.draft));
       // Legacy slot (no prefix) so public visitors see it instantly on this instance
-      localStorage.setItem(`dodisa_cms_${sec.ls}`, JSON.stringify(sec.draft));
+      safeSetItem(`dodisa_cms_${sec.ls}`, JSON.stringify(sec.draft));
     }
 
     markUpdate();
@@ -1726,29 +1740,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSectionsVisibilityState(pubSectionsVisibility);
     setSectionsOrderState(pubSectionsOrder);
 
-    localStorage.setItem("dodisa_cms_draft_logo_settings", JSON.stringify(pubLogoSettings));
-    localStorage.setItem("dodisa_cms_draft_seo", JSON.stringify(pubSeo));
-    localStorage.setItem("dodisa_cms_draft_hero", JSON.stringify(pubHero));
-    localStorage.setItem("dodisa_cms_draft_differentials", JSON.stringify(pubDifferentials));
-    localStorage.setItem("dodisa_cms_draft_containers", JSON.stringify(pubContainers));
-    localStorage.setItem("dodisa_cms_draft_pronta_entrega", JSON.stringify(pubProntaEntrega));
-    localStorage.setItem("dodisa_cms_draft_projects", JSON.stringify(pubProjects));
-    localStorage.setItem("dodisa_cms_draft_videos", JSON.stringify(pubVideos));
-    localStorage.setItem("dodisa_cms_draft_faq", JSON.stringify(pubFaq));
-    localStorage.setItem("dodisa_cms_draft_testimonials", JSON.stringify(pubTestimonials));
-    localStorage.setItem("dodisa_cms_draft_regions", JSON.stringify(pubRegions));
-    localStorage.setItem("dodisa_cms_draft_simulator", JSON.stringify(pubSimulator));
-    localStorage.setItem("dodisa_cms_draft_whatsapp", JSON.stringify(pubWhatsApp));
-    localStorage.setItem("dodisa_cms_draft_custom_blocks", JSON.stringify(pubCustomBlocks));
-    localStorage.setItem("dodisa_cms_draft_material_images", JSON.stringify(pubMaterialImages));
-    localStorage.setItem("dodisa_cms_draft_ongoing_projects", JSON.stringify(pubOngoingProjects));
-    localStorage.setItem("dodisa_cms_draft_about", JSON.stringify(pubAbout));
-    localStorage.setItem("dodisa_cms_draft_timeline", JSON.stringify(pubTimeline));
-    localStorage.setItem("dodisa_cms_draft_cta", JSON.stringify(pubCTA));
-    localStorage.setItem("dodisa_cms_draft_channels", JSON.stringify(pubChannels));
-    localStorage.setItem("dodisa_cms_draft_economy_calculator", JSON.stringify(pubEconomyCalculator));
-    localStorage.setItem("dodisa_cms_draft_visibility", JSON.stringify(pubSectionsVisibility));
-    localStorage.setItem("dodisa_cms_draft_sections_order", JSON.stringify(pubSectionsOrder));
+    safeSetItem("dodisa_cms_draft_logo_settings", JSON.stringify(pubLogoSettings));
+    safeSetItem("dodisa_cms_draft_seo", JSON.stringify(pubSeo));
+    safeSetItem("dodisa_cms_draft_hero", JSON.stringify(pubHero));
+    safeSetItem("dodisa_cms_draft_differentials", JSON.stringify(pubDifferentials));
+    safeSetItem("dodisa_cms_draft_containers", JSON.stringify(pubContainers));
+    safeSetItem("dodisa_cms_draft_pronta_entrega", JSON.stringify(pubProntaEntrega));
+    safeSetItem("dodisa_cms_draft_projects", JSON.stringify(pubProjects));
+    safeSetItem("dodisa_cms_draft_videos", JSON.stringify(pubVideos));
+    safeSetItem("dodisa_cms_draft_faq", JSON.stringify(pubFaq));
+    safeSetItem("dodisa_cms_draft_testimonials", JSON.stringify(pubTestimonials));
+    safeSetItem("dodisa_cms_draft_regions", JSON.stringify(pubRegions));
+    safeSetItem("dodisa_cms_draft_simulator", JSON.stringify(pubSimulator));
+    safeSetItem("dodisa_cms_draft_whatsapp", JSON.stringify(pubWhatsApp));
+    safeSetItem("dodisa_cms_draft_custom_blocks", JSON.stringify(pubCustomBlocks));
+    safeSetItem("dodisa_cms_draft_material_images", JSON.stringify(pubMaterialImages));
+    safeSetItem("dodisa_cms_draft_ongoing_projects", JSON.stringify(pubOngoingProjects));
+    safeSetItem("dodisa_cms_draft_about", JSON.stringify(pubAbout));
+    safeSetItem("dodisa_cms_draft_timeline", JSON.stringify(pubTimeline));
+    safeSetItem("dodisa_cms_draft_cta", JSON.stringify(pubCTA));
+    safeSetItem("dodisa_cms_draft_channels", JSON.stringify(pubChannels));
+    safeSetItem("dodisa_cms_draft_economy_calculator", JSON.stringify(pubEconomyCalculator));
+    safeSetItem("dodisa_cms_draft_visibility", JSON.stringify(pubSectionsVisibility));
+    safeSetItem("dodisa_cms_draft_sections_order", JSON.stringify(pubSectionsOrder));
   };
 
   const restoreOriginalDefaults = () => {
@@ -1776,29 +1790,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSectionsVisibilityState(DEFAULTS.sectionsVisibility);
     setSectionsOrderState(DEFAULTS.sectionsOrder);
 
-    localStorage.setItem("dodisa_cms_draft_logo_settings", JSON.stringify(DEFAULTS.logoSettings));
-    localStorage.setItem("dodisa_cms_draft_seo", JSON.stringify(DEFAULTS.seo));
-    localStorage.setItem("dodisa_cms_draft_hero", JSON.stringify(DEFAULTS.hero));
-    localStorage.setItem("dodisa_cms_draft_differentials", JSON.stringify(DEFAULTS.differentials));
-    localStorage.setItem("dodisa_cms_draft_containers", JSON.stringify(DEFAULTS.containers));
-    localStorage.setItem("dodisa_cms_draft_pronta_entrega", JSON.stringify(DEFAULTS.prontaEntrega));
-    localStorage.setItem("dodisa_cms_draft_projects", JSON.stringify(DEFAULTS.projects));
-    localStorage.setItem("dodisa_cms_draft_videos", JSON.stringify(DEFAULTS.videos));
-    localStorage.setItem("dodisa_cms_draft_faq", JSON.stringify(DEFAULTS.faq));
-    localStorage.setItem("dodisa_cms_draft_testimonials", JSON.stringify(DEFAULTS.testimonials));
-    localStorage.setItem("dodisa_cms_draft_regions", JSON.stringify(DEFAULTS.regions));
-    localStorage.setItem("dodisa_cms_draft_simulator", JSON.stringify(DEFAULTS.simulator));
-    localStorage.setItem("dodisa_cms_draft_whatsapp", JSON.stringify(DEFAULTS.whatsapp));
-    localStorage.setItem("dodisa_cms_draft_custom_blocks", JSON.stringify(DEFAULTS.customBlocks));
-    localStorage.setItem("dodisa_cms_draft_material_images", JSON.stringify(DEFAULTS.materialImages));
-    localStorage.setItem("dodisa_cms_draft_ongoing_projects", JSON.stringify(DEFAULTS.ongoingProjects));
-    localStorage.setItem("dodisa_cms_draft_about", JSON.stringify(DEFAULTS.about));
-    localStorage.setItem("dodisa_cms_draft_timeline", JSON.stringify(DEFAULTS.timeline));
-    localStorage.setItem("dodisa_cms_draft_cta", JSON.stringify(DEFAULTS.cta));
-    localStorage.setItem("dodisa_cms_draft_channels", JSON.stringify(DEFAULTS.channels));
-    localStorage.setItem("dodisa_cms_draft_economy_calculator", JSON.stringify(DEFAULTS.economyCalculator));
-    localStorage.setItem("dodisa_cms_draft_visibility", JSON.stringify(DEFAULTS.sectionsVisibility));
-    localStorage.setItem("dodisa_cms_draft_sections_order", JSON.stringify(DEFAULTS.sectionsOrder));
+    safeSetItem("dodisa_cms_draft_logo_settings", JSON.stringify(DEFAULTS.logoSettings));
+    safeSetItem("dodisa_cms_draft_seo", JSON.stringify(DEFAULTS.seo));
+    safeSetItem("dodisa_cms_draft_hero", JSON.stringify(DEFAULTS.hero));
+    safeSetItem("dodisa_cms_draft_differentials", JSON.stringify(DEFAULTS.differentials));
+    safeSetItem("dodisa_cms_draft_containers", JSON.stringify(DEFAULTS.containers));
+    safeSetItem("dodisa_cms_draft_pronta_entrega", JSON.stringify(DEFAULTS.prontaEntrega));
+    safeSetItem("dodisa_cms_draft_projects", JSON.stringify(DEFAULTS.projects));
+    safeSetItem("dodisa_cms_draft_videos", JSON.stringify(DEFAULTS.videos));
+    safeSetItem("dodisa_cms_draft_faq", JSON.stringify(DEFAULTS.faq));
+    safeSetItem("dodisa_cms_draft_testimonials", JSON.stringify(DEFAULTS.testimonials));
+    safeSetItem("dodisa_cms_draft_regions", JSON.stringify(DEFAULTS.regions));
+    safeSetItem("dodisa_cms_draft_simulator", JSON.stringify(DEFAULTS.simulator));
+    safeSetItem("dodisa_cms_draft_whatsapp", JSON.stringify(DEFAULTS.whatsapp));
+    safeSetItem("dodisa_cms_draft_custom_blocks", JSON.stringify(DEFAULTS.customBlocks));
+    safeSetItem("dodisa_cms_draft_material_images", JSON.stringify(DEFAULTS.materialImages));
+    safeSetItem("dodisa_cms_draft_ongoing_projects", JSON.stringify(DEFAULTS.ongoingProjects));
+    safeSetItem("dodisa_cms_draft_about", JSON.stringify(DEFAULTS.about));
+    safeSetItem("dodisa_cms_draft_timeline", JSON.stringify(DEFAULTS.timeline));
+    safeSetItem("dodisa_cms_draft_cta", JSON.stringify(DEFAULTS.cta));
+    safeSetItem("dodisa_cms_draft_channels", JSON.stringify(DEFAULTS.channels));
+    safeSetItem("dodisa_cms_draft_economy_calculator", JSON.stringify(DEFAULTS.economyCalculator));
+    safeSetItem("dodisa_cms_draft_visibility", JSON.stringify(DEFAULTS.sectionsVisibility));
+    safeSetItem("dodisa_cms_draft_sections_order", JSON.stringify(DEFAULTS.sectionsOrder));
   };
 
   // ----------------------------------------------------
