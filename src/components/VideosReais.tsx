@@ -104,6 +104,15 @@ export default function VideosReais() {
   const [modalVideo, setModalVideo] = useState<EditableVideo | null>(null);
 
   const visibleVideos = videos.filter((v) => v.visible);
+  // With few videos, the fixed-width horizontal-scroll carousel below leaves a lot
+  // of empty space on wide screens. Below the scroll threshold, switch to a
+  // centered grid whose cards grow to fill the row instead of staying pinned at
+  // the carousel's fixed card width.
+  const isCompact = visibleVideos.length > 0 && visibleVideos.length <= 3;
+  const compactGridCols =
+    visibleVideos.length === 1 ? "grid-cols-1 max-w-lg sm:max-w-2xl" :
+    visibleVideos.length === 2 ? "grid-cols-1 sm:grid-cols-2 max-w-4xl" :
+    "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl";
 
   return (
     <section id="videos-demonstrativos" className="relative bg-zinc-950 py-12 sm:py-20 border-b border-stone-900 scroll-mt-20 overflow-hidden">
@@ -132,7 +141,11 @@ export default function VideosReais() {
         </motion.div>
 
         {/* Cards */}
-        <div className="flex gap-6 overflow-x-auto pb-2 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className={
+          isCompact
+            ? `grid gap-6 mx-auto ${compactGridCols}`
+            : "flex gap-6 overflow-x-auto pb-2 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        }>
           {visibleVideos.map((card, idx) => (
             <motion.div
               key={card.id || card.title}
@@ -140,7 +153,9 @@ export default function VideosReais() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="group bg-stone-900 border border-stone-850 hover:border-red-500/30 rounded-xl overflow-hidden shadow-xl flex flex-col justify-between flex-shrink-0 w-[320px] sm:w-[380px] snap-start"
+              className={`group bg-stone-900 border border-stone-850 hover:border-red-500/30 rounded-xl overflow-hidden shadow-xl flex flex-col justify-between ${
+                isCompact ? "w-full" : "flex-shrink-0 w-[320px] sm:w-[380px] snap-start"
+              }`}
             >
               {/* Thumbnail + Play */}
               <div
