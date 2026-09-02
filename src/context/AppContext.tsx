@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getSupabase } from "../lib/supabase";
+import { getSupabase, getSupabaseAsync } from "../lib/supabase";
 import { 
   CUSTOMER_WHATSAPP_NUMBER, 
   APP_INFO, 
@@ -1163,7 +1163,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Load published content from Supabase on mount so all visitors see the latest data
   useEffect(() => {
     const loadPublished = async () => {
-      const supabase = getSupabase();
+      // Awaits the same background client init getSupabase() reads from, instead
+      // of racing it — this effect fires on first mount and can easily run before
+      // the async client is ready, and unlike other getSupabase() call sites (all
+      // triggered by later user interaction, well past that window) this one has
+      // no retry, so losing the race here meant fresh visitors sometimes never
+      // got the actual published content at all for that page load.
+      const supabase = await getSupabaseAsync();
       if (!supabase) return;
       try {
         const { data, error } = await supabase
