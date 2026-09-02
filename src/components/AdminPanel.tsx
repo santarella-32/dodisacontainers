@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Lock, Eye, EyeOff, LogOut, Layout, Settings, FileText, HelpCircle,
@@ -559,25 +559,58 @@ export default function AdminPanel() {
   const [settingsSubTab, setSettingsSubTab] = useState<"hero" | "conversions" | "faq" | "logo" | "domain" | "base">("hero");
   const [mediaSubTab, setMediaSubTab] = useState<"gallery" | "carrossel">("gallery");
 
-  // Folder list for the "Mãos à Obra" editor's folder-picker dropdown. Lives at
-  // AdminPanel's top level (not inside the drawer's conditional JSX) because the
-  // maosAObra editor is inline here rather than its own component like
-  // CarrosselAdminPanel, and Hooks can't be called conditionally mid-render.
+  // Folder list + upload for the "Mãos à Obra" editor. Lives at AdminPanel's top
+  // level (not inside the drawer's conditional JSX) because the maosAObra editor
+  // is inline here rather than its own component like CarrosselAdminPanel, and
+  // Hooks can't be called conditionally mid-render.
   const [maosAObraFolders, setMaosAObraFolders] = useState<string[]>([]);
   const [loadingMaosAObraFolders, setLoadingMaosAObraFolders] = useState(false);
-  useEffect(() => {
-    const loadFolders = async () => {
-      setLoadingMaosAObraFolders(true);
-      const supabase = getSupabase();
-      if (!supabase) { setLoadingMaosAObraFolders(false); return; }
-      try {
-        const { data } = await supabase.storage.from("site-assets").list("gallery", { limit: 100 });
-        if (data) setMaosAObraFolders(data.filter((f) => !f.metadata).map((f) => f.name));
-      } catch {}
-      setLoadingMaosAObraFolders(false);
-    };
-    loadFolders();
+  const [newMaosAObraFolderName, setNewMaosAObraFolderName] = useState("");
+  const [uploadingMaosAObra, setUploadingMaosAObra] = useState(false);
+  const maosAObraUploadInputRef = useRef<HTMLInputElement>(null);
+
+  const loadMaosAObraFolders = useCallback(async () => {
+    setLoadingMaosAObraFolders(true);
+    const supabase = getSupabase();
+    if (!supabase) { setLoadingMaosAObraFolders(false); return; }
+    try {
+      const { data } = await supabase.storage.from("site-assets").list("gallery", { limit: 100 });
+      if (data) setMaosAObraFolders(data.filter((f) => !f.metadata).map((f) => f.name));
+    } catch {}
+    setLoadingMaosAObraFolders(false);
   }, []);
+
+  useEffect(() => { loadMaosAObraFolders(); }, [loadMaosAObraFolders]);
+
+  const handleCreateMaosAObraFolder = () => {
+    const name = newMaosAObraFolderName.trim();
+    if (!name) return;
+    saveMaosAObra({ ...maosAObra, folder: name });
+    setMaosAObraFolders((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    setNewMaosAObraFolderName("");
+  };
+
+  const handleUploadMaosAObraFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    if (!maosAObra.folder) { triggerNotification("Selecione ou crie uma pasta antes de enviar imagens."); return; }
+    const supabase = getSupabase();
+    if (!supabase) { triggerNotification("Supabase não configurado — upload indisponível."); return; }
+    setUploadingMaosAObra(true);
+    let okCount = 0;
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) continue;
+      try {
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `gallery/${maosAObra.folder}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+        const { error } = await supabase.storage.from("site-assets").upload(path, file, { cacheControl: "31536000", upsert: false });
+        if (!error) okCount++;
+      } catch {}
+    }
+    setUploadingMaosAObra(false);
+    if (maosAObraUploadInputRef.current) maosAObraUploadInputRef.current.value = "";
+    triggerNotification(`${okCount} imagem(ns) enviada(s) para "${maosAObra.folder}".`);
+    loadMaosAObraFolders();
+  };
 
   // Live Preview layout controller states
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -5415,7 +5448,49 @@ export default function AdminPanel() {
                         <option value="">-- Selecionar pasta --</option>
                         {maosAObraFolders.map((f) => <option key={f} value={f}>{f}</option>)}
                       </select>
-                      <p className="text-stone-500 text-[10px] mt-1.5">Gerencie as fotos dessa pasta na aba Mídia → Galeria.</p>
+                      <div className="flex gap-1.5 mt-1.5">
+                        <input
+                          type="text"
+                          value={newMaosAObraFolderName}
+                          onChange={(e) => setNewMaosAObraFolderName(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCreateMaosAObraFolder(); } }}
+                          placeholder="Ou crie uma pasta nova..."
+                          className="flex-1 bg-[#0F1115] border border-white/5 rounded-lg px-2.5 py-1.5 text-white text-[11px] outline-none focus:border-[#FFD400] font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCreateMaosAObraFolder}
+                          disabled={!newMaosAObraFolderName.trim()}
+                          className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-stone-300 rounded-lg text-[10px] font-bold uppercase cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Criar
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-stone-400 mb-1.5 uppercase font-bold text-[10px] tracking-wider">Upload de Imagens</label>
+                      <input
+                        ref={maosAObraUploadInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => handleUploadMaosAObraFiles(e.target.files)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => maosAObraUploadInputRef.current?.click()}
+                        disabled={uploadingMaosAObra || !maosAObra.folder}
+                        className="flex items-center gap-2 bg-[#FFD400]/10 hover:bg-[#FFD400]/20 border border-[#FFD400]/20 text-[#FFD400] px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        {uploadingMaosAObra ? "Enviando..." : "Selecionar Imagens"}
+                      </button>
+                      <p className="text-stone-500 text-[10px] mt-1.5">
+                        {maosAObra.folder
+                          ? `Envia direto para a pasta "${maosAObra.folder}" — as fotos aparecem no slide automaticamente.`
+                          : "Selecione ou crie uma pasta acima antes de enviar imagens."}
+                      </p>
                     </div>
                     <div>
                       <label className="block text-stone-400 mb-1.5 uppercase font-bold text-[10px] tracking-wider">Velocidade do slide (ms)</label>
