@@ -1,22 +1,16 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { HelpCircle, ChevronDown, MessageSquare, ShieldAlert, Sparkles } from "lucide-react";
+import { ChevronDown, ShieldAlert, Sparkles } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 
 export default function FAQInteligente() {
-  const { faq, whatsapp: systemWhatsapp } = useAppContext();
+  const { faq } = useAppContext();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const visibleFaqs = faq.filter((f) => f.visible);
 
   const toggleIndex = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);
-  };
-
-  const handleWhatsappGeneral = () => {
-    const message = "Olá! Tenho uma dúvida sobre os containers da Dodisa e gostaria de conversar com o suporte comercial.";
-    const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/${systemWhatsapp.number}?text=${encoded}`, "_blank");
   };
 
   return (
@@ -93,25 +87,6 @@ export default function FAQInteligente() {
               </motion.div>
             );
           })}
-        </div>
-
-        {/* Dynamic FAQ Support bottom CTA */}
-        <div className="text-center p-5 sm:p-8 bg-[#111827]/40 border border-white/5 rounded-2xl max-w-2xl mx-auto backdrop-blur shadow-2xl relative">
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-yellow to-brand-orange opacity-40" />
-          <HelpCircle className="w-10 h-10 text-brand-yellow mx-auto mb-4" />
-          <h3 className="text-white text-base sm:text-lg font-black font-display uppercase tracking-wider mb-2">
-            Ainda Possui Dúvidas Técnicas?
-          </h3>
-          <p className="text-stone-400 text-xs font-sans mb-6 leading-relaxed max-w-sm mx-auto">
-            Converse diretamente com o engenheiro encarregado para alinhar topografias de terrenos, calhas de chuva ou de içamentos especiais.
-          </p>
-          <button
-            onClick={handleWhatsappGeneral}
-            className="py-3.5 px-6 bg-brand-yellow hover:bg-brand-orange text-brand-black font-black text-xs uppercase tracking-widest rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 mx-auto border-none font-display shadow-lg shadow-brand-yellow/5"
-          >
-            <MessageSquare className="w-4 h-4 text-brand-black" />
-            Tirar dúvida no WhatsApp
-          </button>
         </div>
 
       </div>
