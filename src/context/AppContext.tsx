@@ -236,6 +236,13 @@ export interface ChannelsConfig {
   mapsUrl: string;
 }
 
+export interface MaosAObraConfig {
+  title: string;
+  subtitle: string;
+  folder: string;
+  autoplaySpeed: number;
+}
+
 export interface EconomyComparisonRow {
   id: string;
   attribute: string;
@@ -307,6 +314,7 @@ export interface SectionsVisibility {
   cta: boolean;
   channels: boolean;
   obrasAndamento: boolean;
+  maosAObra: boolean;
   // Custom sections use a dynamic "custom-<id>" key, so visibility isn't a fixed field
   [key: string]: boolean;
 }
@@ -351,6 +359,7 @@ interface AppContextType {
   timeline: TimelineConfig;
   cta: CTAConfig;
   channels: ChannelsConfig;
+  maosAObra: MaosAObraConfig;
   economyCalculator: EconomyCalculatorConfig;
   sectionsVisibility: SectionsVisibility;
   sectionsOrder: string[];
@@ -427,6 +436,7 @@ interface AppContextType {
   saveTimeline: (timeline: TimelineConfig) => void;
   saveCTA: (cta: CTAConfig) => void;
   saveChannels: (channels: ChannelsConfig) => void;
+  saveMaosAObra: (config: MaosAObraConfig) => void;
   saveEconomyCalculator: (calc: EconomyCalculatorConfig) => void;
 
   // Regions Updaters
@@ -686,11 +696,12 @@ const DEFAULTS = {
     testimonials: true,
     cta: true,
     channels: true,
-    obrasAndamento: true
+    obrasAndamento: true,
+    maosAObra: false
   },
   sectionsOrder: [
     "hero", "containers", "simulator", "differentials", "prontaEntrega", "projects",
-    "obrasAndamento", "carrosselGaleria", "gallery", "economyCalculator", "videos", "timeline", "map",
+    "obrasAndamento", "maosAObra", "carrosselGaleria", "gallery", "economyCalculator", "videos", "timeline", "map",
     "about", "faq", "testimonials", "cta", "channels"
   ],
   customBlocks: [] as CustomBlock[],
@@ -737,6 +748,12 @@ const DEFAULTS = {
     addressLine2: "Santa Rosa, Rio Grande do Sul",
     mapsUrl: APP_INFO.mapsUrl
   } as ChannelsConfig,
+  maosAObra: {
+    title: "Mãos à Obra",
+    subtitle: "Nossa equipe em campo, transformando projetos em containers prontos — dia após dia.",
+    folder: "",
+    autoplaySpeed: 3000,
+  } as MaosAObraConfig,
   economyCalculator: {
     eyebrow: "ANÁLISE DE CUSTO-BENEFÍCIO FINANCEIRO",
     titleLine1: "Container",
@@ -956,6 +973,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const cachedPub = localStorage.getItem("dodisa_cms_pub_channels");
     return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.channels;
   });
+  const [pubMaosAObra, setPubMaosAObra] = useState<MaosAObraConfig>(() => {
+    const cachedPub = localStorage.getItem("dodisa_cms_pub_maos_a_obra");
+    return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.maosAObra;
+  });
   const [pubEconomyCalculator, setPubEconomyCalculator] = useState<EconomyCalculatorConfig>(() => {
     const cachedPub = localStorage.getItem("dodisa_cms_pub_economy_calculator");
     return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.economyCalculator;
@@ -1098,6 +1119,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [channels, setChannels] = useState<ChannelsConfig>(() => {
     const cachedDraft = localStorage.getItem("dodisa_cms_draft_channels");
     return cachedDraft ? JSON.parse(cachedDraft) : pubChannels;
+  });
+  const [maosAObra, setMaosAObra] = useState<MaosAObraConfig>(() => {
+    const cachedDraft = localStorage.getItem("dodisa_cms_draft_maos_a_obra");
+    return cachedDraft ? JSON.parse(cachedDraft) : pubMaosAObra;
   });
   const [economyCalculator, setEconomyCalculator] = useState<EconomyCalculatorConfig>(() => {
     const cachedDraft = localStorage.getItem("dodisa_cms_draft_economy_calculator");
@@ -1271,6 +1296,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setChannels(content_data);
               safeSetItem("dodisa_cms_pub_channels", JSON.stringify(content_data));
               break;
+            case "maos_a_obra":
+              setPubMaosAObra(content_data);
+              setMaosAObra(content_data);
+              safeSetItem("dodisa_cms_pub_maos_a_obra", JSON.stringify(content_data));
+              break;
             case "economy_calculator":
               setPubEconomyCalculator(content_data);
               setEconomyCalculator(content_data);
@@ -1395,6 +1425,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [channels]);
 
   useEffect(() => {
+    safeSetItem("dodisa_cms_draft_maos_a_obra", JSON.stringify(maosAObra));
+  }, [maosAObra]);
+
+  useEffect(() => {
     safeSetItem("dodisa_cms_draft_economy_calculator", JSON.stringify(economyCalculator));
   }, [economyCalculator]);
 
@@ -1458,6 +1492,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPubSectionsOrder((prev) => reorder(prev));
     setSectionsOrderState((prev) => reorder(prev));
     safeSetItem("dodisa_sections_order_v2", "true");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // One-time migration: inject maosAObra into existing stored sectionsOrder arrays
+  useEffect(() => {
+    if (localStorage.getItem("dodisa_sections_order_maos_v1")) return;
+    const insertAfter = "obrasAndamento";
+    const newKey = "maosAObra";
+    const injectKey = (order: string[]): string[] => {
+      if (order.includes(newKey)) return order;
+      const idx = order.indexOf(insertAfter);
+      if (idx === -1) return [...order, newKey];
+      return [...order.slice(0, idx + 1), newKey, ...order.slice(idx + 1)];
+    };
+    const orderKeys = [
+      "dodisa_cms_pub_sections_order",
+      "dodisa_cms_draft_sections_order",
+      "dodisa_cms_sections_order",
+    ];
+    orderKeys.forEach((key) => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) safeSetItem(key, JSON.stringify(injectKey(JSON.parse(raw))));
+      } catch {}
+    });
+    setPubSectionsOrder((prev) => injectKey(prev));
+    setSectionsOrderState((prev) => injectKey(prev));
+    safeSetItem("dodisa_sections_order_maos_v1", "true");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1591,6 +1653,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     JSON.stringify(timeline) !== JSON.stringify(pubTimeline) ||
     JSON.stringify(cta) !== JSON.stringify(pubCTA) ||
     JSON.stringify(channels) !== JSON.stringify(pubChannels) ||
+    JSON.stringify(maosAObra) !== JSON.stringify(pubMaosAObra) ||
     JSON.stringify(economyCalculator) !== JSON.stringify(pubEconomyCalculator) ||
     JSON.stringify(sectionsVisibility) !== JSON.stringify(pubSectionsVisibility) ||
     JSON.stringify(sectionsOrder) !== JSON.stringify(pubSectionsOrder);
@@ -1620,6 +1683,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { key: "timeline", ls: "timeline", draft: timeline, pub: pubTimeline, setDraft: setTimeline, setPub: setPubTimeline },
       { key: "cta", ls: "cta", draft: cta, pub: pubCTA, setDraft: setCTA, setPub: setPubCTA },
       { key: "channels", ls: "channels", draft: channels, pub: pubChannels, setDraft: setChannels, setPub: setPubChannels },
+      { key: "maos_a_obra", ls: "maos_a_obra", draft: maosAObra, pub: pubMaosAObra, setDraft: setMaosAObra, setPub: setPubMaosAObra },
       { key: "economy_calculator", ls: "economy_calculator", draft: economyCalculator, pub: pubEconomyCalculator, setDraft: setEconomyCalculator, setPub: setPubEconomyCalculator },
       { key: "visibility", ls: "visibility", draft: sectionsVisibility, pub: pubSectionsVisibility, setDraft: setSectionsVisibilityState, setPub: setPubSectionsVisibility },
       { key: "sections_order", ls: "sections_order", draft: sectionsOrder, pub: pubSectionsOrder, setDraft: setSectionsOrderState, setPub: setPubSectionsOrder },
@@ -1736,6 +1800,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTimeline(pubTimeline);
     setCTA(pubCTA);
     setChannels(pubChannels);
+    setMaosAObra(pubMaosAObra);
     setEconomyCalculator(pubEconomyCalculator);
     setSectionsVisibilityState(pubSectionsVisibility);
     setSectionsOrderState(pubSectionsOrder);
@@ -1760,6 +1825,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     safeSetItem("dodisa_cms_draft_timeline", JSON.stringify(pubTimeline));
     safeSetItem("dodisa_cms_draft_cta", JSON.stringify(pubCTA));
     safeSetItem("dodisa_cms_draft_channels", JSON.stringify(pubChannels));
+    safeSetItem("dodisa_cms_draft_maos_a_obra", JSON.stringify(pubMaosAObra));
     safeSetItem("dodisa_cms_draft_economy_calculator", JSON.stringify(pubEconomyCalculator));
     safeSetItem("dodisa_cms_draft_visibility", JSON.stringify(pubSectionsVisibility));
     safeSetItem("dodisa_cms_draft_sections_order", JSON.stringify(pubSectionsOrder));
@@ -1786,6 +1852,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTimeline(DEFAULTS.timeline);
     setCTA(DEFAULTS.cta);
     setChannels(DEFAULTS.channels);
+    setMaosAObra(DEFAULTS.maosAObra);
     setEconomyCalculator(DEFAULTS.economyCalculator);
     setSectionsVisibilityState(DEFAULTS.sectionsVisibility);
     setSectionsOrderState(DEFAULTS.sectionsOrder);
@@ -1810,6 +1877,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     safeSetItem("dodisa_cms_draft_timeline", JSON.stringify(DEFAULTS.timeline));
     safeSetItem("dodisa_cms_draft_cta", JSON.stringify(DEFAULTS.cta));
     safeSetItem("dodisa_cms_draft_channels", JSON.stringify(DEFAULTS.channels));
+    safeSetItem("dodisa_cms_draft_maos_a_obra", JSON.stringify(DEFAULTS.maosAObra));
     safeSetItem("dodisa_cms_draft_economy_calculator", JSON.stringify(DEFAULTS.economyCalculator));
     safeSetItem("dodisa_cms_draft_visibility", JSON.stringify(DEFAULTS.sectionsVisibility));
     safeSetItem("dodisa_cms_draft_sections_order", JSON.stringify(DEFAULTS.sectionsOrder));
@@ -2085,6 +2153,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setChannels(newChannels);
     markUpdate();
   };
+  const saveMaosAObra = (newConfig: MaosAObraConfig) => {
+    setMaosAObra(newConfig);
+    markUpdate();
+  };
   const saveEconomyCalculator = (newCalc: EconomyCalculatorConfig) => {
     setEconomyCalculator(newCalc);
     markUpdate();
@@ -2160,6 +2232,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timeline: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubTimeline : timeline) : pubTimeline,
         cta: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubCTA : cta) : pubCTA,
         channels: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubChannels : channels) : pubChannels,
+        maosAObra: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubMaosAObra : maosAObra) : pubMaosAObra,
         economyCalculator: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubEconomyCalculator : economyCalculator) : pubEconomyCalculator,
         sectionsVisibility: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubSectionsVisibility : sectionsVisibility) : pubSectionsVisibility,
         sectionsOrder: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubSectionsOrder : sectionsOrder) : pubSectionsOrder,
@@ -2224,6 +2297,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         saveTimeline,
         saveCTA,
         saveChannels,
+        saveMaosAObra,
         saveEconomyCalculator,
 
         saveRegions,

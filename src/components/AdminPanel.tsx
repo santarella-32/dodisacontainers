@@ -30,6 +30,7 @@ import Depoimentos from "./Depoimentos";
 import CTA from "./CTA";
 import CanaisAtendimento from "./CanaisAtendimento";
 import ObrasAndamento from "./ObrasAndamento";
+import MaosAObra from "./MaosAObra";
 import CustomBlockSection from "./CustomBlockSection";
 import { STRUCTURE_OPTIONS, FLOORS, INTERNAL_WALLS, PAINT_COLORS, DOOR_TYPES, WINDOW_TYPES, ALL_EXTRAS } from "../data/materials";
 import Header from "./Header";
@@ -63,6 +64,7 @@ function renderSectionElement(sec: string): React.ReactNode {
     case "prontaEntrega": return <ProntaEntrega />;
     case "projects": return <Projetos />;
     case "obrasAndamento": return <ObrasAndamento />;
+    case "maosAObra": return <MaosAObra />;
     case "carrosselGaleria": return <CarrosselGaleria />;
     case "gallery": return <GaleriaProjetos />;
     case "economyCalculator": return <CalculadoraEconomia />;
@@ -515,6 +517,7 @@ export default function AdminPanel() {
     timeline, saveTimeline,
     cta, saveCTA,
     channels, saveChannels,
+    maosAObra, saveMaosAObra,
     economyCalculator, saveEconomyCalculator,
     sectionsVisibility, saveSectionsVisibility,
     sectionsOrder, saveSectionsOrder,
@@ -555,6 +558,26 @@ export default function AdminPanel() {
   const [projectsSubTab, setProjectsSubTab] = useState<"cases" | "videos" | "differentials">("cases");
   const [settingsSubTab, setSettingsSubTab] = useState<"hero" | "conversions" | "faq" | "logo" | "domain" | "base">("hero");
   const [mediaSubTab, setMediaSubTab] = useState<"gallery" | "carrossel">("gallery");
+
+  // Folder list for the "Mãos à Obra" editor's folder-picker dropdown. Lives at
+  // AdminPanel's top level (not inside the drawer's conditional JSX) because the
+  // maosAObra editor is inline here rather than its own component like
+  // CarrosselAdminPanel, and Hooks can't be called conditionally mid-render.
+  const [maosAObraFolders, setMaosAObraFolders] = useState<string[]>([]);
+  const [loadingMaosAObraFolders, setLoadingMaosAObraFolders] = useState(false);
+  useEffect(() => {
+    const loadFolders = async () => {
+      setLoadingMaosAObraFolders(true);
+      const supabase = getSupabase();
+      if (!supabase) { setLoadingMaosAObraFolders(false); return; }
+      try {
+        const { data } = await supabase.storage.from("site-assets").list("gallery", { limit: 100 });
+        if (data) setMaosAObraFolders(data.filter((f) => !f.metadata).map((f) => f.name));
+      } catch {}
+      setLoadingMaosAObraFolders(false);
+    };
+    loadFolders();
+  }, []);
 
   // Live Preview layout controller states
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -805,7 +828,8 @@ export default function AdminPanel() {
       testimonials: "Depoimentos de Clientes",
       cta: "Chamada para Ação Final",
       channels: "Canais de Atendimento",
-      obrasAndamento: "Obras em Andamento"
+      obrasAndamento: "Obras em Andamento",
+      maosAObra: "Mãos à Obra"
     };
     if (key.startsWith("custom-")) {
       const block = customBlocks.find((b) => b.id === key);
@@ -2023,7 +2047,7 @@ export default function AdminPanel() {
                   <button
                     onClick={() => {
                       if (confirm("Deseja restaurar a ordem padrão das seções?")) {
-                        saveSectionsOrder(["hero", "simulator", "differentials", "containers", "prontaEntrega", "projects", "obrasAndamento", "gallery", "economyCalculator", "videos", "timeline", "map", "about", "faq", "testimonials", "cta", "channels"]);
+                        saveSectionsOrder(["hero", "simulator", "differentials", "containers", "prontaEntrega", "projects", "obrasAndamento", "maosAObra", "gallery", "economyCalculator", "videos", "timeline", "map", "about", "faq", "testimonials", "cta", "channels"]);
                         triggerNotification("Estrutura redefinida para o padrão.");
                       }
                     }}
@@ -5371,6 +5395,37 @@ export default function AdminPanel() {
                     <button onClick={() => addOngoingProject()} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-stone-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
                       <Plus className="w-3.5 h-3.5" /> Adicionar Obra
                     </button>
+                  </div>
+                )}
+
+                {drawerSection === "maosAObra" && (
+                  <div className="space-y-4">
+                    <DrawerField label="Título" value={maosAObra.title} onChange={(v) => saveMaosAObra({ ...maosAObra, title: v })} />
+                    <DrawerField label="Subtítulo" value={maosAObra.subtitle} onChange={(v) => saveMaosAObra({ ...maosAObra, subtitle: v })} rows={2} />
+                    <div>
+                      <label className="block text-stone-400 mb-1.5 uppercase font-bold text-[10px] tracking-wider">
+                        Pasta da Galeria{loadingMaosAObraFolders && <span className="ml-2 text-stone-500 normal-case font-normal">carregando...</span>}
+                      </label>
+                      <select
+                        value={maosAObra.folder}
+                        onChange={(e) => saveMaosAObra({ ...maosAObra, folder: e.target.value })}
+                        className="w-full bg-[#0F1115] border border-white/5 rounded-xl text-white text-xs focus:border-[#FFD400] outline-none p-2.5"
+                        disabled={loadingMaosAObraFolders}
+                      >
+                        <option value="">-- Selecionar pasta --</option>
+                        {maosAObraFolders.map((f) => <option key={f} value={f}>{f}</option>)}
+                      </select>
+                      <p className="text-stone-500 text-[10px] mt-1.5">Gerencie as fotos dessa pasta na aba Mídia → Galeria.</p>
+                    </div>
+                    <div>
+                      <label className="block text-stone-400 mb-1.5 uppercase font-bold text-[10px] tracking-wider">Velocidade do slide (ms)</label>
+                      <input
+                        type="number" min={1000} step={500}
+                        value={maosAObra.autoplaySpeed}
+                        onChange={(e) => saveMaosAObra({ ...maosAObra, autoplaySpeed: Number(e.target.value) || 3000 })}
+                        className="w-full bg-[#0F1115] border border-white/5 rounded-xl text-white text-xs focus:border-[#FFD400] outline-none p-2.5 font-mono"
+                      />
+                    </div>
                   </div>
                 )}
 
