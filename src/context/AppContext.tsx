@@ -243,6 +243,13 @@ export interface MaosAObraConfig {
   autoplaySpeed: number;
 }
 
+export interface GalleryConfig {
+  eyebrow: string;
+  title: string;
+  titleHighlight: string;
+  subtitle: string;
+}
+
 export interface EconomyComparisonRow {
   id: string;
   attribute: string;
@@ -360,6 +367,7 @@ interface AppContextType {
   cta: CTAConfig;
   channels: ChannelsConfig;
   maosAObra: MaosAObraConfig;
+  gallery: GalleryConfig;
   economyCalculator: EconomyCalculatorConfig;
   sectionsVisibility: SectionsVisibility;
   sectionsOrder: string[];
@@ -437,6 +445,7 @@ interface AppContextType {
   saveCTA: (cta: CTAConfig) => void;
   saveChannels: (channels: ChannelsConfig) => void;
   saveMaosAObra: (config: MaosAObraConfig) => void;
+  saveGallery: (config: GalleryConfig) => void;
   saveEconomyCalculator: (calc: EconomyCalculatorConfig) => void;
 
   // Regions Updaters
@@ -754,6 +763,12 @@ const DEFAULTS = {
     folder: "",
     autoplaySpeed: 3000,
   } as MaosAObraConfig,
+  gallery: {
+    eyebrow: "Galeria Industrial",
+    title: "Projetos Reais Executados",
+    titleHighlight: "Reais",
+    subtitle: "Nenhuma ilustração mockup 3D barata. Veja engenharia de verdade construída, içaço pela frota da Dodisa e entregue de forma operacional em nossos canteiros de parceiros.",
+  } as GalleryConfig,
   economyCalculator: {
     eyebrow: "ANÁLISE DE CUSTO-BENEFÍCIO FINANCEIRO",
     titleLine1: "Container",
@@ -977,6 +992,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const cachedPub = localStorage.getItem("dodisa_cms_pub_maos_a_obra");
     return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.maosAObra;
   });
+  const [pubGallery, setPubGallery] = useState<GalleryConfig>(() => {
+    const cachedPub = localStorage.getItem("dodisa_cms_pub_gallery");
+    return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.gallery;
+  });
   const [pubEconomyCalculator, setPubEconomyCalculator] = useState<EconomyCalculatorConfig>(() => {
     const cachedPub = localStorage.getItem("dodisa_cms_pub_economy_calculator");
     return cachedPub ? JSON.parse(cachedPub) : DEFAULTS.economyCalculator;
@@ -1123,6 +1142,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [maosAObra, setMaosAObra] = useState<MaosAObraConfig>(() => {
     const cachedDraft = localStorage.getItem("dodisa_cms_draft_maos_a_obra");
     return cachedDraft ? JSON.parse(cachedDraft) : pubMaosAObra;
+  });
+  const [gallery, setGallery] = useState<GalleryConfig>(() => {
+    const cachedDraft = localStorage.getItem("dodisa_cms_draft_gallery");
+    return cachedDraft ? JSON.parse(cachedDraft) : pubGallery;
   });
   const [economyCalculator, setEconomyCalculator] = useState<EconomyCalculatorConfig>(() => {
     const cachedDraft = localStorage.getItem("dodisa_cms_draft_economy_calculator");
@@ -1307,6 +1330,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setMaosAObra(content_data);
               safeSetItem("dodisa_cms_pub_maos_a_obra", JSON.stringify(content_data));
               break;
+            case "gallery":
+              setPubGallery(content_data);
+              setGallery(content_data);
+              safeSetItem("dodisa_cms_pub_gallery", JSON.stringify(content_data));
+              break;
             case "economy_calculator":
               setPubEconomyCalculator(content_data);
               setEconomyCalculator(content_data);
@@ -1433,6 +1461,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     safeSetItem("dodisa_cms_draft_maos_a_obra", JSON.stringify(maosAObra));
   }, [maosAObra]);
+
+  useEffect(() => {
+    safeSetItem("dodisa_cms_draft_gallery", JSON.stringify(gallery));
+  }, [gallery]);
 
   useEffect(() => {
     safeSetItem("dodisa_cms_draft_economy_calculator", JSON.stringify(economyCalculator));
@@ -1660,6 +1692,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     JSON.stringify(cta) !== JSON.stringify(pubCTA) ||
     JSON.stringify(channels) !== JSON.stringify(pubChannels) ||
     JSON.stringify(maosAObra) !== JSON.stringify(pubMaosAObra) ||
+    JSON.stringify(gallery) !== JSON.stringify(pubGallery) ||
     JSON.stringify(economyCalculator) !== JSON.stringify(pubEconomyCalculator) ||
     JSON.stringify(sectionsVisibility) !== JSON.stringify(pubSectionsVisibility) ||
     JSON.stringify(sectionsOrder) !== JSON.stringify(pubSectionsOrder);
@@ -1690,6 +1723,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { key: "cta", ls: "cta", draft: cta, pub: pubCTA, setDraft: setCTA, setPub: setPubCTA },
       { key: "channels", ls: "channels", draft: channels, pub: pubChannels, setDraft: setChannels, setPub: setPubChannels },
       { key: "maos_a_obra", ls: "maos_a_obra", draft: maosAObra, pub: pubMaosAObra, setDraft: setMaosAObra, setPub: setPubMaosAObra },
+      { key: "gallery", ls: "gallery", draft: gallery, pub: pubGallery, setDraft: setGallery, setPub: setPubGallery },
       { key: "economy_calculator", ls: "economy_calculator", draft: economyCalculator, pub: pubEconomyCalculator, setDraft: setEconomyCalculator, setPub: setPubEconomyCalculator },
       { key: "visibility", ls: "visibility", draft: sectionsVisibility, pub: pubSectionsVisibility, setDraft: setSectionsVisibilityState, setPub: setPubSectionsVisibility },
       { key: "sections_order", ls: "sections_order", draft: sectionsOrder, pub: pubSectionsOrder, setDraft: setSectionsOrderState, setPub: setPubSectionsOrder },
@@ -1807,6 +1841,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCTA(pubCTA);
     setChannels(pubChannels);
     setMaosAObra(pubMaosAObra);
+    setGallery(pubGallery);
     setEconomyCalculator(pubEconomyCalculator);
     setSectionsVisibilityState(pubSectionsVisibility);
     setSectionsOrderState(pubSectionsOrder);
@@ -1832,6 +1867,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     safeSetItem("dodisa_cms_draft_cta", JSON.stringify(pubCTA));
     safeSetItem("dodisa_cms_draft_channels", JSON.stringify(pubChannels));
     safeSetItem("dodisa_cms_draft_maos_a_obra", JSON.stringify(pubMaosAObra));
+    safeSetItem("dodisa_cms_draft_gallery", JSON.stringify(pubGallery));
     safeSetItem("dodisa_cms_draft_economy_calculator", JSON.stringify(pubEconomyCalculator));
     safeSetItem("dodisa_cms_draft_visibility", JSON.stringify(pubSectionsVisibility));
     safeSetItem("dodisa_cms_draft_sections_order", JSON.stringify(pubSectionsOrder));
@@ -1859,6 +1895,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCTA(DEFAULTS.cta);
     setChannels(DEFAULTS.channels);
     setMaosAObra(DEFAULTS.maosAObra);
+    setGallery(DEFAULTS.gallery);
     setEconomyCalculator(DEFAULTS.economyCalculator);
     setSectionsVisibilityState(DEFAULTS.sectionsVisibility);
     setSectionsOrderState(DEFAULTS.sectionsOrder);
@@ -1884,6 +1921,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     safeSetItem("dodisa_cms_draft_cta", JSON.stringify(DEFAULTS.cta));
     safeSetItem("dodisa_cms_draft_channels", JSON.stringify(DEFAULTS.channels));
     safeSetItem("dodisa_cms_draft_maos_a_obra", JSON.stringify(DEFAULTS.maosAObra));
+    safeSetItem("dodisa_cms_draft_gallery", JSON.stringify(DEFAULTS.gallery));
     safeSetItem("dodisa_cms_draft_economy_calculator", JSON.stringify(DEFAULTS.economyCalculator));
     safeSetItem("dodisa_cms_draft_visibility", JSON.stringify(DEFAULTS.sectionsVisibility));
     safeSetItem("dodisa_cms_draft_sections_order", JSON.stringify(DEFAULTS.sectionsOrder));
@@ -2163,6 +2201,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setMaosAObra(newConfig);
     markUpdate();
   };
+  const saveGallery = (newConfig: GalleryConfig) => {
+    setGallery(newConfig);
+    markUpdate();
+  };
   const saveEconomyCalculator = (newCalc: EconomyCalculatorConfig) => {
     setEconomyCalculator(newCalc);
     markUpdate();
@@ -2239,6 +2281,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         cta: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubCTA : cta) : pubCTA,
         channels: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubChannels : channels) : pubChannels,
         maosAObra: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubMaosAObra : maosAObra) : pubMaosAObra,
+        gallery: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubGallery : gallery) : pubGallery,
         economyCalculator: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubEconomyCalculator : economyCalculator) : pubEconomyCalculator,
         sectionsVisibility: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubSectionsVisibility : sectionsVisibility) : pubSectionsVisibility,
         sectionsOrder: (isPagePreviewMode || isAdminViewActive) ? (previewDataScope === 'published' ? pubSectionsOrder : sectionsOrder) : pubSectionsOrder,
@@ -2304,6 +2347,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         saveCTA,
         saveChannels,
         saveMaosAObra,
+        saveGallery,
         saveEconomyCalculator,
 
         saveRegions,

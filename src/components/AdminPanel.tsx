@@ -518,6 +518,7 @@ export default function AdminPanel() {
     cta, saveCTA,
     channels, saveChannels,
     maosAObra, saveMaosAObra,
+    gallery, saveGallery,
     economyCalculator, saveEconomyCalculator,
     sectionsVisibility, saveSectionsVisibility,
     sectionsOrder, saveSectionsOrder,
@@ -5111,6 +5112,14 @@ export default function AdminPanel() {
                         ? "A Galeria de Projetos mostra os mesmos projetos cadastrados abaixo, só que em grade filtrável por categoria."
                         : null}
                     </p>
+                    {drawerSection === "gallery" && (
+                      <div className="space-y-4 pb-4 border-b border-white/5">
+                        <DrawerField label="Etiqueta" value={gallery.eyebrow} onChange={(v) => saveGallery({ ...gallery, eyebrow: v })} />
+                        <DrawerField label="Título" value={gallery.title} onChange={(v) => saveGallery({ ...gallery, title: v })} />
+                        <DrawerField label="Palavra em destaque (deve existir dentro do título)" value={gallery.titleHighlight} onChange={(v) => saveGallery({ ...gallery, titleHighlight: v })} />
+                        <DrawerField label="Subtítulo" value={gallery.subtitle} onChange={(v) => saveGallery({ ...gallery, subtitle: v })} rows={3} />
+                      </div>
+                    )}
                     {projects.map((p) => (
                       <DrawerListCard key={p.id} title={p.title || "Projeto"} onDelete={() => deleteProject(p.id)}>
                         <DrawerField label="Título" value={p.title} onChange={(v) => editProject(p.id, { title: v })} />

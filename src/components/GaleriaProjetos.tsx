@@ -3,8 +3,21 @@ import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, MessageSquare, ArrowRight, ImagePlus } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 
+function renderTitleWithHighlight(title: string, highlight: string) {
+  if (!highlight) return title;
+  const idx = title.indexOf(highlight);
+  if (idx === -1) return title;
+  return (
+    <>
+      {title.slice(0, idx)}
+      <span className="text-amber-500">{highlight}</span>
+      {title.slice(idx + highlight.length)}
+    </>
+  );
+}
+
 export default function GaleriaProjetos() {
-  const { projects, whatsapp: systemWhatsapp } = useAppContext();
+  const { projects, gallery, whatsapp: systemWhatsapp } = useAppContext();
   const [activeCategory, setActiveCategory] = useState("Todos");
 
   const visibleProjects = projects.filter((p) => p.visible);
@@ -46,13 +59,13 @@ export default function GaleriaProjetos() {
           className="text-center max-w-3xl mx-auto mb-12"
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-stone-900 border border-stone-800 text-xs font-black text-amber-500 uppercase tracking-widest mb-4">
-            Galeria Industrial
+            {gallery.eyebrow}
           </div>
           <h2 className="text-3xl sm:text-5xl font-black font-sans uppercase tracking-tight text-white leading-none">
-            Projetos <span className="text-amber-500">Reais</span> Executados
+            {renderTitleWithHighlight(gallery.title, gallery.titleHighlight)}
           </h2>
           <p className="mt-4 text-stone-400 font-sans text-sm sm:text-base leading-relaxed">
-            Nenhuma ilustração mockup 3D barata. Veja engenharia de verdade construída, içaço pela frota da Dodisa e entregue de forma operacional em nossos canteiros de parceiros.
+            {gallery.subtitle}
           </p>
         </motion.div>
 
