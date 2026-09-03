@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { Loader2, RotateCcw } from "lucide-react";
 
@@ -507,6 +507,39 @@ export default function ContainerVisualizer3D({
     if (ledLightRef.current) ledLightRef.current.intensity = temEletrica ? 1.8 : 0;
   }, [temEletrica]);
 
+  // ── Shared layout: doors and windows spread out along whichever wall they ──
+  // share, instead of each category computing its own offsets in isolation
+  // (which put every door dead-center of its wall regardless of what else was
+  // there, overlapping any window — or other door — placed on the same side).
+  // One offset per array index, aligned with doorPanels/windowPanels order.
+  const wallLayout = useMemo(() => {
+    const CW = 4.14, CD = 1.62;
+    type Combined = { kind: "door" | "window"; idx: number; position: "front" | "back" | "left" | "right" };
+    const combined: Combined[] = [
+      ...doorPanels.map((d, idx) => ({ kind: "door" as const, idx, position: d.position })),
+      ...windowPanels.map((w, idx) => ({ kind: "window" as const, idx, position: w.position })),
+    ];
+    const byWall = new Map<string, Combined[]>();
+    combined.forEach((item) => {
+      const list = byWall.get(item.position) ?? [];
+      list.push(item);
+      byWall.set(item.position, list);
+    });
+    const doorOffsets: number[] = new Array(doorPanels.length).fill(0);
+    const windowOffsets: number[] = new Array(windowPanels.length).fill(0);
+    byWall.forEach((items, position) => {
+      const isSide = position === "left" || position === "right";
+      const wallLen = isSide ? CD : CW;
+      const spacing = Math.min(wallLen / (items.length + 1), 1.3);
+      items.forEach((item, i) => {
+        const offset = (i - (items.length - 1) / 2) * spacing;
+        if (item.kind === "door") doorOffsets[item.idx] = offset;
+        else windowOffsets[item.idx] = offset;
+      });
+    });
+    return { doorOffsets, windowOffsets };
+  }, [doorPanels, windowPanels]);
+
   // ── Reactive: windows — each catalog type gets its own realistic size/shape ──
   // instead of every window rendering as the same generic frame+pane.
   useEffect(() => {
@@ -602,30 +635,20 @@ export default function ContainerVisualizer3D({
       return g;
     }
 
-    // Group selections by wall so multiple windows on the same wall spread out
-    // along it instead of stacking at the same spot.
-    const byWall = new Map<string, typeof windowPanels>();
-    windowPanels.forEach((w) => {
-      const list = byWall.get(w.position) ?? [];
-      list.push(w);
-      byWall.set(w.position, list);
+    // Offsets come from wallLayout, which accounts for doors sharing the same
+    // wall too — not just other windows — so a window never lands in the same
+    // spot as a door placed on that side.
+    windowPanels.forEach((item, idx) => {
+      const offset = wallLayout.windowOffsets[idx] ?? 0;
+      const position = item.position;
+      const win = buildWindow(item.color, item.typeId);
+      if (position === "front") { win.position.set(offset, y, CD / 2 + 0.02); }
+      else if (position === "back") { win.position.set(offset, y, -(CD / 2 + 0.02)); win.rotation.y = Math.PI; }
+      else if (position === "left") { win.position.set(-(CW / 2 + 0.02), y, offset); win.rotation.y = -Math.PI / 2; }
+      else { win.position.set(CW / 2 + 0.02, y, offset); win.rotation.y = Math.PI / 2; }
+      winGroup.add(win);
     });
-
-    byWall.forEach((items, position) => {
-      const isSide = position === "left" || position === "right";
-      const wallLen = isSide ? CD : CW;
-      const spacing = Math.min(wallLen / (items.length + 1), 1.3);
-      items.forEach((item, i) => {
-        const offset = (i - (items.length - 1) / 2) * spacing;
-        const win = buildWindow(item.color, item.typeId);
-        if (position === "front") { win.position.set(offset, y, CD / 2 + 0.02); }
-        else if (position === "back") { win.position.set(offset, y, -(CD / 2 + 0.02)); win.rotation.y = Math.PI; }
-        else if (position === "left") { win.position.set(-(CW / 2 + 0.02), y, offset); win.rotation.y = -Math.PI / 2; }
-        else { win.position.set(CW / 2 + 0.02, y, offset); win.rotation.y = Math.PI / 2; }
-        winGroup.add(win);
-      });
-    });
-  }, [windowPanels]);
+  }, [windowPanels, wallLayout]);
 
   // ── Reactive: door panels (one mesh per selected door × wall position) ──
   useEffect(() => {
@@ -641,8 +664,9 @@ export default function ContainerVisualizer3D({
     const CW = 4.14, CH = 1.62, CD = 1.62;
     const panelW = CW * 0.34, panelH = CH * 0.78, thickness = 0.03;
 
-    doorPanels.forEach(({ color, position }) => {
+    doorPanels.forEach(({ color, position }, idx) => {
       const isSide = position === "left" || position === "right";
+      const offset = wallLayout.doorOffsets[idx] ?? 0;
       const geo = new THREE.BoxGeometry(
         isSide ? thickness : panelW,
         panelH,
@@ -651,10 +675,13 @@ export default function ContainerVisualizer3D({
       const mat = new THREE.MeshStandardMaterial({ color: hexStringToInt(color, 0x52525b), roughness: 0.45, metalness: 0.55 });
       const mesh = new THREE.Mesh(geo, mat);
       const y = -CH / 2 + panelH / 2 + 0.02;
-      if (position === "front") mesh.position.set(0, y, CD / 2 + thickness / 2 + 0.01);
-      else if (position === "back") mesh.position.set(0, y, -(CD / 2 + thickness / 2 + 0.01));
-      else if (position === "left") mesh.position.set(-(CW / 2 + thickness / 2 + 0.01), y, 0);
-      else mesh.position.set(CW / 2 + thickness / 2 + 0.01, y, 0);
+      // Offsets come from wallLayout, which spreads doors along the wall (and
+      // away from any window sharing that wall) instead of every door sitting
+      // dead-center, on top of whatever else is there.
+      if (position === "front") mesh.position.set(offset, y, CD / 2 + thickness / 2 + 0.01);
+      else if (position === "back") mesh.position.set(offset, y, -(CD / 2 + thickness / 2 + 0.01));
+      else if (position === "left") mesh.position.set(-(CW / 2 + thickness / 2 + 0.01), y, offset);
+      else mesh.position.set(CW / 2 + thickness / 2 + 0.01, y, offset);
       mesh.castShadow = true;
       mesh.userData.doorPosition = position;
       // Respect whatever view is currently active — the view-switch effect only
@@ -662,7 +689,7 @@ export default function ContainerVisualizer3D({
       mesh.visible = !(viewRef.current === "interior" && position === "front");
       doorsGroup.add(mesh);
     });
-  }, [doorPanels]);
+  }, [doorPanels, wallLayout]);
 
   // ── Reactive: interior furniture blocks (spec section 17 — visual extras) ──
   // Simple, honest low-poly shapes for the handful of extras that read clearly
