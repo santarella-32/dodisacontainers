@@ -823,6 +823,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try { safeSetItem("dodisa_admin_active", isAdminViewActive ? "true" : "false"); } catch { /* ignore */ }
   }, [isAdminViewActive]);
 
+  // A flag "dodisa_admin_logged" só controla a tela; quem autoriza gravar é a
+  // sessão do Supabase (RLS). Se a sessão não existe mais (expirou, logout em
+  // outra aba), volta para o login em vez de deixar o painel aberto com
+  // salvamentos sendo recusados pelo banco.
+  React.useEffect(() => {
+    if (!isAdminLoggedIn) return;
+    let cancelled = false;
+    getSupabaseAsync().then(async (supabase: any) => {
+      if (!supabase || cancelled) return;
+      const { data } = await supabase.auth.getSession();
+      if (!cancelled && !data?.session) {
+        setIsAdminLoggedIn(false);
+        setAdminUser(null);
+        setAdminViewActive(false);
+        localStorage.removeItem("dodisa_admin_logged");
+        localStorage.removeItem("dodisa_admin_user");
+      }
+    }).catch(() => { /* sem conexão: mantém o estado atual */ });
+    return () => { cancelled = true; };
+  }, [isAdminLoggedIn]);
+
   // LAST UPDATED METRIC
   const [lastUpdated, setLastUpdated] = useState<string>(() => {
     return localStorage.getItem("dodisa_last_updated") || "2026-06-21 13:30";
