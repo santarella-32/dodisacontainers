@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { X, ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
 import { getSupabase } from "../lib/supabase";
+import { isVideoFile } from "../lib/media";
 import { useAppContext } from "../context/AppContext";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -47,7 +48,7 @@ export default function MaosAObra() {
           .list(`gallery/${config.folder}`, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
         if (data && data.length > 0) {
           const urls = data
-            .filter((f) => f.name && f.name !== ".emptyFolderPlaceholder")
+            .filter((f) => f.name && f.name !== ".emptyFolderPlaceholder" && !isVideoFile(f.name))
             .map((f) => supabase.storage.from("site-assets").getPublicUrl(`gallery/${config.folder}/${f.name}`).data.publicUrl);
           if (!cancelled) { setImages(shuffle(urls)); setIndex(0); }
         } else if (!cancelled) {

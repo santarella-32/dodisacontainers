@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { Upload, Link, X, Images } from "lucide-react";
-import { getSupabase } from "../lib/supabase";
+import { getSupabase, describeSupabaseError } from "../lib/supabase";
 import GalleryPickerModal from "./GalleryPickerModal";
 
 interface ImageUploadFieldProps {
@@ -71,14 +71,19 @@ export default function ImageUploadField({
     const file = await compressImage(rawFile);
 
     // Immediate local preview via base64
+    const previous = value;
+    let uploadSettled = false;
     const reader = new FileReader();
     reader.onload = (e) => {
+      if (uploadSettled) return;
       const dataUrl = e.target?.result as string;
       onChange(dataUrl);
     };
     reader.readAsDataURL(file);
 
-    // If Supabase is configured, upload to storage for a permanent URL
+    // If Supabase is configured, upload to storage for a permanent URL. On failure,
+    // restore the previous value: leaving the base64 preview in place used to save
+    // the whole image inline into the published content with no error shown.
     const supabase = getSupabase();
     if (supabase) {
       try {
@@ -87,15 +92,21 @@ export default function ImageUploadField({
         const { error: uploadError } = await supabase.storage
           .from("site-assets")
           .upload(fileName, file, { cacheControl: "31536000", upsert: true });
+        uploadSettled = true;
 
         if (!uploadError) {
           const { data: { publicUrl } } = supabase.storage
             .from("site-assets")
             .getPublicUrl(fileName);
           onChange(publicUrl);
+        } else {
+          onChange(previous);
+          setError("Falha no upload: " + describeSupabaseError(uploadError));
         }
-      } catch {
-        // fallback to base64 already set above
+      } catch (e) {
+        uploadSettled = true;
+        onChange(previous);
+        setError("Falha no upload: " + describeSupabaseError(e));
       }
     }
 

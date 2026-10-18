@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getSupabase, getSupabaseAsync } from "../lib/supabase";
+import { getSupabase, getSupabaseAsync, describeSupabaseError } from "../lib/supabase";
 import { 
   CUSTOMER_WHATSAPP_NUMBER, 
   APP_INFO, 
@@ -470,7 +470,7 @@ interface AppContextType {
   isPagePreviewMode: boolean;
   setPagePreviewMode: (mode: boolean) => void;
   hasUnsavedChanges: boolean;
-  publishChanges: () => Promise<void>;
+  publishChanges: () => Promise<string | null>; // resolves to an error message when Supabase rejected the write
   discardDrafts: () => void;
   restoreOriginalDefaults: () => void;
   previewDataScope: 'draft' | 'published';
@@ -1779,7 +1779,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (editedHere.length === 0) {
       markUpdate();
-      return;
+      return null;
     }
 
     // 1. Copy this device's edited drafts into Published state
@@ -1792,13 +1792,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     markUpdate();
 
-    // 2. Sync to Supabase tables draft_content and published_content if configured
+    // 2. Sync to Supabase tables draft_content and published_content if configured.
+    // supabase-js reports a rejected write (e.g. RLS) in `error` rather than
+    // throwing; without checking it the panel announced success while visitors
+    // never received the change.
+    let syncError: any = null;
     if (supabase) {
       const userEmail = adminUser?.email || "admin@dodisa.com.br";
 
       for (const sec of editedHere) {
         try {
-          await supabase.from("draft_content").upsert({
+          const { error: draftError } = await supabase.from("draft_content").upsert({
             section_key: sec.key,
             content_data: sec.draft,
             updated_at: new Date().toISOString(),
@@ -1806,13 +1810,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             is_published: true
           }, { onConflict: "section_key" });
 
-          await supabase.from("published_content").upsert({
+          const { error: pubError } = await supabase.from("published_content").upsert({
             section_key: sec.key,
             content_data: sec.draft,
             updated_at: new Date().toISOString(),
             updated_by: userEmail,
             is_published: true
           }, { onConflict: "section_key" });
+          syncError = syncError || pubError || draftError;
 
           // Also sync to a specific table site_settings if it exists
           if (sec.isLogo) {
@@ -1835,9 +1840,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (err) {
           console.error("Supabase sync issue inside publishChanges:", err);
+          syncError = syncError || err;
         }
       }
     }
+    return syncError ? describeSupabaseError(syncError) : null;
   };
 
   const discardDrafts = () => {

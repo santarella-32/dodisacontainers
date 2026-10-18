@@ -8,7 +8,8 @@ import {
   Menu, Grid, Video, Smartphone, CheckCircle2, Image, ChevronLeft, Globe, TrendingUp, Upload
 } from "lucide-react";
 import { useAppContext, AppContext, EditableContainer, ProntaEntregaItem, EditableProject, EditableVideo, EditableFAQ, EditableTestimonial } from "../context/AppContext";
-import { getSupabase } from "../lib/supabase";
+import { getSupabase, describeSupabaseError } from "../lib/supabase";
+import { isVideoFile } from "../lib/media";
 import ImageUploadField from "./ImageUploadField";
 import VideoUploadField from "./VideoUploadField";
 import GaleriaImagens from "./GaleriaImagens";
@@ -101,7 +102,7 @@ function CarrosselAdminPanel({ triggerNotification }: { triggerNotification: (ms
         .from("site-assets")
         .list(`gallery/${folder}`, { limit: 200 });
       if (data) {
-        setPreviewCount(data.filter((f) => f.name !== ".emptyFolderPlaceholder").length);
+        setPreviewCount(data.filter((f) => f.name !== ".emptyFolderPlaceholder" && !isVideoFile(f.name)).length);
       }
     } catch {}
   }, []);
@@ -139,18 +140,21 @@ function CarrosselAdminPanel({ triggerNotification }: { triggerNotification: (ms
     if (!supabase) { triggerNotification("Supabase não configurado — upload indisponível."); return; }
     setUploading(true);
     let okCount = 0;
+    let lastError: any = null;
     for (const file of Array.from(files)) {
       if (!file.type.startsWith("image/")) continue;
       try {
         const ext = file.name.split(".").pop() || "jpg";
         const path = `gallery/${config.folder}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
         const { error } = await supabase.storage.from("site-assets").upload(path, file, { cacheControl: "31536000", upsert: false });
-        if (!error) okCount++;
-      } catch {}
+        if (!error) okCount++; else lastError = error;
+      } catch (e) { lastError = e; }
     }
     setUploading(false);
     if (uploadInputRef.current) uploadInputRef.current.value = "";
-    triggerNotification(`${okCount} imagem(ns) enviada(s) para "${config.folder}".`);
+    triggerNotification(lastError
+      ? `Erro: ${okCount} imagem(ns) enviada(s) para "${config.folder}". ${describeSupabaseError(lastError)}`
+      : `${okCount} imagem(ns) enviada(s) para "${config.folder}".`);
     refreshFolderCount(config.folder);
     loadFolders();
   };
@@ -598,18 +602,21 @@ export default function AdminPanel() {
     if (!supabase) { triggerNotification("Supabase não configurado — upload indisponível."); return; }
     setUploadingMaosAObra(true);
     let okCount = 0;
+    let lastError: any = null;
     for (const file of Array.from(files)) {
       if (!file.type.startsWith("image/")) continue;
       try {
         const ext = file.name.split(".").pop() || "jpg";
         const path = `gallery/${maosAObra.folder}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
         const { error } = await supabase.storage.from("site-assets").upload(path, file, { cacheControl: "31536000", upsert: false });
-        if (!error) okCount++;
-      } catch {}
+        if (!error) okCount++; else lastError = error;
+      } catch (e) { lastError = e; }
     }
     setUploadingMaosAObra(false);
     if (maosAObraUploadInputRef.current) maosAObraUploadInputRef.current.value = "";
-    triggerNotification(`${okCount} imagem(ns) enviada(s) para "${maosAObra.folder}".`);
+    triggerNotification(lastError
+      ? `Erro: ${okCount} imagem(ns) enviada(s) para "${maosAObra.folder}". ${describeSupabaseError(lastError)}`
+      : `${okCount} imagem(ns) enviada(s) para "${maosAObra.folder}".`);
     loadMaosAObraFolders();
   };
 
@@ -745,7 +752,8 @@ export default function AdminPanel() {
 
   const triggerNotification = (msg: string) => {
     setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
+    // Errors carry instructions (log in again, check cms_admins), so give time to read them
+    setTimeout(() => setNotification(null), msg.startsWith("Erro") ? 9000 : 3000);
   };
 
   const handleLogoUpload = async (file: File, type: "light" | "dark" | "favicon") => {
@@ -785,6 +793,7 @@ export default function AdminPanel() {
 
         if (error) {
           console.error("Storage upload error:", error);
+          triggerNotification("Erro ao enviar a logo: " + describeSupabaseError(error));
         } else {
           const { data: { publicUrl } } = supabase.storage
             .from("site-assets")
@@ -802,6 +811,7 @@ export default function AdminPanel() {
         }
       } catch (err) {
         console.error("Exception in storage upload:", err);
+        triggerNotification("Erro ao enviar a logo: " + describeSupabaseError(err));
       }
     }
   };
@@ -1716,8 +1726,8 @@ export default function AdminPanel() {
               {/* Action buttons */}
               <button
                 onClick={async () => {
-                  await publishChanges();
-                  triggerNotification("Alterações salvas e publicadas com sucesso!");
+                  const publishError = await publishChanges();
+                  triggerNotification(publishError ? "Erro ao publicar: " + publishError : "Alterações salvas e publicadas com sucesso!");
                 }}
                 disabled={!hasUnsavedChanges}
                 className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
@@ -1789,8 +1799,8 @@ export default function AdminPanel() {
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={async () => {
-                    await publishChanges();
-                    triggerNotification("Alterações salvas e publicadas com sucesso!");
+                    const publishError = await publishChanges();
+                    triggerNotification(publishError ? "Erro ao publicar: " + publishError : "Alterações salvas e publicadas com sucesso!");
                   }}
                   disabled={!hasUnsavedChanges}
                   className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all ${
@@ -3650,8 +3660,8 @@ export default function AdminPanel() {
                     </button>
                     <button
                       onClick={async () => {
-                        await publishChanges();
-                        triggerNotification("Logo corporativa atualizada e publicada com sucesso!");
+                        const publishError = await publishChanges();
+                        triggerNotification(publishError ? "Erro ao publicar: " + publishError : "Logo corporativa atualizada e publicada com sucesso!");
                       }}
                       className="px-5 py-2.5 bg-[#FFD400] hover:bg-[#E05E00] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-[#FFD400]/15 flex items-center gap-2 transition-all duration-200 cursor-pointer"
                     >

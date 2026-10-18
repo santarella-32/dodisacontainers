@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import { Upload, Link, X, Video as VideoIcon } from "lucide-react";
-import { getSupabase } from "../lib/supabase";
+import { getSupabase, describeSupabaseError } from "../lib/supabase";
+import { MAX_VIDEO_BYTES } from "../lib/media";
 
 interface VideoUploadFieldProps {
   label: string;
@@ -9,8 +10,6 @@ interface VideoUploadFieldProps {
   folder?: string;
   placeholder?: string;
 }
-
-const MAX_SIZE = 50 * 1024 * 1024; // 50MB — matches the Supabase Storage bucket's own limit
 
 function isDirectVideoUrl(url: string) {
   const lower = url.toLowerCase();
@@ -30,7 +29,7 @@ export default function VideoUploadField({
 
   const handleFile = async (file: File) => {
     setError(null);
-    if (file.size > MAX_SIZE) {
+    if (file.size > MAX_VIDEO_BYTES) {
       setError("Arquivo muito grande. Máximo: 50MB.");
       return;
     }
@@ -52,7 +51,7 @@ export default function VideoUploadField({
         .upload(fileName, file, { cacheControl: "31536000", upsert: true });
 
       if (uploadError) {
-        setError("Falha no upload: " + uploadError.message);
+        setError("Falha no upload: " + describeSupabaseError(uploadError));
       } else {
         const { data: { publicUrl } } = supabase.storage
           .from("site-assets")
@@ -60,7 +59,7 @@ export default function VideoUploadField({
         onChange(publicUrl);
       }
     } catch (e: any) {
-      setError("Falha no upload: " + (e?.message || "erro desconhecido"));
+      setError("Falha no upload: " + describeSupabaseError(e));
     }
 
     setUploading(false);

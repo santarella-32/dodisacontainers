@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { X, Search, Loader2, ImageOff, Check } from "lucide-react";
 import { getSupabase } from "../lib/supabase";
+import { isVideoFile } from "../lib/media";
 
 const DEFAULT_FOLDERS = ["Geral", "Containers", "Projetos", "Depoimentos", "Fachada", "Pátio", "Logística", "Equipe"];
 const FOLDERS_KEY = "dodisa_gallery_folders";
@@ -43,7 +44,7 @@ export default function GalleryPickerModal({ onSelect, onClose }: Props) {
         .list(`gallery/${cat}`, { limit: 1000, sortBy: { column: "created_at", order: "desc" } });
       if (!error && data) {
         for (const f of data) {
-          if (f.name === ".emptyFolderPlaceholder") continue;
+          if (f.name === ".emptyFolderPlaceholder" || isVideoFile(f.name)) continue;
           const path = `gallery/${cat}/${f.name}`;
           const { data: pub } = supabase.storage.from("site-assets").getPublicUrl(path);
           if (pub?.publicUrl) {

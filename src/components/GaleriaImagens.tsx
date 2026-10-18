@@ -4,9 +4,10 @@ import {
   Grid3X3, LayoutGrid, Square, AlertCircle, Loader2, RefreshCw,
   ExternalLink, ChevronLeft, ChevronRight, ZoomIn,
   FolderPlus, Folder, CheckSquare, Move, MousePointer,
-  Pencil, Download, Tag, ArrowUpDown, ArrowUp, ArrowDown
+  Pencil, Download, Tag, ArrowUpDown, ArrowUp, ArrowDown, Play, Video
 } from "lucide-react";
-import { getSupabase } from "../lib/supabase";
+import { getSupabase, describeSupabaseError } from "../lib/supabase";
+import { isVideoFile, MAX_VIDEO_BYTES } from "../lib/media";
 import { useAppContext } from "../context/AppContext";
 
 const DEFAULT_FOLDERS = ["Geral", "Containers", "Projetos", "Depoimentos", "Fachada", "Pátio", "Logística", "Equipe", "Configurador"];
@@ -171,7 +172,20 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
   // ── Upload ────────────────────────────────────────────────────
   const processFiles = useCallback(async (selectedFiles: File[]) => {
     const imageFiles = selectedFiles.filter((f) => f.type.startsWith("image/"));
-    if (!imageFiles.length) return;
+    let videoFiles = selectedFiles.filter((f) => f.type.startsWith("video/"));
+
+    // Vídeos vão direto para o Storage, sem conversão. Acima do limite do plano o
+    // Supabase recusa o arquivo, então avisa antes em vez de deixar o upload falhar.
+    if (videoFiles.length && !supabase) {
+      triggerNotification("Erro: vídeos só podem ser enviados com o Supabase conectado.");
+      videoFiles = [];
+    }
+    const tooBigVideos = videoFiles.filter((f) => f.size > MAX_VIDEO_BYTES);
+    if (tooBigVideos.length) {
+      triggerNotification(`Erro: ${tooBigVideos.length} vídeo(s) acima de 50MB ignorado(s). Comprima o vídeo (ex.: HandBrake, 720p) ou use um link do YouTube.`);
+      videoFiles = videoFiles.filter((f) => f.size <= MAX_VIDEO_BYTES);
+    }
+    if (!imageFiles.length && !videoFiles.length) return;
 
     // Modo local sem Supabase: limita tamanho e quantidade
     if (!supabase) {
@@ -185,9 +199,10 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     }
 
     // Compress to WebP if enabled
-    const filesToUpload = compressWebP && supabase
+    const imagesToUpload = compressWebP && supabase
       ? await Promise.all(imageFiles.map((f) => f.type === "image/webp" ? f : compressToWebP(f)))
       : imageFiles;
+    const filesToUpload = [...imagesToUpload, ...videoFiles];
 
     const jobs: UploadJob[] = filesToUpload.map((f) => ({
       id: `job-${Date.now()}-${Math.random()}`,
@@ -236,7 +251,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
         }
       } catch (err: any) {
         if (isMountedRef.current)
-          setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "error", error: err?.message || "Erro" } : j));
+          setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "error", error: describeSupabaseError(err) } : j));
       } finally {
         doneCount++;
         if (isMountedRef.current) setUploadDoneCount(doneCount);
@@ -257,7 +272,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
     if (!isMountedRef.current) return;
     if (results.length > 0) {
       setFiles((prev) => [...results, ...prev]);
-      triggerNotification(`${results.length} de ${jobs.length} imagem(ns) enviada(s)!`);
+      triggerNotification(`${results.length} de ${jobs.length} arquivo(s) enviado(s)!`);
     }
   }, [supabase, uploadCategory, addMediaItem, triggerNotification]);
 
@@ -546,7 +561,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
       {/* ── Header ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-white text-lg font-black uppercase tracking-tight">Galeria de Imagens</h2>
+          <h2 className="text-white text-lg font-black uppercase tracking-tight">Galeria de Imagens e Vídeos</h2>
           <p className="text-stone-500 text-xs mt-0.5 whitespace-nowrap">
             {files.length} arquivo(s) · {supabase ? "Supabase Storage" : "Local"}
           </p>
@@ -575,7 +590,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
             className="flex items-center gap-2 px-4 py-2.5 bg-[#FFD400] hover:bg-[#FF9A00] text-[#07090D] font-black text-xs uppercase tracking-widest rounded-xl cursor-pointer transition-colors shadow-lg shadow-[#FFD400]/10"
           >
             <Upload className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Enviar Imagens</span>
+            <span className="hidden sm:inline">Enviar Mídia</span>
             <span className="sm:hidden">Upload</span>
           </button>
         </div>
@@ -585,12 +600,12 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
       {showUpload && (
         <div className="bg-[#171A21] border border-white/5 rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-white text-xs font-black uppercase tracking-widest">Enviar Imagens</span>
+            <span className="text-white text-xs font-black uppercase tracking-widest">Enviar Imagens e Vídeos</span>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setCompressWebP((v) => !v)}
                 className={`flex items-center gap-1.5 text-[10px] font-bold cursor-pointer transition-colors ${compressWebP ? "text-[#FFD400]" : "text-stone-500 hover:text-stone-300"}`}
-                title="Converte para WebP automaticamente antes do upload (economiza ~70% de espaço)"
+                title="Converte imagens para WebP automaticamente antes do upload (economiza ~70% de espaço). Vídeos são enviados como estão."
               >
                 <div className={`w-7 h-4 rounded-full transition-colors relative ${compressWebP ? "bg-[#FFD400]" : "bg-stone-700"}`}>
                   <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${compressWebP ? "left-3.5" : "left-0.5"}`} />
@@ -632,9 +647,9 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
           >
             <Upload className={`w-10 h-10 mx-auto mb-3 transition-colors ${isDragging ? "text-[#FFD400]" : "text-stone-600"}`} />
             <p className="text-white text-sm font-bold mb-1">Arraste aqui ou clique para selecionar</p>
-            <p className="text-stone-500 text-xs">JPG · PNG · WEBP · GIF — múltiplos arquivos</p>
+            <p className="text-stone-500 text-xs">JPG · PNG · WEBP · GIF · MP4 · WEBM — múltiplos arquivos · vídeos até 50MB</p>
             <input
-              ref={fileInputRef} type="file" accept="image/*" multiple
+              ref={fileInputRef} type="file" accept="image/*,video/*" multiple
               className="absolute inset-0 opacity-0 cursor-pointer"
               onChange={(e) => processFiles(Array.from(e.target.files || []))}
             />
@@ -648,7 +663,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-stone-300 font-bold">
                     {allDone ? "✓ Concluído" : `Enviando ${UPLOAD_CONCURRENCY} em paralelo...`}
-                    <span className="text-stone-500 font-normal ml-2">{doneCount}/{uploadTotal} imagens</span>
+                    <span className="text-stone-500 font-normal ml-2">{doneCount}/{uploadTotal} arquivos</span>
                     {errorCount > 0 && <span className="text-red-400 ml-2">· {errorCount} erro(s)</span>}
                   </span>
                   <div className="flex items-center gap-2">
@@ -673,7 +688,9 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
                   <div key={job.id} className="flex items-center gap-2.5 bg-[#0F1115] rounded-lg px-2.5 py-2">
                     <div className="w-7 h-7 rounded-lg overflow-hidden bg-stone-800 flex-shrink-0">
                       {job.status === "done" && job.url
-                        ? <img src={job.url} alt="" className="w-full h-full object-cover" />
+                        ? job.file.type.startsWith("video/")
+                          ? <div className="w-full h-full flex items-center justify-center"><Video className="w-3.5 h-3.5 text-[#FFD400]" /></div>
+                          : <img src={job.url} alt="" className="w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center">
                             {job.status === "error" ? <AlertCircle className="w-3.5 h-3.5 text-red-400" /> : <Loader2 className="w-3.5 h-3.5 text-stone-500 animate-spin" />}
                           </div>
@@ -895,7 +912,7 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
 
       {/* ── Status bar ── */}
       <div className="flex items-center justify-between text-[10px] text-stone-500 font-mono">
-        <span>{filtered.length} imagem(ns){search ? ` para "${search}"` : ""}{categoryFilter !== "Todas" ? ` em ${categoryFilter}` : ""}</span>
+        <span>{filtered.length} arquivo(s){search ?` para "${search}"` : ""}{categoryFilter !== "Todas" ? ` em ${categoryFilter}` : ""}</span>
         {filtered.length > paginated.length && <span>{paginated.length}/{filtered.length} exibidas</span>}
       </div>
 
@@ -908,8 +925,8 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
       ) : paginated.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-stone-500 border-2 border-dashed border-white/5 rounded-2xl">
           <Image className="w-10 h-10 mb-3 opacity-20" />
-          <p className="text-sm font-bold text-stone-400">Nenhuma imagem encontrada</p>
-          <p className="text-xs mt-1">{search || categoryFilter !== "Todas" ? "Ajuste os filtros" : "Clique em 'Enviar Imagens' para começar"}</p>
+          <p className="text-sm font-bold text-stone-400">Nenhum arquivo encontrado</p>
+          <p className="text-xs mt-1">{search || categoryFilter !== "Todas" ? "Ajuste os filtros" : "Clique em 'Enviar Mídia' para começar"}</p>
         </div>
       ) : (
         <div className={`grid ${gridConfig.cols} gap-3`}>
@@ -932,11 +949,25 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
                   className={`relative ${gridConfig.thumb} bg-stone-900 overflow-hidden ${selectMode ? "cursor-pointer" : "cursor-zoom-in"}`}
                   onClick={() => selectMode ? toggleSelect(file.id) : setLightboxIdx(fileIdx)}
                 >
-                  <img
-                    src={file.url} alt={file.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                    loading={fileIdx < 12 ? "eager" : "lazy"}
-                  />
+                  {isVideoFile(file.name) ? (
+                    <>
+                      {/* #t=0.5 makes the browser paint a frame instead of a black box */}
+                      <video
+                        src={`${file.url}#t=0.5`}
+                        muted playsInline preload="metadata"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                      />
+                      <div className="absolute bottom-2 left-2 flex items-center gap-1 px-1.5 py-0.5 bg-black/75 backdrop-blur-sm rounded-md text-[8px] font-bold text-white uppercase tracking-wider">
+                        <Play className="w-2.5 h-2.5 fill-current" /> Vídeo
+                      </div>
+                    </>
+                  ) : (
+                    <img
+                      src={file.url} alt={file.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                      loading={fileIdx < 12 ? "eager" : "lazy"}
+                    />
+                  )}
 
                   {/* Select mode overlay */}
                   {selectMode && (
@@ -1120,16 +1151,30 @@ export default function GaleriaImagens({ triggerNotification }: Props) {
 
             {/* Image */}
             <div className="flex items-center justify-center bg-[#07090D] overflow-hidden flex-1" style={{ minHeight: 0 }}>
-              <img
-                src={lightboxFile.url}
-                alt={lightboxFile.name}
-                className="max-w-full object-contain"
-                style={{ maxHeight: "calc(92vh - 64px)" }}
-                onLoad={(e) => {
-                  const img = e.currentTarget;
-                  setLightboxDims({ w: img.naturalWidth, h: img.naturalHeight });
-                }}
-              />
+              {isVideoFile(lightboxFile.name) ? (
+                <video
+                  key={lightboxFile.id}
+                  src={lightboxFile.url}
+                  controls autoPlay playsInline
+                  className="max-w-full"
+                  style={{ maxHeight: "calc(92vh - 64px)" }}
+                  onLoadedMetadata={(e) => {
+                    const video = e.currentTarget;
+                    setLightboxDims({ w: video.videoWidth, h: video.videoHeight });
+                  }}
+                />
+              ) : (
+                <img
+                  src={lightboxFile.url}
+                  alt={lightboxFile.name}
+                  className="max-w-full object-contain"
+                  style={{ maxHeight: "calc(92vh - 64px)" }}
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    setLightboxDims({ w: img.naturalWidth, h: img.naturalHeight });
+                  }}
+                />
+              )}
             </div>
           </div>
 

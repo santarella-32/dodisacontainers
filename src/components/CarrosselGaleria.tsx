@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 import { getSupabase } from "../lib/supabase";
+import { isVideoFile } from "../lib/media";
 
 export const CARROSSEL_CONFIG_KEY = "dodisa_carrossel_config";
 
@@ -73,7 +74,7 @@ export default function CarrosselGaleria() {
               });
             if (data && data.length > 0) {
               const urls = data
-                .filter((f) => f.name && f.name !== ".emptyFolderPlaceholder")
+                .filter((f) => f.name && f.name !== ".emptyFolderPlaceholder" && !isVideoFile(f.name))
                 .map(
                   (f) =>
                     supabase.storage

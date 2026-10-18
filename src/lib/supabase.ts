@@ -28,3 +28,22 @@ export function getSupabase() {
 export function getSupabaseAsync() {
   return clientReady;
 }
+
+// Translates Supabase write errors into something the admin can act on. Since
+// supabase/security_hardening_2026_09.sql, writes need a live session for a user
+// listed in cms_admins; otherwise Supabase only says "new row violates row-level
+// security policy", which doesn't tell anyone what to do about it.
+export function describeSupabaseError(err: any): string {
+  const msg = String(err?.message ?? err ?? "");
+  if (/jwt|refresh token/i.test(msg)) {
+    return "Sua sessão expirou. Saia e entre de novo no painel.";
+  }
+  if (
+    /row-level security|permission denied|unauthorized/i.test(msg) ||
+    err?.code === "42501" ||
+    String(err?.statusCode ?? err?.status) === "403"
+  ) {
+    return "Sem permissão para salvar. Saia e entre de novo no painel; se continuar, este usuário não está cadastrado como admin (tabela cms_admins no Supabase).";
+  }
+  return msg || "erro desconhecido";
+}
